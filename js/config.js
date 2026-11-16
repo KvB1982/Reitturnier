@@ -134,7 +134,78 @@ var LADEN = [
   { id: 'decke_tuerkis', art: 'decke', name: 'Sattel türkis', farbe: '#1abc9c', preis: 40 },
   { id: 'decke_gold', art: 'decke', name: 'Sattel gold', farbe: '#d4a017', preis: 60 },
   { id: 'decke_regenbogen', art: 'decke', name: 'Sattel himbeer', farbe: '#c2185b', preis: 40 },
-  { id: 'putz_turbo', art: 'putz', name: 'Zauberstriegel (putzt doppelt so schnell)', preis: 50 }
+  { id: 'putz_turbo', art: 'putz', name: 'Zauberstriegel (putzt doppelt so schnell)', preis: 50 },
+  { id: 'gam_lila', art: 'gamaschen', name: 'Gamaschen lila', farbe: '#8e44ad', preis: 30 },
+  { id: 'gam_gold', art: 'gamaschen', name: 'Gamaschen gold', farbe: '#d4a017', preis: 45 },
+  { id: 'ohr_tuerkis', art: 'ohren', name: 'Fliegenhaube türkis', farbe: '#1abc9c', preis: 35 },
+  { id: 'ohr_gold', art: 'ohren', name: 'Fliegenhaube gold', farbe: '#d4a017', preis: 45 },
+  { id: 'schl_pink', art: 'schleife', name: 'Mähnenschleifen pink', farbe: '#ff5fa2', preis: 15 },
+  { id: 'schl_tuerkis', art: 'schleife', name: 'Mähnenschleifen türkis', farbe: '#1abc9c', preis: 15 },
+  { id: 'decke_flieder', art: 'decke', name: 'Sattel flieder', farbe: '#b07cff', preis: 40 },
+  { id: 'decke_schwarz', art: 'decke', name: 'Sattel schwarz', farbe: '#1c1c1c', preis: 40 },
+
+  // ----- Für dich (kat: 'ich'). art = kappe | frisur | oberteil | extra | farben; wert = was angezogen wird -----
+  { id: 'k_schleife', kat: 'ich', art: 'kappe', wert: 'schleife', name: 'Reitkappe mit Schleife', preis: 25 },
+  { id: 'k_glitzer', kat: 'ich', art: 'kappe', wert: 'glitzer', name: 'Glitzer-Reitkappe', preis: 35 },
+  { id: 'k_blumen', kat: 'ich', art: 'kappe', wert: 'blumen', name: 'Reitkappe mit Blumenkranz', preis: 30 },
+  { id: 'k_ohren', kat: 'ich', art: 'kappe', wert: 'ohren', name: 'Reitkappe mit Katzenohren', preis: 40 },
+  { id: 'k_bommel', kat: 'ich', art: 'kappe', wert: 'bommel', name: 'Winterkappe mit Bommel', preis: 30 },
+  { id: 'k_cowboy', kat: 'ich', art: 'kappe', wert: 'cowboy', name: 'Cowboyhut', preis: 50 },
+  { id: 'k_krone', kat: 'ich', art: 'kappe', wert: 'krone', name: 'Reitkappe mit Krone', preis: 70 },
+  { id: 'k_einhorn', kat: 'ich', art: 'kappe', wert: 'einhorn', name: 'Einhorn-Reitkappe', preis: 80 },
+  { id: 'f_lang', kat: 'ich', art: 'frisur', wert: 'lang', name: 'Frisur: lang und offen', preis: 20 },
+  { id: 'f_dutt', kat: 'ich', art: 'frisur', wert: 'dutt', name: 'Frisur: Dutt', preis: 20 },
+  { id: 'f_flecht', kat: 'ich', art: 'frisur', wert: 'flecht', name: 'Frisur: langer Flechtzopf', preis: 25 },
+  { id: 'f_locken', kat: 'ich', art: 'frisur', wert: 'locken', name: 'Frisur: Locken', preis: 25 },
+  { id: 'f_hoch', kat: 'ich', art: 'frisur', wert: 'hoch', name: 'Frisur: hoher Zopf mit Schleife', preis: 25 },
+  { id: 'farben_haare', kat: 'ich', art: 'farben', name: 'Bunte Haarfarben (türkis, lila, grün, weiß, pink)', preis: 40 },
+  { id: 'farben_bunt', kat: 'ich', art: 'farben', name: 'Farbpaket für Jacke, Hose, Kappe, Stiefel (gold, türkis, rosa, flieder, orange)', preis: 45 },
+  { id: 'o_stern', kat: 'ich', art: 'oberteil', wert: 'stern', name: 'Pulli mit Goldstern', preis: 25 },
+  { id: 'o_herz', kat: 'ich', art: 'oberteil', wert: 'herz', name: 'Pulli mit Herz', preis: 25 },
+  { id: 'o_streifen', kat: 'ich', art: 'oberteil', wert: 'streifen', name: 'Ringelshirt', preis: 30 },
+  { id: 'o_regenbogen', kat: 'ich', art: 'oberteil', wert: 'regenbogen', name: 'Regenbogen-Shirt', preis: 45 },
+  { id: 'o_weste', kat: 'ich', art: 'oberteil', wert: 'weste', name: 'Kuschelige Steppweste', preis: 40 },
+  { id: 'o_turnier', kat: 'ich', art: 'oberteil', wert: 'turnier', name: 'Turnierjacket mit Goldknöpfen', preis: 60 },
+  { id: 'o_nummer', kat: 'ich', art: 'oberteil', wert: 'nummer', name: 'Startnummer 7', preis: 15 },
+  { id: 'x_schal', kat: 'ich', art: 'extra', wert: 'schal', name: 'Roter Schal', preis: 15 },
+  { id: 'x_brille', kat: 'ich', art: 'extra', wert: 'brille', name: 'Sonnenbrille', preis: 20 },
+  { id: 'x_rucksack', kat: 'ich', art: 'extra', wert: 'rucksack', name: 'Rucksack', preis: 25 },
+  { id: 'x_schaerpe', kat: 'ich', art: 'extra', wert: 'schaerpe', name: 'Goldene Siegerschärpe', preis: 50 },
+  { id: 'x_umhang', kat: 'ich', art: 'extra', wert: 'umhang', name: 'Zauberumhang', preis: 55 },
+  { id: 'x_fluegel', kat: 'ich', art: 'extra', wert: 'fluegel', name: 'Feenflügel', preis: 75 },
+
+  // ----- Für dein Zimmer (kat: 'zimmer') -----
+  { id: 'z_teppich', kat: 'zimmer', art: 'zimmer', name: 'Flauschteppich', preis: 20 },
+  { id: 'z_poster', kat: 'zimmer', art: 'zimmer', name: 'Pferdeposter', preis: 10 },
+  { id: 'z_pflanze', kat: 'zimmer', art: 'zimmer', name: 'Zimmerpflanze', preis: 15 },
+  { id: 'z_lichter', kat: 'zimmer', art: 'zimmer', name: 'Lichterkette', preis: 30 },
+  { id: 'z_kuschel', kat: 'zimmer', art: 'zimmer', name: 'Kuschelpferd fürs Bett', preis: 25 },
+  { id: 'z_sitzsack', kat: 'zimmer', art: 'zimmer', name: 'Sitzsack', preis: 30 },
+  { id: 'z_bett', kat: 'zimmer', art: 'zimmer', name: 'Himmelbett-Vorhang', preis: 60 },
+  { id: 'z_korb', kat: 'zimmer', art: 'zimmer', name: 'Katzenkörbchen (Minka schläft dann bei dir)', preis: 35 }
+];
+
+// Farben aus den Farbpaketen im Reitladen
+var FARBPAKETE = {
+  farben_haare: { haare: ['#3fb8e0', '#8e44ad', '#27ae60', '#f5f5f5', '#ff5fa2'] },
+  farben_bunt: { jacke: ['#d4a017', '#1abc9c', '#ff8fc0', '#b07cff', '#ff8a3c'], hose: ['#d4a017', '#1abc9c', '#ff8fc0', '#b07cff', '#ffffff'], helm: ['#d4a017', '#1abc9c', '#ff8fc0', '#b07cff', '#f5f5f5'], stiefel: ['#d4a017', '#f5f5f5', '#ff8fc0', '#b07cff'] }
+};
+
+// Aufgaben für den Tag: [Kennung, Text (# = Anzahl), kleinste Anzahl, größte Anzahl, Münzen]
+var TAGESAUFGABEN = [
+  ['fuettern', 'Füttere # Pferde mit Hafer oder Heu', 2, 4, 5],
+  ['box', 'Miste # Boxen aus', 2, 3, 6],
+  ['mist', 'Bring # Mistäpfel mit der Schubkarre zum Misthaufen', 6, 14, 6],
+  ['putzen', 'Putze # Pferd blitzblank', 1, 1, 5],
+  ['hufe', 'Kratze # Pferd die Hufe aus', 1, 1, 4],
+  ['stroh', 'Streue # Box frisch ein', 1, 1, 4],
+  ['weide', 'Bring # Pferd auf die Weide', 1, 1, 4],
+  ['longe', 'Longiere # Pferd', 1, 1, 5],
+  ['maschine', 'Stell # Pferd in die Schrittmaschine', 1, 1, 3],
+  ['ritt', 'Reite # Mal (Training, Turnier, Rennen, Gelände oder Ausritt)', 1, 2, 6],
+  ['moehre', 'Gib # Pferden eine Möhre', 2, 3, 3],
+  ['katze', 'Streichle # Mal die Hofkatze Minka', 1, 1, 3],
+  ['fohlen', 'Kümmere dich # Mal um das Fohlen', 1, 2, 4]
 ];
 
 // Muenzen fuer Siege: [1. Platz, 2. Platz, 3. Platz]

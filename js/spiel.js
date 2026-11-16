@@ -1453,8 +1453,13 @@
     welt: function () { return welt; },
     zufallsOutfit: zufallsOutfit, gegnerStufe: function () { return gegnerStufe; },
     steuerung: function () { return steuerung; }, baueWeg: baueWeg,
-    zeit: function () { return Z.zeit; }
+    zeit: function () { return Z.zeit; },
+    // Finger-Steuerknueppel loslassen (wenn eine Welt die Finger fuer etwas anderes braucht, z. B. die Kamera)
+    stoppeFinger: function () { for (var id in finger) { finger[id].lenk = 0; finger[id].hoch = 0; finger[id].achse = 'aus'; } wischLenkung(); },
+    speichereSpieler: speichereSpieler, baueMenue: function () { baueMenue(); }
   };
+  window.addEventListener('wheel', function (e) { if (welt && welt.rad && !foto.an && e.target === renderer.domElement) welt.rad(e.deltaY); }, { passive: true });
+  renderer.domElement.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });
   el('weltTon').addEventListener('click', function () { tonAn = !tonAn; speichere('reitturnier_ton', tonAn); zeigeTon(); });
 

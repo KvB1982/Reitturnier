@@ -65,10 +65,10 @@ WELTEN.hof = (function () {
   function baue() {
     szene = new THREE.Scene();
     sonne = BAU.licht(szene, { schatten: 34, nebelNah: 70, nebelFern: 260 });
-    kamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+    kamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1600);
 
     // Boden
-    var wiese = BAU.netz(new THREE.PlaneGeometry(320, 300), 0x7cc35a, szene, 0, 0, 10);
+    var wiese = BAU.netz(new THREE.PlaneGeometry(1600, 1600), 0x7cc35a, szene, 0, 0, 10);
     wiese.rotation.x = -Math.PI / 2; wiese.castShadow = false;
     function flaeche(x0, z0, x1, z1, farbe, y) {
       var f = BAU.netz(new THREE.PlaneGeometry(x1 - x0, z1 - z0), farbe, szene, (x0 + x1) / 2, y || 0.02, (z0 + z1) / 2);
@@ -100,8 +100,11 @@ WELTEN.hof = (function () {
 
     bauePferde();
     baueMaedchen();
-    HOFLEBEN.baue({ szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
-      frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; } });
+    var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
+      frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
+      inBoxVon: inBoxVon, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
+    HOFLEBEN.baue(ctx);
+    HOFTAG.baue(ctx);
     gebaut = true;
   }
 
@@ -254,9 +257,10 @@ WELTEN.hof = (function () {
       var bx = -78 + zuf() * 156, bz = -42 + zuf() * 118;
       var imHof = bx > -56 && bx < 58 && bz > -18 && bz < 50;
       if (imHof) continue;
+      if ((bz < -27 && bz > -40) || (bx > 6 && bx < 24 && bz < -12) || (bz > 47 && (Math.abs(bx + 34) < 5 || Math.abs(bx - 36) < 5)) || (bz > 62 && bx < 2)) continue;
       baeume.push([bx, 0, bz, 0.9 + zuf() * 0.9, zuf() < 0.35 ? 1 : 0]);
     }
-    [[15, -7], [0, -12], [-6, -12], [8, -12], [-2, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [22, -16]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
+    [[15, -7], [0, -12], [-6, -12], [5, -13], [-2, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [25.5, -16]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
     szene.add(BAU.wald(baeume));
     var blumenFarben = [0xff6fae, 0xffe36b, 0xffffff, 0xb07cff];
     var blGeo = new THREE.SphereGeometry(0.09, 6, 4), blumen = new THREE.InstancedMesh(blGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), 160), d = new THREE.Object3D();
@@ -477,7 +481,7 @@ WELTEN.hof = (function () {
       var nah = Math.hypot(S.x - M.x, S.z - M.z) < 2.6;
       if (nah && M.gruss <= -6 && modus === 'frei') {
         M.gruss = 3;
-        var spruch = HOFLEBEN.tipp() || hofTipp() || SPRUECHE[Math.floor(Math.random() * SPRUECHE.length)];
+        var spruch = HOFTAG.tipp() || HOFLEBEN.tipp() || hofTipp() || SPRUECHE[Math.floor(Math.random() * SPRUECHE.length)];
         if (M.blase) { f.wurzel.remove(M.blase); M.blase.material.map.dispose(); }
         M.blase = BAU.schwebeText(spruch, 0.34, { schrift: 36, immerSichtbar: true }); M.blase.position.y = 2.45; M.blase.renderOrder = 5; f.wurzel.add(M.blase);
         if (!M.karre && !M.traegt) f.setzePose('winken');
@@ -525,14 +529,17 @@ WELTEN.hof = (function () {
         if (Math.abs(e - k[2]) < r) { var soll = e < k[2] ? k[2] - r : k[2] + r; o.x = k[0] + ex / e * soll; o.z = k[1] + ez / e * soll; }
       } else if (e < k[2] + r && e > 0.001) { o.x = k[0] + ex / e * (k[2] + r); o.z = k[1] + ez / e * (k[2] + r); }
     }
-    o.x = Math.max(-62, Math.min(62, o.x)); o.z = Math.max(-20, Math.min(46.5, o.z));
+    o.x = Math.max(-62, Math.min(62, o.x)); o.z = Math.max(-26, Math.min(46.5, o.z));
   }
   function bewegeSpielerin(dt) {
     var t = KERN.taste, w = KERN.wisch;
-    var ex = (t.rechts ? 1 : 0) - (t.links ? 1 : 0) - w.lenk, ez = (t.langsamer ? 1 : 0) - (t.schneller ? 1 : 0) - w.hoch;
+    var sx = (t.rechts ? 1 : 0) - (t.links ? 1 : 0) - w.lenk, sz = (t.langsamer ? 1 : 0) - (t.schneller ? 1 : 0) - w.hoch;
+    // "oben" auf dem Bildschirm ist immer von der Kamera weg, egal wie sie gedreht ist
+    var kc = Math.cos(kam.w), ks = Math.sin(kam.w);
+    var ex = sx * kc + sz * ks, ez = -sx * ks + sz * kc;
     var st = Math.min(1, Math.hypot(ex, ez));
     if (modus !== 'frei') st = 0;
-    var tempo = st * (S.fuehrt ? 3.0 : 4.2);
+    var tempo = st * (S.fuehrt ? 3.0 : HOFTAG.schiebt() ? 3.1 : 4.2);
     S.tempo += (tempo - S.tempo) * Math.min(1, dt * 10);
     if (st > 0.05) {
       var ziel = Math.atan2(ex, ez), diff = Math.atan2(Math.sin(ziel - S.kurs), Math.cos(ziel - S.kurs));
@@ -551,7 +558,7 @@ WELTEN.hof = (function () {
     }
     var f = S.figur;
     f.gehe(S.phase, Math.min(1, S.tempo / 3.5));
-    if (modus === 'frei') f.setzePose(S.traegt ? 'tragen' : S.fuehrt ? 'fuehren' : 'steh');
+    if (modus === 'frei') f.setzePose(HOFTAG.pose() || (S.traegt ? 'tragen' : S.fuehrt ? 'fuehren' : 'steh'));
     f.bewege(dt);
     f.wurzel.position.set(S.x, 0, S.z);
     f.wurzel.rotation.y = S.kurs;
@@ -598,13 +605,13 @@ WELTEN.hof = (function () {
         if (S.traegt === 'hafer') vor(b.trog[0], b.trog[1], 9, '🌾 Hafer in den Trog füllen', function () { fuettere(B, 'hafer'); });
         else if (S.traegt === 'heu') vor(b.raufe[0], b.raufe[1], 9, 'Heu in die Raufe legen', function () { fuettere(B, 'heu'); });
         else if (S.traegt === 'moehre') vor(B.x, B.z, 9, '🥕 ' + B.def.name + ' eine Möhre geben', function () { fuettere(B, 'moehre'); });
-        else if (!P) vor(B.x, B.z, 9, '🧽 ' + B.def.name + ' pflegen', function () { PFLEGE.start(API, B); });
+        else if (!P && !HOFTAG.schiebt()) vor(B.x, B.z, 9, '🧽 ' + B.def.name + ' pflegen', function () { PFLEGE.start(API, B); });
       }
     } else if (P && Math.abs(S.z) < STALL.gang && S.x > STALL.x0 && S.x < 0) {
       vor(P.box.xc, P.box.zVorn, 2.2, null, null, P.def.name + ' wohnt in dieser Box. Geh hinein, um ' + P.def.name + ' abzustellen.');
     }
     // Vorratsraum
-    if (S.z < -STALL.gang && S.x > 0 && S.x < STALL.x1) {
+    if (S.z < -STALL.gang && S.z > STALL.z0 && S.x > 0 && S.x < STALL.x1 && !HOFTAG.schiebt()) {
       if (S.traegt) vor(S.x, S.z, 9, 'Zurücklegen', function () { trage(null); });
       else {
         vor(F.hafer[0], F.hafer[1] + 1, 1.6, '🌾 Eimer Hafer holen', function () { trage('hafer'); KERN.ton(500, 0.08, 'triangle', 0.12); });
@@ -638,12 +645,14 @@ WELTEN.hof = (function () {
       vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Geh auf die Weide zu einem Pferd, um es wieder mitzunehmen.');
     } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Große Pferde können hier auch grasen.');
     HOFLEBEN.aktionen(vor, S, P);
+    HOFTAG.aktionen(vor, S, P, function () { return beste; });
     return beste;
   }
 
   // ---------- Pferd nehmen und abstellen ----------
   function nimm(P) {
     if (S.fuehrt) return;
+    HOFTAG.loslassen();
     P.ort = 'hand'; P.tempo = 0;
     P.tier.setzeZaum(true, false);
     P.tier.setzeKopfTief(0); P.blick = 0;
@@ -658,6 +667,7 @@ WELTEN.hof = (function () {
     else {
       P.ort = wohin; P.tier.setzeZaum(false);
       if (wohin === 'maschine') { P.winkel = Math.PI; KERN.meldung('Schritt für Schritt …', 'gut'); }
+      HOFTAG.zaehle(wohin, 1);
       if (wohin === 'weide') { P.x = ORT.weide.tor[0] - 3; P.z = ORT.weide.tor[1]; P.ziel = null; P.warte = 0; KERN.meldung(P.def.name + ' freut sich!', 'perfekt'); }
     }
     STAND.speichere();
@@ -666,6 +676,7 @@ WELTEN.hof = (function () {
   function fuettere(P, was) {
     var st = P.st;
     STAND.merke('gefuettert', 1);
+    HOFTAG.zaehle(was === 'moehre' ? 'moehre' : 'fuettern', 1);
     if (was === 'hafer') { st.hunger = Math.max(0, st.hunger - 0.5); st.hafer = 1; }
     else if (was === 'heu') { st.hunger = Math.max(0, st.hunger - 0.35); st.heu = 1; }
     else { st.hunger = Math.max(0, st.hunger - 0.12); }
@@ -681,9 +692,9 @@ WELTEN.hof = (function () {
   }
 
   // ---------- Karten: Plaetze und Laden ----------
-  function karte(html, knoepfe) {
+  function karte(html, knoepfe, ohneNein) {
     modus = 'karte';
-    knoepfe.push({ text: 'Doch nicht', klasse: 'zweit', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } });
+    if (!ohneNein) knoepfe.push({ text: 'Doch nicht', klasse: 'zweit', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } });
     KERN.zeigeKarte('mitte', html, knoepfe);
   }
   function pferdZeile(P) {
@@ -700,6 +711,7 @@ WELTEN.hof = (function () {
       // nach dem Reiten: Pferd ist etwas schmutziger, hungriger und fitter
       P.st.schmutz = Math.min(1, P.st.schmutz + 0.22); P.st.hunger = Math.min(1, P.st.hunger + 0.18); P.st.hufe = Math.min(1, P.st.hufe + 0.3);
       P.st.fit = Math.min(1, (P.st.fit || 0) + 0.05);
+      HOFTAG.vergeht(1); HOFTAG.zaehle('ritt', 1);
       STAND.speichere();
       API.start({ zurueckVon: ort });
       HOFLEBEN.nachRitt(P);
@@ -713,6 +725,10 @@ WELTEN.hof = (function () {
     if (!P) return;
     if (HOFLEBEN.krank(P) && ort !== 'weide') {
       karte('<h2>🤒 ' + P.def.name + ' ist krank</h2><div class="details">' + P.def.name + ' ' + HOFLEBEN.krank(P).zeichen + ' und kann heute nicht arbeiten. Die <b>Tierärztin</b> steht östlich vom Stall.</div>', []);
+      return;
+    }
+    if (HOFTAG.nacht()) {
+      karte('<h2>🌙 Es ist schon Nacht</h2><div class="details">Im Dunkeln wird nicht mehr geritten, die Plätze sind geschlossen. Bring ' + P.def.name + ' in die Box und geh ins <b>Bett</b>. Dein Zimmer ist im Haus nördlich vom Stall. Oder fahr mit dem <b>🚲 Fahrrad</b> nach Hause.</div>', [{ text: 'Alles klar', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }], true);
       return;
     }
     var kopf = pferdZeile(P);
@@ -730,6 +746,13 @@ WELTEN.hof = (function () {
       { text: '🤸 Voltigieren', aktion: function () { losreiten('voltigieren', ort, { turnier: true }); } }]);
   }
 
+  // nachts kommen alle Pferde in ihre Boxen; gibt die Namen zurueck
+  function bringeHeim() {
+    var namen = [];
+    pferde.forEach(function (P) { if (P.ort !== 'box') { namen.push(P.def.name); inBox(P); } });
+    S.fuehrt = null; orte.longePferd = null;
+    return namen;
+  }
   // Longieren: das Pferd laeuft an der langen Leine im Kreis, man bestimmt die Gangart
   var LONGE_TEMPO = [0, 1.5, 3.8, 6.5], LONGE_NAME = ['Halt', 'Schritt', 'Trab', 'Galopp'];
   function starteLonge() {
@@ -750,6 +773,7 @@ WELTEN.hof = (function () {
         P.ort = 'hand'; P.x = S.x; P.z = S.z + 2.2; S.fuehrt = P; P.tier.setzeZaum(true, false);
         var lohn = Math.round((P.longeZeit || 0) / 20);
         P.longeZeit = 0;
+        if (lohn > 0) HOFTAG.zaehle('longe', 1);
         if (lohn > 0) { STAND.daten.muenzen += Math.min(5, lohn); STAND.speichere(); KERN.meldung('+' + Math.min(5, lohn) + ' 🪙 fürs Longieren', 'perfekt'); }
       } }
     ]);
@@ -773,28 +797,53 @@ WELTEN.hof = (function () {
   }
 
   // Reitladen
-  var ART_BILD = { gamaschen: '🦵', ohren: '🎀', schleife: '🎗️', decke: '🪑', putz: '✨' };
+  var ART_BILD = { gamaschen: '🦵', ohren: '🎀', schleife: '🎗️', decke: '🪑', putz: '✨', kappe: '🪖', frisur: '💇', oberteil: '👕', extra: '🎒', farben: '🎨', zimmer: '🛋️' };
+  var EXTRA_BILD = { k_cowboy: '🤠', k_krone: '👑', k_einhorn: '🦄', k_ohren: '🐱', k_blumen: '🌸', k_schleife: '🎀', k_bommel: '🧶', k_glitzer: '✨', x_schal: '🧣', x_brille: '🕶️', x_fluegel: '🧚', x_umhang: '🦸', x_schaerpe: '🏅',
+    o_stern: '⭐', o_herz: '💗', o_regenbogen: '🌈', o_weste: '🦺', o_turnier: '🥇', z_teppich: '🧶', z_poster: '🖼️', z_pflanze: '🪴', z_lichter: '💡', z_kuschel: '🧸', z_bett: '🛏️', z_korb: '🐱' };
+  var ladenTab = 'ich';
   function zeigeLaden() {
     modus = 'karte';
-    var d = STAND.daten;
-    var html = '<h2>🛍️ Reitladen</h2><div class="grossPunkte">🪙 ' + d.muenzen + ' Münzen</div>' +
-      '<div class="details">Gekaufte Sachen kannst du jedem Pferd in seiner Box anziehen (Pflegen, dann „Schmücken“).</div><div class="liste" id="ladenListe"></div>';
+    var d = STAND.daten, o = KERN.spieler().outfit;
+    var hilfe = { pferd: 'Gekaufte Sachen kannst du jedem Pferd in seiner Box anziehen (Pflegen, dann „Schmücken“).', ich: 'Reitkappen, Frisuren und schicke Kleidung. Umziehen kannst du dich auch am <b>Kleiderschrank</b> in deinem Zimmer.', zimmer: 'Mach dein Zimmer im Wohnhaus gemütlich!' };
+    var html = '<h2>🛍️ Reitladen</h2><div class="grossPunkte">🪙 ' + d.muenzen + ' Münzen</div><div class="tabs" id="ladenTabs"></div>' +
+      '<div class="details">' + hilfe[ladenTab] + '</div><div class="liste" id="ladenListe"></div>';
     KERN.zeigeKarte('mitte', html, [{ text: 'Fertig', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
+    var tabs = document.getElementById('ladenTabs');
+    [['ich', '👧 Für dich'], ['pferd', '🐴 Fürs Pferd'], ['zimmer', '🛋️ Fürs Zimmer']].forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = t[1]; b.className = 'wahl' + (ladenTab === t[0] ? ' aktiv' : '');
+      b.addEventListener('click', function () { ladenTab = t[0]; zeigeLaden(); });
+      tabs.appendChild(b);
+    });
     var liste = document.getElementById('ladenListe');
-    LADEN.forEach(function (w) {
+    LADEN.filter(function (w) { return (w.kat || 'pferd') === ladenTab; }).forEach(function (w) {
       var z = document.createElement('div');
       z.className = 'eintrag';
-      z.innerHTML = '<div class="bild">' + ART_BILD[w.art] + '</div><div class="text">' + (w.farbe ? '<span class="farbtupfer" style="background:' + w.farbe + '"></span>' : '') + w.name + '</div>';
+      z.innerHTML = '<div class="bild">' + (EXTRA_BILD[w.id] || ART_BILD[w.art]) + '</div><div class="text">' + (w.farbe ? '<span class="farbtupfer" style="background:' + w.farbe + '"></span>' : '') + w.name + '</div>';
       var b = document.createElement('button');
       b.type = 'button';
-      if (d.besitz[w.id]) { b.textContent = '✔ gekauft'; b.disabled = true; }
-      else {
+      if (d.besitz[w.id]) {
+        if (w.kat === 'ich' && w.wert) {
+          var an = o[w.art] === w.wert;
+          b.textContent = an ? '✔ angezogen' : 'Anziehen'; b.className = an ? 'an' : '';
+          b.addEventListener('click', function () {
+            o[w.art] = an ? (w.art === 'frisur' ? 'zopf' : w.art === 'kappe' ? 'klassisch' : w.art === 'oberteil' ? 'jacke' : 'ohne') : w.wert;
+            if (w.art === 'kappe' && !an) o.kappeAuf = true;
+            S.figur.setzeOutfit(o); KERN.speichereSpieler(); KERN.ton(700, 0.06, 'triangle', 0.1);
+            zeigeLaden();
+          });
+        } else { b.textContent = '✔ gekauft'; b.disabled = true; }
+      } else {
         b.textContent = w.preis + ' 🪙'; b.className = 'kauf'; b.disabled = d.muenzen < w.preis;
         b.addEventListener('click', function () {
           if (!STAND.zahle(w.preis)) return;
           d.besitz[w.id] = true; STAND.speichere();
           KERN.klang('perfekt');
+          if (w.kat === 'zimmer') { HOFTAG.zeigeZimmer(); KERN.meldung('Steht jetzt in deinem Zimmer!', 'gut'); }
+          if (w.art === 'farben') KERN.meldung('Neue Farben im Kleiderschrank!', 'gut');
+          var oben = liste.parentNode.parentNode.scrollTop;
           zeigeLaden();
+          var k = document.getElementById('ladenListe'); if (k) k.parentNode.parentNode.scrollTop = oben;
         });
       }
       z.appendChild(b);
@@ -804,7 +853,7 @@ WELTEN.hof = (function () {
   // Schmuecken: gekaufte Sachen einem Pferd anziehen
   function zeigeSchmuck(P, fertig) {
     var d = STAND.daten, a = P.st.ausruestung;
-    var eigene = LADEN.filter(function (w) { return d.besitz[w.id] && w.farbe; });
+    var eigene = LADEN.filter(function (w) { return d.besitz[w.id] && w.farbe && !w.kat; });
     var html = '<h2>🎀 ' + P.def.name + ' schmücken</h2>' + (eigene.length ? '' : '<div class="details">Du hast noch keine Ausrüstung. Im <b>Reitladen</b> im Stall kannst du mit deinen Münzen einkaufen. Münzen gibt es für Siege und fürs Pflegen.</div>') + '<div class="liste" id="schmuckListe"></div>' +
       '<div class="details" style="margin-top:10px">Wie soll dein Pferd heißen?<br><input id="pferdName" type="text" maxlength="14" value="' + KERN.esc(P.def.name) + '" style="font:inherit;padding:6px 10px;border-radius:10px;border:2px solid #d9cbb0;width:60%;text-align:center"> <button type="button" id="pferdNameOk" class="zweit" style="display:inline-block;width:auto;padding:6px 14px">Umbenennen</button></div>';
     KERN.zeigeKarte('mitte', html, [{ text: 'Fertig', aktion: function () { KERN.schliesseKarte(); if (fertig) fertig(); } }]);
@@ -837,10 +886,69 @@ WELTEN.hof = (function () {
   // ---------- Kamera ----------
   var kamZiel = new THREE.Vector3(), kamBlick = new THREE.Vector3(), blickJetzt = new THREE.Vector3(), kamSprung = true;
   var kamFest = null;       // { pos, blick } wenn die Pflege die Kamera uebernimmt
+  // Freie Kamera: w = Drehung um die Spielerin (0 = von Sueden), e = Neigung (0 flach .. 1.5 von oben), d = Abstand
+  var KAM_START = { w: 0, e: 0.785, d: 18.4 }, KAM_WEIT = { e: 1.0, d: 150 };
+  var kam = { w: 0, e: KAM_START.e, d: KAM_START.d, zw: 0, ze: KAM_START.e, zd: KAM_START.d, taste: null, zeiger: {}, rechts: null };
+  function kamGrenzen() {
+    kam.ze = Math.max(0.2, Math.min(1.5, kam.ze)); kam.zd = Math.max(5, Math.min(230, kam.zd));
+  }
+  function kamKnoepfe() {
+    if (KERN.el('kamKnoepfe')) return;
+    var k = document.createElement('div'); k.id = 'kamKnoepfe';
+    [['aufgaben', '📋', 'Aufgaben für heute'], ['links', '⟲', 'Kamera nach links drehen'], ['rechts', '⟳', 'Kamera nach rechts drehen'], ['nah', '＋', 'näher'], ['fern', '－', 'weiter weg'], ['karte', '🗺️', 'Übersicht']].forEach(function (e) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = e[1]; b.title = e[2]; b.setAttribute('aria-label', e[2]);
+      if (e[0] === 'aufgaben') b.addEventListener('click', function () { if (modus === 'frei') HOFTAG.zeigeAufgaben(); });
+      else if (e[0] === 'karte') b.addEventListener('click', function () {
+        var weit = kam.zd > 60;
+        kam.zd = weit ? KAM_START.d : KAM_WEIT.d; kam.ze = weit ? KAM_START.e : KAM_WEIT.e;
+        if (weit) kam.zw = Math.round(kam.zw / (Math.PI * 2)) * Math.PI * 2;
+      });
+      else {
+        b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); kam.taste = e[0]; });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (n) { b.addEventListener(n, function () { kam.taste = null; }); });
+        b.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+      }
+      k.appendChild(b);
+    });
+    document.body.appendChild(k);
+  }
+  // Maus: rechte Taste ziehen dreht und neigt. Finger: mit zwei Fingern drehen, neigen und zoomen.
+  function kamZeiger(typ, e) {
+    var z = kam.zeiger;
+    if (typ === 'start') {
+      z[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (e.button === 2) kam.rechts = e.pointerId;
+      if (kam.rechts !== null || Object.keys(z).length >= 2) { API.ohneKnueppel = true; KERN.stoppeFinger(); }
+    } else if (typ === 'zug' && z[e.pointerId]) {
+      var p = z[e.pointerId], ids = Object.keys(z), dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (kam.rechts === e.pointerId) { kam.zw -= dx * 0.008; kam.ze += dy * 0.006; kam.w = kam.zw; kam.e = kam.ze; }
+      else if (ids.length >= 2) {
+        var o = z[ids[0] == e.pointerId ? ids[1] : ids[0]];
+        var alt = Math.hypot(p.x - o.x, p.y - o.y), neu = Math.hypot(e.clientX - o.x, e.clientY - o.y);
+        if (alt > 8 && neu > 8) kam.zd *= alt / neu;
+        kam.zw -= dx * 0.004; kam.ze += dy * 0.003;
+        kam.w = kam.zw; kam.e = kam.ze; kam.d = kam.zd;
+      }
+      p.x = e.clientX; p.y = e.clientY;
+      kamGrenzen();
+    } else if (typ === 'ende') {
+      delete z[e.pointerId];
+      if (kam.rechts === e.pointerId) kam.rechts = null;
+      if (kam.rechts === null && Object.keys(z).length < 2 && modus !== 'pflege') API.ohneKnueppel = false;
+    }
+  }
   function bewegeKamera(dt) {
-    var imStall = S.x > STALL.x0 - 0.5 && S.x < STALL.x1 + 0.5 && S.z > STALL.z0 && S.z < STALL.z1;
+    var imStall = (S.x > STALL.x0 - 0.5 && S.x < STALL.x1 + 0.5 && S.z > STALL.z0 && S.z < STALL.z1) || HOFTAG.imHaus(S.x, S.z);
     drinnen += ((imStall ? 1 : 0) - drinnen) * Math.min(1, dt * 4);
-    dach.visible = drinnen < 0.5 && !kamFest;
+    // Knoepfe und Tasten
+    if (kam.taste === 'links') kam.zw += dt * 1.6; else if (kam.taste === 'rechts') kam.zw -= dt * 1.6;
+    else if (kam.taste === 'nah') kam.zd *= Math.exp(-dt * 1.4); else if (kam.taste === 'fern') kam.zd *= Math.exp(dt * 1.4);
+    kamGrenzen();
+    var k = Math.min(1, dt * 8);
+    kam.w += (kam.zw - kam.w) * k; kam.e += (kam.ze - kam.e) * k; kam.d += (kam.zd - kam.d) * k;
+    var weit = kam.d > 45;
+    dach.visible = (drinnen < 0.5 || weit) && !kamFest;
+    HOFTAG.zeigeDach(dach.visible);
     szene.userData.unterDach = !dach.visible;
     suedWand.visible = dach.visible;
     if (kamFest) { kamZiel.copy(kamFest.pos); kamBlick.copy(kamFest.blick); }
@@ -848,13 +956,19 @@ WELTEN.hof = (function () {
       kamZiel.set(ORT.longe.mitte[0], 9, ORT.longe.mitte[1] + 15); kamBlick.set(ORT.longe.mitte[0], 1, ORT.longe.mitte[1]);
     } else {
       var schmal = window.innerWidth < window.innerHeight ? 1.35 : 1;
-      var hoch = (13 - drinnen * 1) * schmal, hinten = (13 - drinnen * 6.5) * schmal;
-      kamZiel.set(S.x, hoch, S.z + hinten); kamBlick.set(S.x, 0.5, S.z + 0.5 - drinnen);
+      // drinnen schaut die Kamera steiler und naeher, damit die Waende nicht im Weg sind
+      var e = weit ? kam.e : kam.e + (Math.max(kam.e, 1.08) - kam.e) * drinnen;
+      var d = (weit ? kam.d : kam.d + (Math.min(kam.d, 13.6) - kam.d) * drinnen) * schmal;
+      var c = Math.cos(e);
+      kamZiel.set(S.x + Math.sin(kam.w) * c * d, 0.5 + Math.sin(e) * d, S.z + Math.cos(kam.w) * c * d);
+      kamBlick.set(S.x, 0.5, S.z);
     }
     if (kamSprung) { kamera.position.copy(kamZiel); blickJetzt.copy(kamBlick); kamSprung = false; }
-    else { kamera.position.lerp(kamZiel, 1 - Math.exp(-5 * dt)); blickJetzt.lerp(kamBlick, 1 - Math.exp(-5 * dt)); }
+    else { kamera.position.lerp(kamZiel, 1 - Math.exp(-6 * dt)); blickJetzt.lerp(kamBlick, 1 - Math.exp(-6 * dt)); }
     kamera.lookAt(blickJetzt);
     sonne.folge(blickJetzt.x, 0, blickJetzt.z);
+    // beim Rauszoomen weicht der Dunst zurueck, damit man die Umgebung sieht
+    sonne.basis.nah = 70 + kam.d * 2; sonne.basis.fern = 260 + kam.d * 5;
   }
 
   // ---------- Ablauf ----------
@@ -866,6 +980,7 @@ WELTEN.hof = (function () {
     bewegeMaedchen(dt);
     if (modus === 'pflege') PFLEGE.schritt(dt, zeit);
     HOFLEBEN.schritt(dt, zeit);
+    HOFTAG.schritt(dt, zeit);
     if (modus === 'longe' && orte.longePferd) {
       var P = orte.longePferd;
       S.kurs = Math.atan2(P.x - S.x, P.z - S.z) + 0.5;
@@ -875,7 +990,7 @@ WELTEN.hof = (function () {
     // Aktion in der Naehe
     aktion = modus === 'frei' ? findeAktion() : null;
     KERN.setzeAktion(aktion && aktion.text ? aktion.text : null);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? HOFTAG.hinweis() : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     orte.zeiger.visible = !!(aktion && aktion.text);
     if (orte.zeiger.visible) { orte.zeiger.position.set(aktion.x, 2.9 + Math.sin(zeit * 5) * 0.15, aktion.z); orte.zeiger.rotation.y = zeit * 2; }
@@ -886,7 +1001,7 @@ WELTEN.hof = (function () {
       var P2 = S.fuehrt || orte.longePferd || (modus === 'pflege' ? PFLEGE.pferd() : null);
       var b = !P2 && inBoxVon(S.x, S.z);
       if (b && b.pferd && b.pferd.ort === 'box') P2 = b.pferd;
-      var html = REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text());
+      var html = REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()) + HOFTAG.kachel();
       if (P2) html += REITEN.kachel(P2.def.name, 'Sauber ' + REITEN.messer(1 - P2.st.schmutz) + ' &nbsp;Satt ' + REITEN.messer(1 - P2.st.hunger) + ' &nbsp;Fit ' + REITEN.messer(P2.st.fit || 0));
       KERN.setzeHud(html);
     }
@@ -913,27 +1028,28 @@ WELTEN.hof = (function () {
       S.figur.setzeOutfit(KERN.spieler().outfit);
       KERN.betrete(API);
       modus = 'frei'; kamFest = null; kamSprung = true;
+      kamKnoepfe(); kam.zeiger = {}; kam.rechts = null; kam.taste = null; API.ohneKnueppel = false;
       zeigeWerkzeug(null);
       if (opt.zurueckVon && ORT[opt.zurueckVon] && S.fuehrt) {
         var t = ORT[opt.zurueckVon].tor;
         S.x = t[0]; S.z = t[1] - (opt.zurueckVon === 'rennbahn' || opt.zurueckVon === 'gelaende' ? 1.5 : 0);
         S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8;
       }
-      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten2) {
-        STAND.daten.neuigkeiten2 = true; STAND.speichere();
+      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten3) {
+        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>✨ Neu auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
-          '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>. Gib ihm einen Namen und kümmere dich darum, dann wächst es.<br>' +
-          '• Östlich vom Stall warten die <b>Tierärztin</b> und der <b>Hufschmied</b>.<br>' +
-          '• Am <b>Schwarzen Brett</b> neben der Bank gibt es <b>Reitabzeichen</b> mit Prüfungen.<br>' +
-          '• Am Geländetor kannst du mit Lotte einen <b>Ausritt</b> an den See machen.<br>' +
-          '• Auf dem Dressurplatz gibt es die <b>Kür mit Musik</b>.<br>' +
-          '• Es gibt <b>Tag und Nacht</b>, Sonne und Regen. Mit <b>📷</b> oben rechts machst du Fotos.<br>' +
-          '• Beim <b>Schmücken</b> in der Box kannst du deinem Pferd einen <b>eigenen Namen</b> geben.</div>',
+          '• <b>Kamera:</b> Mit den Knöpfen rechts (⟲ ⟳ ＋ －) drehst und zoomst du. 🗺️ zeigt den ganzen Hof von oben. Auf dem iPad: mit <b>zwei Fingern</b> drehen und zoomen. Maus: rechte Taste ziehen und Mausrad.<br>' +
+          '• <b>📋 Aufgaben:</b> Jeden Morgen gibt es neue Aufgaben für den Tag.<br>' +
+          '• <b>Dein Zimmer</b> ist im Haus nördlich vom Stall: Bett, Kleiderschrank, Pokalregal. Wenn es <b>Nacht</b> wird, musst du ins Bett oder mit dem 🚲 nach Hause.<br>' +
+          '• Die <b>🛒 Schubkarre</b> steht westlich am Stall: Mist aus den Boxen schaufeln und zum Misthaufen fahren.<br>' +
+          '• Im <b>Reitladen</b> gibt es Reitkappen, Frisuren, Kleidung und Sachen fürs Zimmer.<br>' +
+          '• Die Hofkatze <b>Minka</b> lässt sich streicheln.<br>' +
+          '• Beim <b>Ausritt</b> kannst du absteigen, picknicken und am See spielen.</div>',
           [{ text: 'Toll!', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
       if (!STAND.daten.begruesst) {
-        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.speichere();
+        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>🏡 Willkommen auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
           '• Lauf mit den <b>Pfeiltasten</b> (oder WASD). Auf dem iPad: <b>Finger auflegen und ziehen</b>.<br>' +
@@ -941,14 +1057,25 @@ WELTEN.hof = (function () {
           '• Im <b>Vorratsraum</b> gibt es Hafer, Heu und Möhren.<br>' +
           '• Leg deinem Pferd das <b>Halfter</b> an und führe es zum Trainingsplatz, Turnierplatz, zur Rennbahn, ins Gelände, in die Schrittmaschine, den Longierzirkel oder auf die Weide.<br>' +
           '• Für Siege und gute Pflege gibt es <b>Münzen</b> 🪙 für den <b>Reitladen</b>.<br>' +
-          '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>, östlich vom Stall sind <b>Tierärztin</b> und <b>Hufschmied</b>, am <b>Schwarzen Brett</b> gibt es Reitabzeichen.</div>',
+          '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>, östlich vom Stall sind <b>Tierärztin</b> und <b>Hufschmied</b>, am <b>Schwarzen Brett</b> gibt es Reitabzeichen.<br>' +
+          '• Rechts sind die Knöpfe für die <b>Kamera</b> (drehen, zoomen, 🗺️ Übersicht) und die <b>📋 Aufgaben</b> für heute.<br>' +
+          '• <b>Dein Zimmer</b> ist im Haus nördlich vom Stall. Wenn es Nacht wird, gehst du dort ins <b>Bett</b>.</div>',
           [{ text: 'Los geht\'s', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
     },
     schritt: schritt,
     aktion: function () { if (modus === 'frei' && aktion && aktion.tun) aktion.tun(); },
     tipp: function (e) { if (modus === 'frei' && aktion && aktion.tun) aktion.tun(); },
-    zeiger: function (typ, e) { if (modus === 'pflege') PFLEGE.zeiger(typ, e); },
+    zeiger: function (typ, e) { if (modus === 'pflege') PFLEGE.zeiger(typ, e); else kamZeiger(typ, e); },
+    rad: function (delta) { if (modus !== 'pflege') { kam.zd *= delta > 0 ? 1.12 : 0.89; kamGrenzen(); } },
+    tasteGedrueckt: function (code) {
+      if (code === 'KeyQ') kam.zw += Math.PI / 8; else if (code === 'KeyR') kam.zw -= Math.PI / 8;
+      else if (code === 'NumpadAdd' || code === 'BracketRight' || code === 'KeyT') kam.zd *= 0.8;
+      else if (code === 'NumpadSubtract' || code === 'Slash' || code === 'KeyG') kam.zd *= 1.25;
+      else if (code === 'KeyM') { var w = kam.zd > 60; kam.zd = w ? KAM_START.d : KAM_WEIT.d; kam.ze = w ? KAM_START.e : KAM_WEIT.e; }
+      kamGrenzen();
+    },
+    kamera3: function () { return kam; },
     zurueck: function () {
       if (modus === 'pflege') { PFLEGE.ende(); return; }
       STAND.speichere(); KERN.insMenue();

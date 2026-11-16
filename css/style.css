@@ -210,3 +210,19 @@ body.foto #fotoLeiste { display: block; position: fixed; left: 0; right: 0; bott
 #fotoKnoepfe button.los { background: #e84393; color: #fff; }
 body.foto #fotoBlitz.an { display: block; position: fixed; inset: 0; background: #fff; pointer-events: none; animation: blitz 0.35s ease-out forwards; }
 @keyframes blitz { from { opacity: 0.9; } to { opacity: 0; } }
+
+/* Kamera-Knoepfe auf dem Hof */
+#kamKnoepfe { display: none; position: fixed; right: 10px; top: 64px; flex-direction: column; gap: 6px; z-index: 5; }
+.im-welt.welt-hof #kamKnoepfe { display: flex; }
+body.foto #kamKnoepfe, .im-welt.welt-hof.mit-werkzeug #kamKnoepfe { display: none; }
+#kamKnoepfe button { width: 44px; height: 44px; border-radius: 12px; border: 0; background: rgba(255, 250, 240, 0.92); font-size: 20px; font-weight: bold; color: #5a3418; box-shadow: 0 3px 0 rgba(0,0,0,0.22); cursor: pointer; touch-action: none; }
+
+/* Tag und Nacht, Aufgaben, Laden */
+#nacht { position: fixed; inset: 0; background: #0b1026; color: #fff; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 34px; line-height: 1.5; opacity: 0; pointer-events: none; transition: opacity 1.1s; z-index: 40; }
+#nacht.an { opacity: 1; pointer-events: auto; }
+#nacht small { font-size: 20px; opacity: 0.85; }
+.liste .eintrag.erledigt .text { color: #9a8a76; text-decoration: line-through; }
+.liste .eintrag .lohnKlein { font-size: 13px; color: #7a3b12; white-space: nowrap; font-weight: bold; }
+.tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 8px 0 4px; }
+#schrank .zeile { margin-bottom: 10px; }
+#karte { z-index: 8; }

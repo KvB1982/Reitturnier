@@ -33,6 +33,16 @@ Im Menü wählst du oben, was du spielen möchtest. Jeder Modus lässt sich dire
 
 Auf iPad und iPhone läuft man mit dem Finger wie mit einem Steuerknüppel, der große Knopf unten führt die jeweilige Aktion aus.
 
+## Ein Tag auf dem Hof
+
+- **Kamera:** Auf dem Pferdehof lässt sich die Sicht frei wählen. Knöpfe rechts: ⟲ ⟳ drehen, ＋ － zoomen, 🗺️ Übersicht über Hof und Umgebung. Maus: rechte Taste ziehen und Mausrad. iPad: mit zwei Fingern drehen, neigen und zoomen. Tasten: Q/R drehen, T/G zoomen, M Übersicht.
+- **Aufgaben (📋):** Jeden Morgen gibt es fünf neue Aufgaben. Für jede gibt es Münzen, für alle zusammen einen Tagesstern. Die Liste steht in `TAGESAUFGABEN` in `js/config.js`.
+- **Tag und Nacht:** Ein Tag geht von 7 bis 21 Uhr. Nachts sind die Reitplätze zu. Im Wohnhaus nördlich vom Stall ist das eigene Zimmer mit Bett, Kleiderschrank, Aufgabenbuch und Pokalregal. Schlafen im Bett oder mit dem Fahrrad nach Hause fahren beendet den Tag.
+- **Schubkarre:** Steht westlich am Stall. In die Boxen fahren, Mist schaufeln und am Misthaufen abladen.
+- **Reitladen:** Reitkappen, Frisuren, Oberteile, Extras, Farbpakete, Sachen fürs Pferd und fürs Zimmer (`LADEN` in `js/config.js`, gezeichnet in `js/mode.js`).
+- **Ausritt:** Anhalten und absteigen, auf die Picknickdecke oder die Bank setzen, am See Steine flitschen, auf dem Steg Enten füttern und angeln, auf der Wiese Blumen pflücken.
+- Hofkatze Minka lässt sich streicheln.
+
 ## Springen
 
 - Reiterin ankleiden, Pferd und Sattel einfärben
@@ -46,6 +56,8 @@ Auf iPad und iPhone läuft man mit dem Finger wie mit einem Steuerknüppel, der 
 Die ausführliche Anleitung steht in [LIESMICH.txt](LIESMICH.txt).
 
 ## Aufbau
+
+Neu: `js/hoftag.js` (Wohnhaus, Tag und Nacht, Aufgaben, Schubkarre, Landschaft) und `js/mode.js` (Kappen, Frisuren, Kleidung).
 
 | Datei | Inhalt |
 | --- | --- |

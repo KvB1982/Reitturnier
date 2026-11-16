@@ -157,6 +157,20 @@ DAS SPIEL ERWEITERN
     js/spiel.js   Spielablauf, Punkte, Kamera
     css/style.css Aussehen von Menue und Anzeigen
 
+EIN TAG AUF DEM HOF
+  - Kamera frei waehlen: Knoepfe rechts (drehen, zoomen, Uebersicht), Maus: rechte
+    Taste ziehen und Mausrad, iPad: zwei Finger. Tasten Q/R, T/G, M.
+  - Aufgaben: jeden Morgen fuenf neue (Knopf mit dem Klemmbrett).
+  - Tag und Nacht: 7 bis 21 Uhr. Nachts ins Bett (eigenes Zimmer im Haus noerdlich
+    vom Stall) oder mit dem Fahrrad nach Hause.
+  - Schubkarre westlich am Stall: Mist aus den Boxen zum Misthaufen fahren.
+  - Reitladen: Reitkappen, Frisuren, Kleidung, Extras, Sachen fuers Zimmer.
+    Umziehen am Kleiderschrank im Zimmer.
+  - Ausritt: absteigen, Picknickdecke, Steine flitschen, Enten fuettern, angeln,
+    Blumen pfluecken.
+    js/hoftag.js  Wohnhaus, Tag und Nacht, Aufgaben, Schubkarre, Landschaft
+    js/mode.js    Kappen, Frisuren, Kleidung
+
 VERWENDETE 3D-MODELLE (Lizenz CC BY 4.0, https://creativecommons.org/licenses/by/4.0/)
   - "Animated Rigged Horse With Saddle" von Ayan
     https://sketchfab.com/3d-models/animated-rigged-horse-with-saddle-b08743c2c4734fb98a4e0a2f5767c318

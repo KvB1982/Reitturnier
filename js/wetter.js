@@ -1,7 +1,7 @@
 // ============================================================
 //  WETTER  -  Tageszeiten und Wetter fuer alle Welten
-//  Die Uhr laeuft, solange man auf dem Pferdehof ist: ein Tag dauert
-//  etwa 8 Minuten, die Nacht geht schneller vorbei. Das Wetter wechselt
+//  Die Uhr laeuft, solange man auf dem Pferdehof ist: ein Tag (7 bis 21 Uhr)
+//  dauert gut 9 Minuten. Nachts muss man schlafen gehen (hoftag.js). Das Wetter wechselt
 //  alle paar Minuten: Sonne, Wolken, Regen, morgens manchmal Nebel.
 // ============================================================
 var WETTER = (function () {
@@ -9,7 +9,7 @@ var WETTER = (function () {
   var d = STAND.daten;
   if (typeof d.stunde !== 'number') d.stunde = 9;
   if (!d.wetter) { d.wetter = 'sonne'; d.wetterRest = 150; }
-  var SEK_PRO_STUNDE = { tag: 30, nacht: 8 };
+  var SEK_PRO_STUNDE = { tag: 40, nacht: 25 };
   var BILD = { sonne: '☀️', wolken: '⛅', regen: '🌧️', nebel: '🌫️' };
   var NAME = { sonne: 'Sonne', wolken: 'Wolken', regen: 'Regen', nebel: 'Nebel' };
   // Stimmung im Tageslauf: [Stunde, Himmel, Sonnenfarbe, Sonnenstaerke, Helligkeit]
@@ -90,7 +90,8 @@ var WETTER = (function () {
     var szene = welt.szene, L = szene && szene.userData.licht;
     var aufHof = typeof WELTEN !== 'undefined' && welt === WELTEN.hof;
     if (aufHof) {
-      d.stunde = (d.stunde + dt / (istNacht(d.stunde) ? SEK_PRO_STUNDE.nacht : SEK_PRO_STUNDE.tag)) % 24;
+      // um Mitternacht bleibt die Uhr stehen: dann wird geschlafen (siehe hoftag.js)
+      d.stunde = Math.min(23.99, d.stunde + dt / (istNacht(d.stunde) ? SEK_PRO_STUNDE.nacht : SEK_PRO_STUNDE.tag));
       d.wetterRest -= dt;
       if (d.wetterRest <= 0) neuesWetter();
     }

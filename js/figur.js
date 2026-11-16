@@ -14,6 +14,12 @@ var FIGUR_POSEN = {
   tragen: { armR: [-0.75, 0, -0.1], armL: [-0.75, 0, 0.1], ellL: [-1.0, 0, 0], ellR: [-1.0, 0, 0] },
   winken: { armR: [0, 0, -2.6], ellR: [0, 0, -0.5] },
   jubel: { armR: [0, 0, -2.7], armL: [0, 0, 2.7] },
+  sitzen: { beinL: [-1.45, 0, 0.14], beinR: [-1.45, 0, -0.14], knieL: [0.3, 0, 0], knieR: [0.3, 0, 0], armL: [0.4, 0, 0.3], armR: [0.4, 0, -0.3], rumpf: [-0.1, 0, 0], hoch: 0.22 },
+  bank: { beinL: [-1.5, 0, 0.08], beinR: [-1.5, 0, -0.08], knieL: [1.5, 0, 0], knieR: [1.5, 0, 0], armL: [-0.3, 0, 0.1], armR: [-0.3, 0, -0.1], hoch: 0.66 },
+  essen: { beinL: [-1.45, 0, 0.14], beinR: [-1.45, 0, -0.14], knieL: [0.3, 0, 0], knieR: [0.3, 0, 0], armL: [0.4, 0, 0.3], armR: [-1.0, 0, -0.1], ellR: [-1.9, 0, 0], rumpf: [-0.1, 0, 0], hoch: 0.22 },
+  werfen: { armR: [-2.4, 0, -0.3], ellR: [-0.4, 0, 0], rumpf: [0.15, 0.3, 0] },
+  angeln: { armR: [-1.2, 0, -0.1], armL: [-1.0, 0, 0.2], ellL: [-0.5, 0, 0], ellR: [-0.3, 0, 0] },
+  pfluecken: { armR: [-1.3, 0, -0.1], ellR: [-0.3, 0, 0], rumpf: [0.8, 0, 0], beinL: [-0.5, 0, 0], knieL: [0.6, 0, 0], beinR: [-0.4, 0, 0], knieR: [0.5, 0, 0], hoch: 0.72 },
   longe: { armR: [-1.2, 0, -0.9], ellR: [-0.2, 0, 0], armL: [-0.5, 0, 0.9], ellL: [-0.3, 0, 0] }
 };
 
@@ -59,6 +65,8 @@ function baueFigur(outfit, opt) {
   var schirm = netz(new THREE.CylinderGeometry(0.08, 0.08, 0.012, 14, 1, false, -Math.PI / 2, Math.PI), M.helm, helm, 0, 0.125, 0.09);
   schirm.rotation.x = 0.12;
   helm.visible = opt.helm !== false;
+  var kappeDeko = new THREE.Group(), kopfDeko = new THREE.Group(), rumpfDeko = new THREE.Group();
+  helm.add(kappeDeko); G.kopf.add(kopfDeko); G.rumpf.add(rumpfDeko);
 
   function baueFrisur(art) {
     while (frisur.children.length) frisur.remove(frisur.children[0]);
@@ -73,7 +81,7 @@ function baueFigur(outfit, opt) {
         var zz = gelenk(frisur, k * 0.085, 0.06, -0.05); zz.name = 'wackel';
         netz(kapsel(0.03, 0.26), M.haare, zz, 0, -0.12, 0);
       }
-    } else {
+    } else if (!MODE.frisur(art, frisur, M.haare, 0.09)) {
       netz(new THREE.SphereGeometry(0.1, 12, 8), M.haare, frisur, 0, 0.06, -0.035).scale.set(1.02, 0.9, 0.9);
     }
   }
@@ -100,6 +108,10 @@ function baueFigur(outfit, opt) {
     M.jacke.color.set(o.jacke); M.hose.color.set(o.hose); M.stiefel.color.set(o.stiefel);
     M.haare.color.set(o.haare); M.helm.color.set(o.helm || '#111111');
     if (frisur.userData.art !== o.frisur) { baueFrisur(o.frisur); frisur.userData.art = o.frisur; }
+    MODE.kappe(kappeDeko, o, 0.115, 0.118);
+    MODE.kopf(kopfDeko, o, 0.09);
+    MODE.koerper(rumpfDeko, o, { y: 0.27, b: 0.144, t: 0.098, hals: 0.5 });
+    if (opt.helm === false) helm.visible = !!o.kappeAuf;
   }
   if (outfit) setzeOutfit(outfit);
 
@@ -118,7 +130,7 @@ function baueFigur(outfit, opt) {
     if (sofort) { hoeheIst = hoeheZiel; huefte.position.y = hoeheZiel; }
   }
   // Gehen: phase laeuft mit der Strecke, staerke 0..1 (1 = laufen)
-  var gehStaerke = 0, gehPhase = 0;
+  var gehStaerke = 0, gehPhase = 0, flatter = 0;
   function gehe(phase, staerke) { gehPhase = phase; gehStaerke = staerke; }
   function bewege(dt) {
     var k = Math.min(1, dt * 9), i, n;
@@ -141,6 +153,12 @@ function baueFigur(outfit, opt) {
     for (i = 0; i < frisur.children.length; i++) {
       var h = frisur.children[i];
       if (h.name === 'wackel') h.rotation.x = Math.sin(gehPhase * 2) * 0.15 * gehStaerke;
+    }
+    flatter += dt;
+    for (i = 0; i < rumpfDeko.children.length; i++) {
+      var fl = rumpfDeko.children[i];
+      if (fl.name === 'fluegel') fl.rotation.y = fl.userData.seite * (0.5 + Math.sin(flatter * 7) * 0.3);
+      else if (fl.name === 'umhang') fl.rotation.x = 0.16 + gehStaerke * 0.35 + Math.sin(flatter * 5) * 0.05 * gehStaerke;
     }
   }
   return {

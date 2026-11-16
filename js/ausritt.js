@@ -22,6 +22,10 @@ WELTEN.ausritt = (function () {
   var modus = 'aus', zeit = 0, gefunden = {}, aepfel = [], apfelZahl = 0, muenzen = 0, baeume = [], marken = [], enten = [];
   var redeZeit = 0, redeText = null, naechsteRede = 25, nass = 0, dauer = 0, freundName = 'Lotte', freundPferd = 'Wirbelwind';
   var d3 = new THREE.Object3D();
+  // zu Fuss: ich = eigene Figur, B = Begleiterin zu Fuss
+  var ich = null, I = { x: 0, z: 0, kurs: 0, phase: 0, tempo: 0, sitzt: null, pose: null, poseZeit: 0 }, B = { x: 0, z: 0, kurs: 0, phase: 0 }, kamW = 0, aktuell = null;
+  var STEG = { x: SEE[0] - 21, z: SEE[1] + 8, w: -1.2 }, SITZE = [];
+  var stein = null, ringe = [], angel = null, schwimmer = null, fisch = null, blumenZahl = 0, getan = {}, entenRuf = 0, kalt = false;
 
   function glatt(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
   function pfadAbstand(x, z) {
@@ -122,6 +126,22 @@ WELTEN.ausritt = (function () {
       BAU.netz(new THREE.ConeGeometry(0.05, 0.16, 5), 0xf08a24, en, 0, 0.24, 0.47).rotation.x = Math.PI / 2;
       szene.add(en); enten.push({ g: en, w: i * 1.6, r: 5 + i * 2.2 });
     }
+    // Sitzplaetze: Picknickdecke und Bank auf dem Huegel. [x, z, Pose, Blickrichtung, Platz der Freundin dx, dz]
+    SITZE = [{ x: 1.5, z: -43.6, pose: 'sitzen', kurs: 1.2, fx: 1.2, fz: -0.6, text: '🧺 Auf die Picknickdecke setzen', decke: true },
+      { x: -55.9, z: -77.75, pose: 'bank', kurs: 0, fx: 0.75, fz: 0, text: '🪑 Auf die Bank setzen' }];
+    // Steine, Wasserringe, Schwimmer und Fisch fuer die Spiele am See
+    stein = BAU.netz(new THREE.SphereGeometry(0.09, 7, 5), 0x7d7f86, szene); stein.scale.y = 0.45; stein.visible = false;
+    for (i = 0; i < 8; i++) {
+      var rg = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
+      rg.rotation.x = -Math.PI / 2; rg.visible = false; szene.add(rg); ringe.push({ g: rg, t: 9 });
+    }
+    schwimmer = new THREE.Group(); schwimmer.visible = false; szene.add(schwimmer);
+    BAU.netz(new THREE.SphereGeometry(0.1, 8, 6), 0xe5412d, schwimmer, 0, 0.05, 0); BAU.netz(new THREE.SphereGeometry(0.085, 8, 6), 0xffffff, schwimmer, 0, -0.03, 0);
+    fisch = BAU.netz(new THREE.SphereGeometry(0.2, 8, 6), 0xf39c12, szene); fisch.scale.set(0.45, 0.8, 1.6); fisch.visible = false;
+    BAU.netz(new THREE.ConeGeometry(0.16, 0.22, 4), 0xf39c12, fisch, 0, 0, -0.26).rotation.x = -Math.PI / 2;
+    // Ruderboot am Steg (Deko)
+    var boot = new THREE.Group(); boot.position.set(STEG.x + 5.5, WASSER + 0.12, STEG.z - 0.5); boot.rotation.y = 0.5; szene.add(boot);
+    BAU.kasten(1.2, 0.4, 3.2, 0x2d8fd0, boot, 0, 0, 0); BAU.kasten(1.0, 0.1, 2.9, 0xb9843c, boot, 0, 0.12, 0); BAU.kasten(1.1, 0.08, 0.3, 0x9a6b3f, boot, 0, 0.26, 0.2);
     // Schilder ueber den Orten
     ORTE.forEach(function (o) {
       var y = Math.max(WASSER, boden(o[2], o[3]));
@@ -151,6 +171,8 @@ WELTEN.ausritt = (function () {
     freundin = REITEN.reiterAuf(freund, { jacke: '#c0392b', hose: '#f4f1e8', stiefel: '#2a1c12', haare: '#5a3a1e', helm: '#1c1c1c', frisur: 'zoepfe' });
     szene.add(freund.wurzel);
     F = REITEN.neu(freund, { hoehe: boden, herde: true, drehung: 2.2, laut: 0.4, beschleunigung: 4.5 });
+    ich = baueFigur(KERN.spieler().outfit, { helm: true });
+    ich.wurzel.visible = false; szene.add(ich.wurzel);
     gebaut = true;
   }
 
@@ -209,13 +231,19 @@ WELTEN.ausritt = (function () {
       naechsteRede -= dt;
       if (naechsteRede <= 0 && redeZeit <= 0) { naechsteRede = 30 + Math.random() * 25; sage(WETTER.regnet() ? 'Brr, es regnet. Macht nichts, wir sind nicht aus Zucker!' : SPRUECHE[Math.floor(Math.random() * SPRUECHE.length)], 5); }
       var amTor = Math.hypot(R.x - START[0], R.z - START[1]) < 10 && dauer > 15;
-      KERN.setzeAktion(amTor ? '🏡 Nach Hause reiten' : null);
-    } else R.wunsch = 0;
+      aktuell = amTor ? { text: '🏡 Nach Hause reiten', tun: nachHause } : R.tempo < 0.7 && tief < 0.3 ? { text: '🥾 Absteigen', tun: steigeAb } : null;
+      KERN.setzeAktion(aktuell ? aktuell.text : null);
+    } else {
+      R.wunsch = 0; R.eigen = 0;
+      if (modus === 'fuss') zuFuss(dt);
+    }
     if (redeZeit > 0) { redeZeit -= dt; if (redeZeit <= 0) setzeHinweis(null); }
     R.schritt(dt, lenk, zeit);
 
     // die Freundin reitet links neben uns her
     var vx = Math.sin(R.kurs), vz = Math.cos(R.kurs);
+    if (modus === 'fuss') { F.wunsch = 0; F.schritt(dt, 0, zeit); }
+    else {
     var zx = R.x - vx * 1.2 + vz * 2.6, zz = R.z - vz * 1.2 - vx * 2.6;
     var dx = zx - F.x, dz = zz - F.z, dist = Math.hypot(dx, dz);
     var zielKurs = dist > 1.2 ? Math.atan2(dx, dz) : R.kurs;
@@ -226,21 +254,245 @@ WELTEN.ausritt = (function () {
     if (dist > 60) F.setze(zx, zz, R.kurs);
     F.schritt(dt, Math.max(-1, Math.min(1, df * 2.2)), zeit);
     freundin.huefte.position.y = F.gang === 'trab' ? Math.abs(Math.sin(F.phase)) * 0.06 : 0;
+    }
+    spieleAmSee(dt);
 
     marken.forEach(function (m) {
       m.stern.visible = !gefunden[m.id];
       m.stern.rotation.y = zeit * 2; m.stern.position.y = m.y + Math.sin(zeit * 3 + m.y) * 0.3;
     });
     aepfel.forEach(function (a, i) { if (a.da) { a.netz.position.set(a.x, a.y + Math.sin(zeit * 2.5 + i) * 0.15, a.z); a.netz.rotation.y = zeit; } });
-    enten.forEach(function (e) {
-      e.w += dt * 0.12;
-      e.g.position.set(SEE[0] + Math.sin(e.w) * e.r, WASSER + 0.08 + Math.sin(zeit * 2 + e.r) * 0.02, SEE[1] + Math.cos(e.w) * e.r * 0.7);
-      e.g.rotation.y = e.w + Math.PI / 2;
+    entenRuf = Math.max(0, entenRuf - dt);
+    enten.forEach(function (e, i) {
+      var zx2, zz2;
+      if (entenRuf > 0) { var sp = stegPunkt(0.9 + (i % 2) * 0.5 + 1.2, 2.2 + i * 1.3); zx2 = sp[0]; zz2 = sp[1]; }
+      else { e.w += dt * 0.12; zx2 = SEE[0] + Math.sin(e.w) * e.r; zz2 = SEE[1] + Math.cos(e.w) * e.r * 0.7; }
+      if (e.x === undefined) { e.x = zx2; e.z = zz2; }
+      var ex = zx2 - e.x, ez = zz2 - e.z, el = Math.hypot(ex, ez), ev = Math.min(el, (entenRuf > 0 ? 2.6 : 1.2) * dt);
+      if (el > 0.05) { e.x += ex / el * ev; e.z += ez / el * ev; e.g.rotation.y = Math.atan2(ex, ez); }
+      e.g.position.set(e.x, WASSER + 0.08 + Math.sin(zeit * (entenRuf > 0 ? 9 : 2) + e.r) * (entenRuf > 0 && el < 0.3 ? 0.05 : 0.02), e.z);
     });
-    REITEN.folge(kamera, R, dt, { boden: boden, hinten: 9, hoch: 4.4 });
-    sonne.folge(R.x, R.y, R.z);
+    if (modus === 'fuss') {
+      var c = Math.cos(0.5), kd = I.sitzt ? 5.5 : 7.5, iy = ich.wurzel.position.y;
+      kamZiel.set(I.x + Math.sin(kamW) * c * kd, iy + 1 + Math.sin(0.5) * kd, I.z + Math.cos(kamW) * c * kd);
+      kamZiel.y = Math.max(kamZiel.y, boden(kamZiel.x, kamZiel.z) + 1.2);
+      kamera.position.lerp(kamZiel, 1 - Math.exp(-4 * dt));
+      kamBlick.lerp(hv.set(I.x, iy + 1.1, I.z), 1 - Math.exp(-6 * dt));
+      kamera.lookAt(kamBlick);
+      sonne.folge(I.x, iy, I.z);
+    } else {
+      REITEN.folge(kamera, R, dt, { boden: boden, hinten: 9, hoch: 4.4 });
+      kamBlick.set(R.x, R.y + 1.5, R.z);
+      sonne.folge(R.x, R.y, R.z);
+    }
     KERN.setzeHud(REITEN.kachel('Entdeckt', Object.keys(gefunden).length + ' / ' + ORTE.length) + REITEN.kachel('Äpfel', '🍎 ' + apfelZahl) +
-      REITEN.kachel('Gang', REITEN.GANG_NAME[R.gang]) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()));
+      REITEN.kachel(modus === 'fuss' ? 'Unterwegs' : 'Gang', modus === 'fuss' ? '🥾 zu Fuß' : REITEN.GANG_NAME[R.gang]) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()));
+  }
+
+  var kamZiel = new THREE.Vector3(), kamBlick = new THREE.Vector3(), hv = new THREE.Vector3();
+  // Punkt auf dem Steg: quer (x) und laengs (z) -> Welt
+  function stegPunkt(lx, lz) { var c = Math.cos(STEG.w), s2 = Math.sin(STEG.w); return [STEG.x + lx * c + lz * s2, STEG.z - lx * s2 + lz * c]; }
+  function aufSteg(x, z) {
+    var dx = x - STEG.x, dz = z - STEG.z, c = Math.cos(STEG.w), s2 = Math.sin(STEG.w), lx = dx * c - dz * s2, lz = dx * s2 + dz * c;
+    return Math.abs(lx) < 0.85 && lz > -0.8 && lz < 8.6 ? lz : null;
+  }
+  function fussHoehe(x, z) { return aufSteg(x, z) !== null ? Math.max(0.12, boden(x, z)) : boden(x, z); }
+
+  // ---------- Absteigen und Aufsteigen ----------
+  function steigeAb() {
+    if (modus !== 'ritt') return;
+    modus = 'fuss';
+    R.eigen = 0; R.wunsch = 0;
+    KERN.pferd.setzeReiterin(false);
+    ich.setzeOutfit(KERN.spieler().outfit); ich.setzeHelm(true);
+    ich.setzeHoehe(0.8, true); ich.setzePose('steh', true);
+    I.x = R.x + Math.cos(R.kurs) * 1.3; I.z = R.z - Math.sin(R.kurs) * 1.3; I.kurs = R.kurs; I.sitzt = null; I.pose = null; I.tempo = 0;
+    ich.wurzel.visible = true;
+    kamW = R.kurs + Math.PI;
+    // die Freundin steigt auch ab
+    freund.koerper.remove(freundin.wurzel); szene.add(freundin.wurzel);
+    freundin.setzeHoehe(0.8, true); freundin.setzePose('steh', true); freundin.huefte.position.y = 0.8;
+    B.x = F.x + Math.cos(F.kurs) * 1.3; B.z = F.z - Math.sin(F.kurs) * 1.3; B.kurs = F.kurs;
+    freund.setzeKopfTief(1);
+    KERN.ton(520, 0.1, 'triangle', 0.14);
+    sage('Gute Idee, ich steige auch ab. Die Pferde dürfen grasen.', 5);
+    document.body.className = 'im-welt welt-ausritt mit-lenken mit-tempo';
+  }
+  function steigeAuf() {
+    modus = 'ritt';
+    ich.wurzel.visible = false; I.sitzt = null;
+    KERN.pferd.setzeReiterin(true);
+    szene.remove(freundin.wurzel);
+    freundin.setzeHoehe(0, true); freundin.setzePose('reiten', true);
+    freundin.wurzel.position.set(0, 1.66, 0.02); freundin.wurzel.rotation.set(0, 0, 0);
+    freund.koerper.add(freundin.wurzel);
+    freund.setzeKopfTief(0);
+    if (schwimmer) schwimmer.visible = false; angel = null;
+    KERN.ton(660, 0.1, 'triangle', 0.14);
+    sage('Weiter geht’s!', 3);
+  }
+  function lohn(n, text) { muenzen += n; STAND.daten.muenzen += n; STAND.speichere(); KERN.meldung(text + '  +' + n + ' 🪙', 'perfekt'); KERN.klang('gut'); }
+  function setzen(s) {
+    I.sitzt = s; I.x = s.x; I.z = s.z; I.kurs = s.kurs; I.tempo = 0;
+    ich.setzePose(s.pose);
+    KERN.ton(440, 0.1, 'triangle', 0.12);
+    sage(s.decke ? 'Ich habe Apfelkuchen und Saft dabei!' : 'Schau mal, wie weit man sehen kann!', 5);
+  }
+  function aufstehen() { I.sitzt = null; ich.setzePose('steh'); ich.setzeHoehe(0.8); freundin.setzePose('steh'); freundin.setzeHoehe(0.8); }
+  function picknick() {
+    ich.setzePose('essen'); freundin.setzePose('essen'); I.poseZeit = 2.2; I.pose = 'sitzt';
+    [0, 0.5, 1.0].forEach(function (t) { KERN.ton(190, 0.06, 'square', 0.05, t); KERN.ton(150, 0.06, 'square', 0.05, t + 0.15); });
+    if (!getan.picknick) { getan.picknick = true; lohn(3, '🍰 Mmmh, Apfelkuchen!'); } else KERN.meldung(['🧃 Lecker Saft!', '🍎 Ein Apfel!', '🥪 Ein Käsebrot!'][Math.floor(Math.random() * 3)], 'gut');
+  }
+  function pose(name, sek) { ich.setzePose(name); I.pose = name; I.poseZeit = sek; }
+  function ring(x, z, gross) {
+    var r = ringe.sort(function (a, b) { return b.t - a.t; })[0];
+    r.t = 0; r.gross = gross || 1; r.g.position.set(x, WASSER + 0.03, z); r.g.visible = true;
+    KERN.ton(900 + Math.random() * 500, 0.06, 'sine', 0.1);
+  }
+  function wirfStein() {
+    var wx = SEE[0] - I.x, wz = SEE[1] - I.z, l = Math.hypot(wx, wz);
+    I.kurs = Math.atan2(wx, wz);
+    pose('werfen', 0.6);
+    var z = Math.random(), n = z < 0.12 ? 1 : z < 0.4 ? 2 : z < 0.65 ? 3 : z < 0.82 ? 4 : z < 0.93 ? 5 : 7;
+    stein.fl = { x: I.x, z: I.z, dx: wx / l, dz: wz / l, n: n, i: -1, t: 0, weit: 0, y0: ich.wurzel.position.y + 1.3, start: 0.25 };
+    KERN.ton(300, 0.08, 'triangle', 0.1);
+  }
+  function fuettereEnten() {
+    pose('werfen', 0.7); entenRuf = 9;
+    for (var i = 0; i < 6; i++) KERN.ton(i % 2 ? 560 : 480, 0.09, 'sawtooth', 0.07, 0.5 + i * 0.28 + Math.random() * 0.1);
+    if (!getan.enten) { getan.enten = true; lohn(2, '🦆 Quak! Die Enten freuen sich'); } else KERN.meldung('🦆 Quak, quak!', 'gut');
+    sage('Schau, da kommen sie alle angeschwommen!', 4);
+  }
+  function angle() {
+    if (!angel) {
+      var p = stegPunkt(0, 12);
+      angel = { phase: 'warten', t: 2.5 + Math.random() * 4, x: p[0], z: p[1] };
+      schwimmer.position.set(p[0], WASSER + 0.03, p[1]); schwimmer.visible = true;
+      I.kurs = Math.atan2(p[0] - I.x, p[1] - I.z);
+      ich.setzePose('angeln'); I.pose = 'angeln'; I.poseZeit = 99;
+      ring(p[0], p[1]); KERN.meldung('🎣 Warte, bis es zuckt …', 'gut');
+    } else if (angel.phase === 'biss') {
+      var gross = Math.random() < 0.25;
+      fisch.fl = { t: 0, x: angel.x, z: angel.z }; fisch.scale.set(0.45, 0.8, 1.6).multiplyScalar(gross ? 1.7 : 1);
+      schwimmer.visible = false; angel = null; I.poseZeit = 0.8;
+      getan.fische = (getan.fische || 0) + 1;
+      lohn(gross ? 4 : 2, gross ? '🐟 Ein riesiger Fisch! Du lässt ihn wieder frei.' : '🐟 Gefangen! Du lässt ihn wieder schwimmen.');
+    } else { KERN.meldung('Zu früh! Der Fisch ist weg.', 'knapp'); schwimmer.visible = false; angel = null; I.poseZeit = 0; }
+  }
+  function pfluecke() {
+    pose('pfluecken', 0.9);
+    blumenZahl++;
+    KERN.ton(700 + blumenZahl * 80, 0.1, 'triangle', 0.12);
+    if (blumenZahl % 5 === 0) { lohn(3, '💐 Ein Blumenkranz für dein Pferd!'); sage('Der Kranz ist wunderschön geworden!', 4); }
+    else KERN.meldung('🌸 ' + (blumenZahl % 5) + ' von 5 Blumen', 'gut');
+  }
+
+  // Steine, Wasserringe, Angel und Fisch bewegen
+  function spieleAmSee(dt) {
+    ringe.forEach(function (r) {
+      if (!r.g.visible) return;
+      r.t += dt;
+      var g = (0.3 + r.t * 1.6) * r.gross; r.g.scale.set(g, g, 1); r.g.material.opacity = Math.max(0, 0.7 - r.t * 0.6);
+      if (r.t > 1.2) r.g.visible = false;
+    });
+    var s = stein.fl;
+    if (s) {
+      if (s.start > 0) { s.start -= dt; if (s.start <= 0) { stein.visible = true; s.i = 0; s.lang = 5; s.t = 0; } }
+      else {
+        var dauer = 0.25 + s.lang * 0.06;
+        s.t += dt / dauer;
+        var p = Math.min(1, s.t), ex = s.x + s.dx * (s.weit + s.lang * p), ez = s.z + s.dz * (s.weit + s.lang * p);
+        var y = s.i === 0 ? s.y0 + (WASSER - s.y0) * p + Math.sin(p * Math.PI) * 0.4 : WASSER + Math.sin(p * Math.PI) * s.lang * 0.22;
+        stein.position.set(ex, y, ez); stein.rotation.y += dt * 20;
+        if (s.t >= 1) {
+          s.weit += s.lang; s.i++; s.t = 0; s.lang = Math.max(0.5, 3.4 * Math.pow(0.72, s.i));
+          ring(ex, ez, s.i > s.n ? 1.6 : 0.8);
+          if (boden(ex, ez) > WASSER) { s.n = 0; s.i = 99; }
+          if (s.i > s.n) {
+            stein.visible = false; stein.fl = null;
+            var h = Math.max(0, s.n);
+            if (s.i === 99) KERN.meldung('Plumps! Daneben.', 'knapp');
+            else if (h >= 5) { lohn(h >= 7 ? 4 : 2, '🪨 ' + h + ' Hüpfer! Wahnsinn!'); sage('Wow, wie machst du das?', 4); }
+            else KERN.meldung(h <= 1 ? 'Plumps! Nur 1 Hüpfer.' : '🪨 ' + h + ' Hüpfer!', h >= 3 ? 'gut' : 'knapp');
+            getan.steine = Math.max(getan.steine || 0, h);
+          }
+        }
+      }
+    }
+    if (angel) {
+      angel.t -= dt;
+      if (angel.phase === 'warten') {
+        schwimmer.position.y = WASSER + 0.03 + Math.sin(zeit * 2.5) * 0.02;
+        if (angel.t <= 0) { angel.phase = 'biss'; angel.t = 1.4; ring(angel.x, angel.z, 1.2); KERN.ton(880, 0.08, 'square', 0.1); KERN.ton(1100, 0.1, 'square', 0.1, 0.1); KERN.meldung('❗ Es zuckt! Schnell ziehen!', 'perfekt'); }
+      } else {
+        schwimmer.position.y = WASSER - 0.08 + Math.sin(zeit * 30) * 0.05;
+        if (angel.t <= 0) { KERN.meldung('Zu langsam, der Fisch ist weg.', 'knapp'); schwimmer.visible = false; angel = null; I.poseZeit = 0; }
+      }
+    }
+    if (fisch.fl) {
+      var f = fisch.fl; f.t += dt;
+      var q = f.t / 1.1;
+      fisch.visible = q < 1; fisch.position.set(f.x, WASSER + Math.sin(q * Math.PI) * 1.8, f.z); fisch.rotation.x = -1.2 + q * 2.6;
+      if (q >= 1) { ring(f.x, f.z, 1.6); fisch.fl = null; }
+    }
+  }
+
+  // ---------- zu Fuss gehen ----------
+  function zuFuss(dt) {
+    dauer += dt;
+    var t = KERN.taste, w = KERN.wisch;
+    var sx = (t.rechts ? 1 : 0) - (t.links ? 1 : 0) - w.lenk, sz = (t.langsamer ? 1 : 0) - (t.schneller ? 1 : 0) - w.hoch;
+    var kc = Math.cos(kamW), ks = Math.sin(kamW), ex = sx * kc + sz * ks, ez = -sx * ks + sz * kc, st = Math.min(1, Math.hypot(ex, ez));
+    if (I.poseZeit > 0) { I.poseZeit -= dt; if (I.poseZeit <= 0) { if (I.sitzt) { ich.setzePose(I.sitzt.pose); freundin.setzePose(I.sitzt.pose); } else { ich.setzePose('steh'); ich.setzeHoehe(0.8); } I.pose = null; } }
+    if (I.sitzt || I.pose === 'pfluecken' || I.pose === 'werfen') st = 0;
+    if (st > 0.05 && angel) { schwimmer.visible = false; angel = null; I.pose = null; I.poseZeit = 0; ich.setzePose('steh'); }
+    I.tempo += (st * 4.3 - I.tempo) * Math.min(1, dt * 10);
+    var wasserTief = WASSER - boden(I.x, I.z), imWasser = wasserTief > 0.05 && aufSteg(I.x, I.z) === null;
+    if (st > 0.05) {
+      var ziel = Math.atan2(ex, ez), df = Math.atan2(Math.sin(ziel - I.kurs), Math.cos(ziel - I.kurs));
+      I.kurs += df * Math.min(1, dt * 12);
+      var v = I.tempo * (imWasser ? 0.55 : 1) * dt, nx = I.x + ex / st * v * Math.min(1, st * 1.2), nz = I.z + ez / st * v * Math.min(1, st * 1.2);
+      // nicht zu tief ins Wasser (ausser auf dem Steg)
+      if (aufSteg(nx, nz) !== null || boden(nx, nz) > WASSER - 0.55) { I.x = nx; I.z = nz; }
+      grenze(I);
+      I.phase += I.tempo * dt * 4.2;
+      if (imWasser) { nass += dt; if (nass > 0.3) { nass = 0; KERN.huf(0.07, 2800 + Math.random() * 900); } if (!kalt) { kalt = true; KERN.meldung('💦 Huch, ist das kalt!', 'gut'); sage('Hihi, Schuhe aus und rein!', 4); } }
+    }
+    var iy = fussHoehe(I.x, I.z);
+    ich.gehe(I.phase, Math.min(1, I.tempo / 3.5)); ich.bewege(dt);
+    ich.wurzel.position.set(I.x, iy, I.z); ich.wurzel.rotation.y = I.kurs;
+    // die Freundin geht mit und setzt sich dazu
+    var zx = I.x - Math.sin(I.kurs) * 1.1 + Math.cos(I.kurs) * 1.0, zz = I.z - Math.cos(I.kurs) * 1.1 - Math.sin(I.kurs) * 1.0, sitzB = false;
+    if (I.sitzt) { zx = I.sitzt.x + I.sitzt.fx; zz = I.sitzt.z + I.sitzt.fz; }
+    if (Math.hypot(zx - B.x, zz - B.z) > 25) { B.x = zx; B.z = zz; }
+    var bx = zx - B.x, bz = zz - B.z, bl = Math.hypot(bx, bz), bv = 0;
+    if (bl > (I.sitzt ? 0.12 : 0.7)) {
+      bv = Math.min(4.6, bl * 2.5); B.kurs = Math.atan2(bx, bz);
+      var ax = B.x + bx / bl * bv * dt, az = B.z + bz / bl * bv * dt;
+      if (aufSteg(ax, az) !== null || boden(ax, az) > WASSER - 0.3 || I.sitzt) { B.x = ax; B.z = az; } else bv = 0;
+      B.phase += bv * dt * 4.2;
+      if (!I.pose) freundin.setzePose('steh');
+    } else if (I.sitzt) { sitzB = true; B.kurs = I.sitzt.decke ? Math.atan2(I.x - B.x, I.z - B.z) : I.sitzt.kurs; if (!I.pose) freundin.setzePose(I.sitzt.pose); }
+    if (!sitzB && !I.sitzt) freundin.setzeHoehe(0.8);
+    freundin.gehe(B.phase, Math.min(1, bv / 3.5)); freundin.bewege(dt);
+    freundin.wurzel.position.set(B.x, fussHoehe(B.x, B.z), B.z); freundin.wurzel.rotation.y = B.kurs;
+
+    // Was kann man hier tun?
+    aktuell = null;
+    var steg = aufSteg(I.x, I.z), ul = Math.hypot(SEE[0] - I.x, SEE[1] - I.z) || 1, ufer = boden(I.x + (SEE[0] - I.x) / ul * 4, I.z + (SEE[1] - I.z) / ul * 4) < WASSER - 0.05;
+    if (I.sitzt) aktuell = I.sitzt.decke && I.poseZeit <= 0 && !getan.satt ? { text: '🍰 Picknick essen', tun: function () { picknick(); getan.essen = (getan.essen || 0) + 1; if (getan.essen >= 3) getan.satt = true; } } : I.poseZeit <= 0 ? { text: '🧍 Aufstehen', tun: aufstehen } : null;
+    else if (I.poseZeit > 0 && I.pose !== 'angeln') aktuell = null;
+    else if (angel) aktuell = { text: angel.phase === 'biss' ? '🎣 Ziehen!' : '🎣 Angel einholen', tun: angle };
+    else if (Math.hypot(I.x - R.x, I.z - R.z) < 2.6) aktuell = { text: '🐴 Aufsteigen', tun: steigeAuf };
+    else {
+      for (var i = 0; i < SITZE.length; i++) if (Math.hypot(I.x - SITZE[i].x, I.z - SITZE[i].z) < 2.4) aktuell = { text: SITZE[i].text, tun: (function (s) { return function () { setzen(s); }; })(SITZE[i]) };
+      if (!aktuell && steg !== null) aktuell = steg > 6.3 ? { text: '🎣 Angeln', tun: angle } : steg > 1 ? { text: '🦆 Enten füttern', tun: fuettereEnten } : null;
+      if (!aktuell && ufer && !stein.fl) aktuell = { text: '🪨 Stein flitschen lassen', tun: wirfStein };
+      if (!aktuell && Math.hypot(I.x - 72, I.z - 48) < 23) aktuell = { text: '🌸 Blume pflücken', tun: pfluecke };
+    }
+    KERN.setzeAktion(aktuell ? aktuell.text : null);
+    if (redeZeit <= 0) setzeHinweis(Math.hypot(I.x - R.x, I.z - R.z) > 30 ? 'Dein Pferd wartet. Geh zu ihm zurück, um wieder aufzusteigen.' : null);
   }
 
   function nachHause() {
@@ -273,6 +525,7 @@ WELTEN.ausritt = (function () {
       // wenn das Fohlen gross ist, reitet die Freundin darauf
       var b = typeof HOFLEBEN !== 'undefined' && STAND.daten.fohlen && STAND.daten.fohlen.wuchs >= 1 ? STAND.daten.fohlen : null;
       freundPferd = b ? (b.name || 'dein großes Fohlen') : 'Wirbelwind';
+      getan = {}; blumenZahl = 0; kalt = false; entenRuf = 0; aktuell = null; ich.wurzel.visible = false;
       gefunden = {}; apfelZahl = 0; muenzen = 0; dauer = 0; nass = 0; redeZeit = 0; naechsteRede = 25;
       aepfel.forEach(function (a) { a.da = true; a.netz.visible = true; });
       R.setze(START[0], START[1], Math.PI); R.eigen = 0;
@@ -286,14 +539,15 @@ WELTEN.ausritt = (function () {
         '• <b>↑ ↓</b> schneller und langsamer (Schritt, Trab, Galopp), <b>← →</b> lenken. Auf dem iPad: Finger auflegen und ziehen.<br>' +
         '• Folge dem hellen Weg. Über sechs Orten schwebt ein <b>goldener Stern</b>: Reite hin und entdecke sie.<br>' +
         '• Im See dürfen die Pferde planschen. Äpfel am Weg schmecken deinem Pferd.<br>' +
+        '• Wenn du anhältst, kannst du <b>absteigen</b>: auf die <b>Picknickdecke</b> setzen, am See <b>Steine flitschen</b>, auf dem Steg <b>Enten füttern</b> und <b>angeln</b>, auf der Wiese <b>Blumen pflücken</b>.<br>' +
         '• Am Tor geht es wieder nach Hause.</div>',
         [{ text: 'Losreiten', aktion: beginne }, { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { REITEN.heim(opt, null); } }]);
       schritt(0.001, zeit);
     },
-    schritt: schritt, aktion: function () { if (KERN.el('springen').textContent.indexOf('Hause') >= 0) nachHause(); }, tipp: function () {},
-    zurueck: function () { if (modus === 'ritt' && dauer > 5) nachHause(); else { modus = 'aus'; setzeHinweis(null); REITEN.heim(opt, null); } },
-    verlaesst: function () { modus = 'aus'; setzeHinweis(null); KERN.pferd.koerper.rotation.set(0, 0, 0); KERN.pferd.koerper.position.y = 0; },
-    zustand: function () { return { R: R, F: F, gefunden: gefunden, modus: modus, orte: ORTE, aepfel: aepfel }; }
+    schritt: schritt, aktion: function () { if ((modus === 'ritt' || modus === 'fuss') && aktuell) aktuell.tun(); }, tipp: function () {},
+    zurueck: function () { if (modus === 'fuss') steigeAuf(); if (modus === 'ritt' && dauer > 5) nachHause(); else { modus = 'aus'; setzeHinweis(null); REITEN.heim(opt, null); } },
+    verlaesst: function () { if (modus === 'fuss') steigeAuf(); modus = 'aus'; setzeHinweis(null); KERN.pferd.koerper.rotation.set(0, 0, 0); KERN.pferd.koerper.position.y = 0; },
+    zustand: function () { return { R: R, F: F, I: I, B: B, aktuell: aktuell, getan: getan, steg: STEG, gefunden: gefunden, modus: modus, orte: ORTE, aepfel: aepfel }; }
   };
   return API;
 })();

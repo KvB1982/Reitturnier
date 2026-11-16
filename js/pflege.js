@@ -129,7 +129,7 @@ var PFLEGE = (function () {
       P.st.schmutz = P.tier.farbe.schmutzGrad();
       if (P.st.schmutz < 0.035) {
         P.st.schmutz = 0; P.tier.setzeSchmutz(0);
-        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank!'); STAND.merke('sauber', 1); }
+        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank!'); HOFTAG.zaehle('putzen', 1); STAND.merke('sauber', 1); }
       }
     }
     return t;
@@ -164,7 +164,7 @@ var PFLEGE = (function () {
       KERN.klang('gut');
       var offen = hufRinge.filter(function (r) { return r.rest > 0; }).length;
       P.st.hufe = offen / 4;
-      if (!offen && warHufe) { warHufe = false; lohn(2, 'Alle Hufe sauber!'); STAND.merke('hufe', 1); }
+      if (!offen && warHufe) { warHufe = false; lohn(2, 'Alle Hufe sauber!'); HOFTAG.zaehle('hufe', 1); STAND.merke('hufe', 1); }
       zeigeFertig();
     }
   }
@@ -178,7 +178,7 @@ var PFLEGE = (function () {
       hof.szene.remove(m);
       P.st.mist = box.mist.length / 8;
       KERN.ton(200, 0.08, 'square', 0.08); KERN.ton(140, 0.1, 'square', 0.08, 0.07);
-      if (!box.mist.length) { P.st.mist = 0; if (warMistig) { warMistig = false; lohn(2, 'Box ausgemistet!'); } }
+      if (!box.mist.length) { P.st.mist = 0; if (warMistig) { warMistig = false; lohn(2, 'Box ausgemistet!'); HOFTAG.zaehle('box', 1); } }
       zeigeFertig();
     } else if (werkzeug === 'stroh') {
       if (P.st.mist > 0.3) { KERN.meldung('Erst ausmisten!', 'knapp'); return; }
@@ -192,7 +192,7 @@ var PFLEGE = (function () {
       KERN.huf(0.04, 2400);
       var alt = P.st.stroh;
       P.st.stroh = Math.min(1, P.st.stroh + 0.13);
-      if (P.st.stroh >= 1 && alt < 1 && warStroh) { warStroh = false; lohn(2, 'Frisch eingestreut!'); }
+      if (P.st.stroh >= 1 && alt < 1 && warStroh) { warStroh = false; lohn(2, 'Frisch eingestreut!'); HOFTAG.zaehle('stroh', 1); }
       hof.zeigeZustand(P);
       zeigeFertig();
     }

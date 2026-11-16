@@ -402,6 +402,8 @@ function bauePferdMitReiterin() {
   // Haare
   var frisur = new THREE.Group();
   rkopf.add(frisur);
+  var kappeDeko = new THREE.Group(), kopfDeko = new THREE.Group(), rumpfDeko = new THREE.Group();
+  rkopf.add(kappeDeko); rkopf.add(kopfDeko); oberkoerper.add(rumpfDeko);
 
   var zuegelEigen = [];
   // Arme: Schulter -> Ellbogen -> Hand am Zuegel
@@ -479,7 +481,7 @@ function bauePferdMitReiterin() {
         netz(new THREE.TorusGeometry(0.018, 0.007, 6, 10), M.band, z2, 0, -0.235, 0).rotation.x = Math.PI / 2;
         netz(new THREE.SphereGeometry(0.024, 8, 6), M.haare, z2, 0, -0.27, 0).scale.set(1, 1.5, 1);
       }
-    } else {
+    } else if (!MODE.frisur(art, frisur, M.haare, 0, M.band)) {
       var bob = netz(new THREE.SphereGeometry(0.106, 14, 10, Math.PI * 0.82, Math.PI * 1.36, Math.PI * 0.42, Math.PI * 0.26), M.haare, frisur, 0, 0.0, -0.008);
       bob.scale.set(1.02, 1.3, 1.04);
     }
@@ -510,6 +512,9 @@ function bauePferdMitReiterin() {
       if (ausr) ausr.setze(o.ausruestung);
     }
     if (frisur.userData.art !== o.frisur) { baueFrisur(o.frisur); frisur.userData.art = o.frisur; }
+    MODE.kappe(kappeDeko, o, 0.022, 0.112);
+    MODE.kopf(kopfDeko, o, 0);
+    MODE.koerper(rumpfDeko, o, { y: 0.3, b: 0.143, t: 0.092, hals: 0.5 });
     var g = o.gesicht || 'blesse';
     if (gesicht.userData.art !== g) { baueGesicht(g); gesicht.userData.art = g; }
   }

@@ -309,6 +309,7 @@ var HOFLEBEN = (function () {
         if (feld) f[feld] = Date.now();
         f.wuchs = Math.min(1, f.wuchs + plus);
         STAND.merke('fohlenPflege', (STAND.daten.leistung.fohlenPflege || 0) + 1);
+        HOFTAG.zaehle('fohlen', 1);
         STAND.speichere(); zeigeFohlen(); herz(bild);
         H.frei(); KERN.meldung(text, 'gut'); KERN.klang('gut');
       };
