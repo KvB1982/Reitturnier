@@ -129,7 +129,7 @@ var PFLEGE = (function () {
       P.st.schmutz = P.tier.farbe.schmutzGrad();
       if (P.st.schmutz < 0.035) {
         P.st.schmutz = 0; P.tier.setzeSchmutz(0);
-        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank!'); }
+        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank!'); STAND.merke('sauber', 1); }
       }
     }
     return t;
@@ -164,7 +164,7 @@ var PFLEGE = (function () {
       KERN.klang('gut');
       var offen = hufRinge.filter(function (r) { return r.rest > 0; }).length;
       P.st.hufe = offen / 4;
-      if (!offen && warHufe) { warHufe = false; lohn(2, 'Alle Hufe sauber!'); }
+      if (!offen && warHufe) { warHufe = false; lohn(2, 'Alle Hufe sauber!'); STAND.merke('hufe', 1); }
       zeigeFertig();
     }
   }

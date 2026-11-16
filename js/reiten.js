@@ -25,7 +25,8 @@ var BAU = (function () {
     opt = opt || {};
     szene.background = new THREE.Color(opt.himmel || 0x9fd4f5);
     szene.fog = new THREE.Fog(opt.himmel || 0x9fd4f5, opt.nebelNah || 90, opt.nebelFern || 330);
-    szene.add(new THREE.HemisphereLight(0xffffff, opt.bodenLicht || 0x8aa86a, opt.hell || 1.5));
+    var hemi = new THREE.HemisphereLight(0xffffff, opt.bodenLicht || 0x8aa86a, opt.hell || 1.5);
+    szene.add(hemi);
     var sonne = new THREE.DirectionalLight(0xfff3d6, opt.sonne || 2.2);
     sonne.castShadow = true;
     var gr = opt.schatten || 40;
@@ -35,12 +36,17 @@ var BAU = (function () {
     sonne.shadow.camera.far = 220;
     sonne.shadow.bias = -0.0006;
     szene.add(sonne); szene.add(sonne.target);
-    function folge(x, y, z) {
-      sonne.position.set(x + 30, y + 55, z + 25);
+    // ri = Richtung zur Sonne; das Wetter (wetter.js) dreht sie mit der Tageszeit
+    var L = { sonne: sonne, hemi: hemi, ri: new THREE.Vector3(30, 55, 25), mitte: new THREE.Vector3(),
+      basis: { sonne: opt.sonne || 2.2, hell: opt.hell || 1.5, nah: opt.nebelNah || 90, fern: opt.nebelFern || 330 } };
+    L.folge = function (x, y, z) {
+      L.mitte.set(x, y, z);
+      sonne.position.set(x + L.ri.x, y + L.ri.y, z + L.ri.z);
       sonne.target.position.set(x, y, z);
-    }
-    folge(0, 0, 0);
-    return { sonne: sonne, folge: folge };
+    };
+    L.folge(0, 0, 0);
+    szene.userData.licht = L;
+    return L;
   }
 
   // Text auf einer Tafel oder als schwebendes Schild

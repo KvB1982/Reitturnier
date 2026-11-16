@@ -50,6 +50,38 @@ PFERDEHOF UND MODI
       2. Den rosa Punkt mit links / rechts in der gruenen Mitte halten.
     Die Richter geben fuer jede Uebung eine Note von 0 bis 10.
 
+  Fohlen, Tieraerztin, Hufschmied
+    - Auf der Weide wohnt ein Fohlen. Geh ohne Pferd hin: Namen geben,
+      Flaeschchen, buersten, streicheln. So waechst es zum grossen Pferd.
+    - Oestlich vom Stall steht die Tieraerztin. Ein krankes Pferd (Zeichen
+      am Boxenschild) fuehrt man hin, untersucht es und waehlt die richtige
+      Behandlung.
+    - Daneben arbeitet der Hufschmied. Nach vielen Ritten sind die Hufeisen
+      abgelaufen: viermal im richtigen Moment haemmern.
+
+  Reitabzeichen
+    Am Schwarzen Brett neben der Bank haengen sechs Abzeichen, vom
+    Steckenpferd bis zum Reitabzeichen Gold. Jedes hat Aufgaben (zum
+    Beispiel eine Dressurnote) und am Ende eine Theoriepruefung mit
+    vier Fragen, von denen drei richtig sein muessen.
+
+  Ausritt
+    Am Gelaendetor oder direkt im Menue: mit Lotte frei durch Wald und
+    Wiesen an den See reiten. Hoch / runter = schneller / langsamer,
+    links / rechts = lenken. Ueber sechs Orten schwebt ein goldener Stern.
+
+  Kuer mit Musik (in der Dressur waehlbar)
+    Frei im Viereck reiten. Die Musik wechselt zwischen Schritt, Trab und
+    Galopp: immer die passende Gangart waehlen, dazu Zirkel auf beiden
+    Haenden, Schlangenlinie und Galopp zeigen, am Schluss bei X gruessen.
+
+  Wetter, Tageszeiten, Fotos, Namen
+    - Auf dem Hof vergeht die Zeit: Morgen, Mittag, Abend, Nacht. Das
+      Wetter wechselt. Im Regen werden Pferde draussen schneller schmutzig.
+    - Der Knopf mit der Kamera oben rechts haelt das Spiel an. Ziehen dreht
+      die Kamera, "Foto machen" speichert das Bild.
+    - Beim Schmuecken in der Box kann man dem Pferd einen eigenen Namen geben.
+
 SPRINGEN: SO SPIELST DU
   1. Zieh deine Reiterin an, such dir ein Pferd und einen Parcours aus.
   2. Klick auf "Los geht's!". Das Pferd galoppiert von allein.
@@ -114,6 +146,10 @@ DAS SPIEL ERWEITERN
     js/figur.js   bewegliche Figuren (Spielerin zu Fuss, andere Reitmaedchen)
     js/reiten.js  gemeinsame Bausteine fuer alle Reit-Modi
     js/hof.js, js/pflege.js   Pferdehof und Pflege in der Box
+    js/hofleben.js  Tieraerztin, Hufschmied, Fohlen, Reitabzeichen
+                    (Listen ABZEICHEN und THEORIE zum Erweitern)
+    js/wetter.js    Tageszeiten und Wetter
+    js/ausritt.js   der Ausritt
     js/rennen.js, js/gelaende.js, js/dressur.js, js/voltigieren.js   die Modi
     In js/config.js stehen auch die Hofpferde (HOF_PFERDE), die Artikel im
     Reitladen (LADEN) und die Preisgelder (PREISGELD).

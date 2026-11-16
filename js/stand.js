@@ -12,6 +12,13 @@ var STAND = (function () {
   d.pferde = d.pferde || {};          // je Pferd: { schmutz, hunger, mist, stroh, hufe, zeit, ausruestung, fit }
   d.gewaehlt = d.gewaehlt || null;
   d.schleifen = d.schleifen || 0;
+  d.namen = d.namen || {};            // eigene Pferdenamen: { kennung: name }
+  d.leistung = d.leistung || {};      // beste Ergebnisse fuer die Reitabzeichen
+  d.abzeichen = d.abzeichen || {};    // bestandene Abzeichen: { kennung: true }
+  if (typeof HOF_PFERDE !== 'undefined') HOF_PFERDE.forEach(function (def) {
+    def.standardName = def.name;
+    if (d.namen[def.id]) def.name = d.namen[def.id];
+  });
   function speichere() { try { localStorage.setItem(NAME, JSON.stringify(d)); } catch (e) { /* egal */ } }
 
   // Zustand eines Pferdes holen. Schmutz und Hunger wachsen mit der Zeit (auch wenn das Spiel zu ist).
@@ -38,7 +45,7 @@ var STAND = (function () {
   // Wie gut geht es dem Pferd? 0..1
   function laune(id) {
     var p = pferd(id);
-    return Math.max(0, 1 - (p.schmutz * 0.3 + p.hunger * 0.4 + p.mist * 0.15 + p.hufe * 0.15));
+    return Math.max(0, 1 - (p.schmutz * 0.3 + p.hunger * 0.4 + p.mist * 0.15 + p.hufe * 0.15) - (p.krank ? 0.3 : 0) - ((p.eisen || 0) > 0.8 ? 0.1 : 0));
   }
   // Muenzen gutschreiben; gibt eine Zeile fuer die Ergebniskarte zurueck
   function belohne(anzahl, wofuer) {
@@ -48,7 +55,21 @@ var STAND = (function () {
     speichere();
     return '<div class="lohn">+' + anzahl + ' 🪙 Münzen' + (wofuer ? ' <small>(' + wofuer + ')</small>' : '') + '</div>';
   }
+  // Pferd umbenennen (leerer Name = wieder der alte)
+  function benenne(def, name) {
+    name = String(name || '').replace(/[<>&"]/g, '').trim().slice(0, 14);
+    if (name && name !== def.standardName) d.namen[def.id] = name; else delete d.namen[def.id];
+    def.name = d.namen[def.id] || def.standardName;
+    speichere();
+    return def.name;
+  }
+  // bestes Ergebnis merken (fuer die Reitabzeichen). kleiner = true: kleinere Werte sind besser (Platz)
+  function merke(art, wert, kleiner) {
+    var alt = d.leistung[art];
+    if (alt === undefined || (kleiner ? wert < alt : wert > alt)) { d.leistung[art] = wert; speichere(); }
+  }
   return {
+    benenne: benenne, merke: merke,
     daten: d, speichere: speichere, pferd: pferd, laune: laune, belohne: belohne,
     zahle: function (preis) { if (d.muenzen < preis) return false; d.muenzen -= preis; speichere(); return true; }
   };

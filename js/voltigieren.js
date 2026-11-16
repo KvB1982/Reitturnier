@@ -258,6 +258,7 @@ WELTEN.voltigieren = (function () {
     var zeilen = noten.map(function (n) { return '<tr><td class="links">' + KERN.esc(n.text) + '</td><td><b>' + note(n.note) + '</b></td></tr>'; }).join('');
     var html = '<div class="klein">' + programm.name + '</div><h2>' + (schnitt >= 7.5 ? 'Traumhaft geturnt!' : schnitt >= 6 ? 'Gut geturnt!' : 'Weiter üben!') + '</h2><div class="note">' + schnitt.toFixed(1).replace('.', ',') + '</div>';
     var platz = 0;
+    STAND.merke('volti', schnitt);
     if (opt.turnier) {
       var b = KI_NOTE[KERN.gegnerStufe()] || KI_NOTE.leicht;
       var rang = GEGNER_NAMEN.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4).map(function (name) { return { name: name, p: b[0] + Math.random() * (b[1] - b[0]) }; });
@@ -382,7 +383,7 @@ WELTEN.voltigieren = (function () {
     if (kamera.userData.sprung) { kamera.position.copy(kamZiel); b.copy(kamBlick); kamera.userData.sprung = false; }
     else { kamera.position.lerp(kamZiel, 1 - Math.exp(-5 * dt)); b.lerp(kamBlick, 1 - Math.exp(-8 * dt)); }
     kamera.lookAt(b);
-    licht.folge(0, 0);
+    licht.folge(0, 0, 0);
   }
 
   function raeume() {
@@ -414,6 +415,7 @@ WELTEN.voltigieren = (function () {
       schritt(0.001);
     },
     schritt: schritt, aktion: druecke, tipp: druecke,
+    fotoZiel: function () { return v2.set(tier.wurzel.position.x, 1.9, tier.wurzel.position.z); },
     zurueck: function () { raeume(); REITEN.heim(opt, null); },
     verlaesst: raeume,
     zustand: function () { return { modus: modus, nr: nr, noten: noten, bal: bal, ort: ort, taktAbstand: taktAbstand, setzeBal: function (x) { bal = x; } }; }

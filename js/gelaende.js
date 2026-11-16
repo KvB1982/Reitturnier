@@ -292,6 +292,7 @@ WELTEN.gelaende = (function () {
     zeilen.sort(function (a, b) { return a.zeit - b.zeit; });
     var platz = 1;
     zeilen.forEach(function (z2, i) { z2.wert = z2.zeit.toFixed(1) + ' s'; if (z2.ich) platz = i + 1; });
+    STAND.merke('gelaende', platz, true);
     var lohn = STAND.belohne(PREISGELD.gelaende[platz - 1] || 5, 'Geländeritt');
     if (platz === 1) KERN.klang('fanfare');
     KERN.setzeAktion(null);

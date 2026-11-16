@@ -125,8 +125,8 @@ WELTEN.dressur = (function () {
     KERN.zeigeKarte('mitte', '<div class="klein">' + (opt.turnier ? 'Dressurprüfung' : 'Dressur üben') + '</div><h2>🎩 Welche Aufgabe?</h2>' +
       '<div class="details" style="text-align:left">Reite die <b>rosa Linie</b> so genau wie möglich in der richtigen <b>Gangart</b>. ' +
       'Mit <b>↑ ↓</b> wechselst du die Gangart (Halt, Schritt, Trab, Galopp)' + (steuerung === 'auto' ? ', das Pferd findet den Weg allein.' : ', mit <b>← →</b> lenkst du.') +
-      ' Auf dem iPad: hoch / runter und links / rechts wischen.<br>Die Richter geben für jede Lektion eine Note von 0 bis 10.</div>',
-      AUFGABEN.map(function (a, i) { return { text: a.name, aktion: function () { starte(i); } }; }).concat([{ text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { REITEN.heim(opt, null); } }]));
+      ' Auf dem iPad: hoch / runter und links / rechts wischen.<br>Die Richter geben für jede Lektion eine Note von 0 bis 10.<br><b>Kür mit Musik:</b> Du reitest frei, lenkst selbst und wählst immer die Gangart, die zur Musik passt.</div>',
+      AUFGABEN.map(function (a, i) { return { text: a.name, aktion: function () { starte(i); } }; }).concat([{ text: '🎵 Kür mit Musik', aktion: starteKuer }, { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { REITEN.heim(opt, null); } }]));
   }
 
   function starte(i) {
@@ -172,6 +172,146 @@ WELTEN.dressur = (function () {
     naechste();
   }
 
+  function gangWechsel() {
+    var t = KERN.taste, hoch = KERN.wisch.hoch;
+    var rauf = (t.schneller && !altTaste.s) || (hoch > 0.6 && altHoch <= 0.6), runter = (t.langsamer && !altTaste.l) || (hoch < -0.6 && altHoch >= -0.6);
+    altTaste.s = t.schneller; altTaste.l = t.langsamer; altHoch = hoch;
+    if (rauf && stufe < 3) { stufe++; KERN.ton(500 + stufe * 120, 0.08, 'triangle', 0.14); }
+    if (runter && stufe > 0) { stufe--; KERN.ton(500 + stufe * 120, 0.08, 'triangle', 0.14); }
+    R.wunsch = GANG_TEMPO[stufe];
+    R.festerGang = stufe ? GANG[stufe] : null;
+  }
+
+  // ============================================================
+  //  KUER MIT MUSIK  -  frei reiten, passend zur Musik
+  //  Die Musik hat Teile fuer Schritt, Trab und Galopp. Die Richter
+  //  bewerten: passt die Gangart zur Musik (Harmonie), wie viele
+  //  Figuren gezeigt werden (Choreographie) und der Schlussgruss bei X.
+  // ============================================================
+  var TON = { C3: 131, G3: 196, A3: 220, F3: 175, G4: 392, A4: 440, C5: 523, D5: 587, E5: 659, F5: 698, G5: 784, A5: 880, C6: 1047 };
+  // Musikteile: gang (1 Schritt, 2 Trab, 3 Galopp, 0 Halt), sek = Dauer, takt = Sekunden je Schlag
+  var KUER_TEILE = [
+    { name: 'Trab', gang: 2, sek: 15, takt: 0.2, mel: ['E5', 'G5', 'E5', 'C5', 'D5', 'E5', 'D5', 'A4', 'C5', 'E5', 'C5', 'A4', 'G4', 'A4', 'C5', 'D5'], bass: ['C3', 0, 'G3', 0, 'C3', 0, 'G3', 0, 'A3', 0, 'G3', 0, 'F3', 0, 'G3', 0] },
+    { name: 'Schritt', gang: 1, sek: 11, takt: 0.31, mel: ['C5', 0, 'E5', 0, 'G5', 0, 'E5', 0, 'A4', 0, 'C5', 0, 'D5', 0, 'C5', 0], bass: ['C3', 0, 0, 0, 'G3', 0, 0, 0, 'F3', 0, 0, 0, 'G3', 0, 0, 0] },
+    { name: 'Galopp', gang: 3, sek: 17, takt: 0.15, mel: ['G5', 0, 0, 0, 'E5', 0, 0, 0, 'C5', 0, 0, 0, 'E5', 0, 0, 0, 'A5', 0, 0, 0, 'G5', 0, 0, 0, 'E5', 0, 0, 0, 'D5', 0, 0, 0], bass: ['C3', 'C3', 'G3', 0, 'C3', 'C3', 'G3', 0, 'A3', 'A3', 'C3', 0, 'A3', 'A3', 'C3', 0, 'F3', 'F3', 'C3', 0, 'F3', 'F3', 'C3', 0, 'G3', 'G3', 'G3', 0, 'G3', 'G3', 'G3', 0] },
+    { name: 'Trab', gang: 2, sek: 14, takt: 0.2, mel: ['C5', 'E5', 'G5', 'E5', 'A5', 'G5', 'E5', 'D5', 'C5', 'D5', 'E5', 'G5', 'E5', 'D5', 'C5', 'C5'], bass: ['C3', 0, 'G3', 0, 'F3', 0, 'G3', 0, 'A3', 0, 'G3', 0, 'F3', 0, 'G3', 0] },
+    { name: 'Galopp', gang: 3, sek: 13, takt: 0.15, mel: ['C6', 0, 0, 0, 'A5', 0, 0, 0, 'G5', 0, 0, 0, 'E5', 0, 0, 0, 'G5', 0, 0, 0, 'A5', 0, 0, 0, 'G5', 0, 0, 0, 'E5', 0, 0, 0], bass: ['F3', 'F3', 'C3', 0, 'F3', 'F3', 'C3', 0, 'C3', 'C3', 'G3', 0, 'C3', 'C3', 'G3', 0, 'G3', 'G3', 'G3', 0, 'G3', 'G3', 'G3', 0, 'C3', 'C3', 'G3', 0, 'C3', 'C3', 'G3', 0] },
+    { name: 'Schluss: Halt bei X', gang: 0, sek: 9, takt: 0.45, mel: ['C5', 'E5', 'G5', 'C6', 0, 'G5', 'C6', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bass: ['C3', 0, 'G3', 'C3', 0, 0, 'C3', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+  ];
+  var FIGUREN = { zl: 'Zirkel links', zr: 'Zirkel rechts', sl: 'Schlangenlinie', gl: 'Galopp linke Hand', gr: 'Galopp rechte Hand', bahn: 'Ganze Bahn nutzen' };
+  var KI_KUER = { sehrleicht: [4.5, 6.0], leicht: [5.3, 6.8], mittel: [6.2, 7.6], schwer: [7.2, 8.6] };
+  var K = null;
+
+  function starteKuer() {
+    KERN.schliesseKarte();
+    aufgabe = { name: 'Kür mit Musik', teile: [] };
+    nr = 0; noten = []; stufe = 0; lek = null;
+    zeigeLinie(null); ende.visible = false;
+    R.setze(0, 27, PI);
+    kamera.userData.sprung = true;
+    modus = 'start';
+    document.body.className = 'im-welt welt-dressur mit-tempo mit-lenken';
+    K = { teil: 0, t: 0, schlag: -1, passend: 0, gesamt: 0, dreh: 0, wechsel: 0, galL: 0, galR: 0, zonen: {}, fig: {}, altKurs: PI, gruss: -1, schluss: 0 };
+    setzeHinweis('Kür: Reite frei durch die Bahn, immer in der Gangart, die zur Musik passt.');
+    if (stopp) stopp();
+    stopp = REITEN.countdown(function () { modus = 'kuer'; });
+  }
+  function figur(k) {
+    if (K.fig[k]) return;
+    K.fig[k] = true;
+    KERN.meldung('✓ ' + FIGUREN[k], 'gut'); KERN.klang('gut');
+  }
+  function kuerMusik(teil) {
+    var s = Math.floor(K.t / teil.takt);
+    if (s === K.schlag) return;
+    K.schlag = s;
+    if (teil.gang === 0 && s >= teil.mel.length) return;
+    var m = teil.mel[s % teil.mel.length], b = teil.bass[s % teil.bass.length];
+    if (m) KERN.ton(TON[m], teil.gang === 1 ? 0.5 : teil.gang === 0 ? 0.9 : 0.22, teil.gang === 1 ? 'sine' : 'triangle', 0.13);
+    if (b) KERN.ton(TON[b], teil.gang === 3 ? 0.12 : 0.3, 'triangle', 0.16);
+  }
+  function kuerSchritt(dt) {
+    var teil = KUER_TEILE[K.teil];
+    gangWechsel();
+    K.t += dt;
+    kuerMusik(teil);
+    // Harmonie: Gangart passt zur Musik (die ersten 2 Sekunden jedes Teils zaehlen nicht)
+    if (K.t > 2 && teil.gang > 0) { K.gesamt += dt; if (stufe === teil.gang && R.tempo > 0.5) K.passend += dt; }
+    // Figuren erkennen
+    var dk = Math.atan2(Math.sin(R.kurs - K.altKurs), Math.cos(R.kurs - K.altKurs));
+    K.altKurs = R.kurs;
+    if (R.tempo > 1) {
+      // Zirkel: lange in dieselbe Richtung drehen; Gegenlenken beginnt neu
+      if (Math.abs(dk) > 0.003) {
+        if (K.dreh === 0 || (dk > 0) === (K.dreh > 0)) K.dreh += dk;
+        else {
+          // Richtungswechsel: fuer die Schlangenlinie zaehlen Boegen von mindestens einer Viertel-Drehung im Trab
+          if (Math.abs(K.dreh) > 0.9 && stufe === 2) { K.wechsel++; if (K.wechsel >= 3) figur('sl'); }
+          K.dreh = dk;
+        }
+      }
+      if (K.dreh > PI * 1.9) { figur('zl'); K.dreh = 0; K.wechsel = 0; }
+      if (K.dreh < -PI * 1.9) { figur('zr'); K.dreh = 0; K.wechsel = 0; }
+      if (stufe === 3 && R.gang === 'galopp') {
+        if (dk > 0) K.galL += dk; else K.galR -= dk;
+        if (K.galL > PI * 1.2) figur('gl');
+        if (K.galR > PI * 1.2) figur('gr');
+      }
+      if (R.z < 19) {
+        K.zonen[(R.x < 0 ? 'w' : 'o') + (R.z < 0 ? 'n' : 's')] = true;
+        if (Math.hypot(R.x, R.z) < 3) K.zonen.x = true;
+        if (Object.keys(K.zonen).length >= 5) figur('bahn');
+      }
+    }
+    // Schluss: bei X halten und gruessen
+    if (teil.gang === 0) {
+      var dx = Math.hypot(R.x, R.z);
+      ende.position.set(0, 2.6, 0); ende.visible = K.gruss < 0;
+      if (K.gruss < 0 && R.tempo < 0.15 && dx < 4) { K.schluss += dt; if (K.schluss > 0.6) KERN.setzeAktion('🎩 Grüßen'); }
+      else { K.schluss = 0; KERN.setzeAktion(null); }
+    }
+    var offen = Object.keys(FIGUREN).filter(function (k) { return !K.fig[k]; }).map(function (k) { return FIGUREN[k]; });
+    setzeHinweis('🎵 Musik: ' + teil.name + (teil.gang === 0 ? (K.gruss < 0 ? '. Reite zu X, halte an und grüße!' : '') : offen.length ? '  ·  Zeig noch: ' + offen.slice(0, 2).join(', ') : '  ·  Alle Figuren gezeigt!'));
+    if (K.t >= teil.sek) {
+      K.t = 0; K.schlag = -1; K.teil++;
+      if (K.teil >= KUER_TEILE.length) { K.teil = KUER_TEILE.length - 1; kuerFertig(); return 0; }
+      KERN.meldung('🎵 ' + KUER_TEILE[K.teil].name, 'knapp');
+    }
+    return REITEN.lenkung();
+  }
+  function kuerGruss() {
+    if (modus !== 'kuer' || KUER_TEILE[K.teil].gang !== 0 || K.gruss >= 0 || K.schluss < 0.6) return;
+    K.gruss = Math.max(0, 10 - Math.hypot(R.x, R.z) * 2.2);
+    gruss = 1.2;
+    KERN.klang('klatschen'); KERN.applaus(1.5, 0.1);
+    KERN.setzeAktion(null); ende.visible = false;
+  }
+  function kuerFertig() {
+    modus = 'fertig';
+    setzeHinweis(null); ende.visible = false; KERN.setzeAktion(null);
+    var harmonie = K.gesamt > 0 ? Math.min(10, K.passend / K.gesamt * 10.5) : 0;
+    var anzahl = Object.keys(K.fig).length, choreo = anzahl / Object.keys(FIGUREN).length * 10;
+    var schluss = K.gruss < 0 ? 2 : K.gruss;
+    var gesamt = harmonie * 0.45 + choreo * 0.35 + schluss * 0.2;
+    STAND.merke('kuer', gesamt);
+    function z(text, n) { return '<tr><td class="links">' + text + '</td><td><b>' + note(n) + '</b></td></tr>'; }
+    var html = '<div class="klein">Kür mit Musik</div><h2>' + (gesamt >= 8 ? 'Zauberhaft!' : gesamt >= 6.5 ? 'Eine schöne Kür!' : 'Weiter üben!') + '</h2><div class="note">' + gesamt.toFixed(1).replace('.', ',') + '</div>';
+    var platz = 0, lohn = '';
+    if (opt.turnier) {
+      var b = KI_KUER[KERN.gegnerStufe()] || KI_KUER.leicht;
+      var rang = GEGNER_NAMEN.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4).map(function (name) { return { name: name, p: b[0] + Math.random() * (b[1] - b[0]) }; });
+      rang.push({ name: KERN.spieler().name + (opt.pferd ? ' auf ' + opt.pferd.name : ''), p: gesamt, ich: true });
+      rang.sort(function (a, c) { return c.p - a.p; });
+      rang.forEach(function (r2, i) { r2.wert = r2.p.toFixed(1).replace('.', ','); if (r2.ich) platz = i + 1; });
+      lohn = STAND.belohne(PREISGELD.dressur[platz - 1] || 4, 'Kür');
+      html += '<div class="grossPunkte">' + (platz === 1 ? '🏆 1. Platz!' : platz + '. Platz') + '</div>' + REITEN.tabelle(rang, 'Note');
+      KERN.klang(platz === 1 ? 'fanfare' : 'jubel');
+    } else { lohn = STAND.belohne(gesamt >= 8 ? 6 : gesamt >= 6.5 ? 3 : 1, 'Kür geübt'); KERN.klang('jubel'); }
+    html += '<table class="tabelle"><tr><th class="links">Die Richter</th><th>Note</th></tr>' + z('Harmonie: Gangart passt zur Musik', harmonie) + z('Choreographie: ' + anzahl + ' von 6 Figuren', choreo) + z('Schlussgruß bei X', schluss) + '</table>' + lohn;
+    KERN.zeigeKarte('mitte', html, [{ text: 'Nochmal', aktion: function () { KERN.schliesseKarte(); waehleAufgabe(); } },
+      { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { REITEN.heim(opt, { art: 'kuer', platz: platz, note: gesamt }); } }]);
+  }
+
   var iNah = 0;
   function schritt(dt, z) {
     zeit = z;
@@ -179,13 +319,7 @@ WELTEN.dressur = (function () {
     var lenk = 0;
     if (modus === 'ritt' && lek) {
       // Gangart wechseln: Tasten, Knoepfe oder hoch / runter wischen
-      var t = KERN.taste, hoch = KERN.wisch.hoch;
-      var rauf = (t.schneller && !altTaste.s) || (hoch > 0.6 && altHoch <= 0.6), runter = (t.langsamer && !altTaste.l) || (hoch < -0.6 && altHoch >= -0.6);
-      altTaste.s = t.schneller; altTaste.l = t.langsamer; altHoch = hoch;
-      if (rauf && stufe < 3) { stufe++; KERN.ton(500 + stufe * 120, 0.08, 'triangle', 0.14); }
-      if (runter && stufe > 0) { stufe--; KERN.ton(500 + stufe * 120, 0.08, 'triangle', 0.14); }
-      R.wunsch = GANG_TEMPO[stufe];
-      R.festerGang = stufe ? GANG[stufe] : null;
+      gangWechsel();
       if (lek.halt) {
         var dx = Math.hypot(R.x, R.z);
         if (R.tempo < 0.15 && dx < 4) { haltZeit += dt; if (haltZeit > 0.8) KERN.setzeAktion('🎩 Grüßen'); }
@@ -214,13 +348,20 @@ WELTEN.dressur = (function () {
           bewerte((10.4 - abw * 4.5) * (0.3 + 0.7 * anteil * anteil));
         }
       }
-    } else if (modus !== 'ritt') { R.wunsch = 0; R.festerGang = null; }
+    } else if (modus === 'kuer') lenk = kuerSchritt(dt);
+    else if (modus !== 'ritt') { R.wunsch = 0; R.festerGang = null; }
     if (gruss > 0) gruss -= dt;
     R.schritt(dt, lenk, zeit);
     REITEN.folge(kamera, R, dt, { hinten: 7.5, hoch: 5.2, vor: 4 });
     sonne.folge(R.x, 0, R.z);
     if (ende.visible) { ende.position.y = 2.6 + Math.sin(zeit * 5) * 0.2; ende.rotation.y = zeit * 2; }
-    if (modus === 'ritt' || modus === 'start') {
+    if (K && aufgabe && !aufgabe.teile.length && (modus === 'kuer' || modus === 'start')) {
+      var kt = KUER_TEILE[Math.min(K.teil, KUER_TEILE.length - 1)], passt = kt.gang === 0 ? stufe === 0 : stufe === kt.gang;
+      var rest = 0;
+      for (var q = K.teil; q < KUER_TEILE.length; q++) rest += KUER_TEILE[q].sek;
+      KERN.setzeHud(REITEN.kachel('Musik', '🎵 ' + (kt.gang ? kt.name : 'Halt'), 'gross2') + REITEN.kachel('Gangart', GANG_TEXT[stufe], 'gross2' + (passt ? '' : ' warn')) +
+        REITEN.kachel('Figuren', Object.keys(K.fig).length + ' / 6') + REITEN.kachel('Noch', Math.max(0, Math.ceil(rest - K.t)) + ' s'));
+    } else if (modus === 'ritt' || modus === 'start') {
       var richtig = lek && !lek.halt ? stufe === lek.gang : lek ? stufe === 0 : true;
       KERN.setzeHud(REITEN.kachel('Lektion', (Math.max(0, nr) + 1) + ' / ' + (aufgabe ? aufgabe.teile.length : 1)) +
         REITEN.kachel('Gangart', GANG_TEXT[stufe], 'gross2' + (richtig ? '' : ' warn')) +
@@ -249,6 +390,8 @@ WELTEN.dressur = (function () {
     var zeilen = noten.map(function (n) { return '<tr><td class="links" style="font-size:13px">' + KERN.esc(n.text) + '</td><td><b>' + note(n.note) + '</b></td></tr>'; }).join('');
     var html = '<div class="klein">' + aufgabe.name + '</div><h2>' + (prozent >= 75 ? 'Wunderschön geritten!' : prozent >= 60 ? 'Gut geritten!' : 'Weiter üben!') + '</h2><div class="note">' + prozent.toFixed(1).replace('.', ',') + ' %</div>';
     var platz = 0, lohn = '';
+    STAND.merke('dressur' + (AUFGABEN.indexOf(aufgabe) + 1), prozent);
+    if (AUFGABEN.indexOf(aufgabe) === 1) STAND.merke('dressur1', prozent);
     if (opt.turnier) {
       var tabelleKi = steuerung === 'auto' ? KI_PROZENT_AUTO : KI_PROZENT, b = tabelleKi[KERN.gegnerStufe()] || tabelleKi.leicht;
       var rang = GEGNER_NAMEN.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4).map(function (name) { return { name: name, p: b[0] + Math.random() * (b[1] - b[0]) }; });
@@ -281,10 +424,10 @@ WELTEN.dressur = (function () {
       KERN.betrete(API);
       waehleAufgabe();
     },
-    schritt: schritt, aktion: gruesse, tipp: gruesse,
+    schritt: schritt, aktion: function () { if (modus === 'kuer') kuerGruss(); else gruesse(); }, tipp: function () { if (modus === 'kuer') kuerGruss(); else gruesse(); },
     zurueck: function () { if (stopp) stopp(); modus = 'aus'; setzeHinweis(null); REITEN.heim(opt, null); },
     verlaesst: function () { if (stopp) stopp(); modus = 'aus'; setzeHinweis(null); R.festerGang = null; KERN.pferd.koerper.rotation.set(0, 0, 0); KERN.pferd.koerper.position.y = 0; },
-    zustand: function () { return { modus: modus, R: R, nr: nr, noten: noten, stufe: stufe, lek: lek, setzeStufe: function (s) { stufe = s; } }; }
+    zustand: function () { return { kuer: K, modus: modus, R: R, nr: nr, noten: noten, stufe: stufe, lek: lek, setzeStufe: function (s) { stufe = s; } }; }
   };
   return API;
 })();

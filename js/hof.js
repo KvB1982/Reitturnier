@@ -100,6 +100,8 @@ WELTEN.hof = (function () {
 
     bauePferde();
     baueMaedchen();
+    HOFLEBEN.baue({ szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
+      frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; } });
     gebaut = true;
   }
 
@@ -260,7 +262,7 @@ WELTEN.hof = (function () {
     var blGeo = new THREE.SphereGeometry(0.09, 6, 4), blumen = new THREE.InstancedMesh(blGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), 160), d = new THREE.Object3D();
     for (var f = 0; f < 160; f++) {
       var fx, fz;
-      do { fx = -58 + zuf() * 116; fz = -16 + zuf() * 64; } while ((fx > -17 && fx < 19 && fz > -10 && fz < 12) || (Math.abs(fz - 22) < 11 && Math.abs(fx) > 21) || (fz > 24 && fz < 43 && fx > -19 && fx < 19) || (fx < -17 && fz < 7));
+      do { fx = -58 + zuf() * 116; fz = -16 + zuf() * 64; } while ((fx > -17 && fx < 19 && fz > -10 && fz < 12) || (Math.abs(fz - 22) < 11 && Math.abs(fx) > 21) || (fz > 24 && fz < 43 && fx > -19 && fx < 19) || (fx < -17 && fz < 7) || (fx > 17 && fx < 34 && fz > -11 && fz < 11));
       d.position.set(fx, 0.12, fz); d.updateMatrix(); blumen.setMatrixAt(f, d.matrix); blumen.setColorAt(f, new THREE.Color(blumenFarben[f % 4]));
     }
     szene.add(blumen);
@@ -307,7 +309,7 @@ WELTEN.hof = (function () {
     }
     while (b.mist.length > soll) szene.remove(b.mist.pop());
     var sauber = Math.round((1 - st.schmutz) * 100), satt = Math.round((1 - st.hunger) * 100);
-    var text = P.def.name + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%';
+    var text = P.def.name + HOFLEBEN.zeichen(P) + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%';
     if (text !== P.schildText) {
       P.schildText = text;
       if (P.schild) { szene.remove(P.schild); P.schild.material.map.dispose(); P.schild.material.dispose(); }
@@ -326,7 +328,7 @@ WELTEN.hof = (function () {
       var t = P.tier, alt = { x: P.x, z: P.z };
       if (P.ort === 'box') {
         P.frisst = Math.max(0, P.frisst - dt);
-        var tief = P.frisst > 0 ? 0.85 + Math.sin(zeit * 6) * 0.08 : 0;
+        var tief = P.frisst > 0 ? 0.85 + Math.sin(zeit * 6) * 0.08 : P.st.krank ? 0.5 : 0;
         P.blick += (tief - P.blick) * Math.min(1, dt * 3);
         t.setzeKopfTief(P.blick);
         P.gang = 'steh';
@@ -373,6 +375,7 @@ WELTEN.hof = (function () {
         P.st.hunger = Math.max(0, P.st.hunger - dt * 0.004);
         P.st.schmutz = Math.min(1, P.st.schmutz + dt * 0.0006);
       }
+      if (P.ort !== 'box' && WETTER.regnet()) P.st.schmutz = Math.min(1, P.st.schmutz + dt * 0.003);
       var weg = Math.hypot(P.x - alt.x, P.z - alt.z);
       P.phase += weg * Math.PI * 2 / (P.gang === 'galopp' ? 4.19 : P.gang === 'trab' ? 2.9 : 1.9);
       t.wurzel.position.set(P.x, 0, P.z);
@@ -383,7 +386,7 @@ WELTEN.hof = (function () {
   }
 
   // ---------- Die anderen Reitmaedchen ----------
-  var SPRUECHE = ['Hallo!', 'Schönes Wetter zum Reiten!', 'Vergiss die Hufe nicht!', 'Hast du schon gefüttert?', 'Viel Glück beim Turnier!', 'Auf der Weide ist es am schönsten.', 'Im Reitladen gibt es neue Gamaschen!'];
+  var SPRUECHE = ['Hallo!', 'Schönes Wetter zum Reiten!', 'Vergiss die Hufe nicht!', 'Hast du schon gefüttert?', 'Viel Glück beim Turnier!', 'Auf der Weide ist es am schönsten.', 'Im Reitladen gibt es neue Gamaschen!', 'Das Fohlen auf der Weide ist so süß!', 'Warst du schon mit Lotte am See?', 'Am Schwarzen Brett hängen die Reitabzeichen.'];
   function baueMaedchen() {
     var namen = ['Lotte', 'Mia', 'Emma'];
     var wege = [
@@ -474,7 +477,7 @@ WELTEN.hof = (function () {
       var nah = Math.hypot(S.x - M.x, S.z - M.z) < 2.6;
       if (nah && M.gruss <= -6 && modus === 'frei') {
         M.gruss = 3;
-        var spruch = hofTipp() || SPRUECHE[Math.floor(Math.random() * SPRUECHE.length)];
+        var spruch = HOFLEBEN.tipp() || hofTipp() || SPRUECHE[Math.floor(Math.random() * SPRUECHE.length)];
         if (M.blase) { f.wurzel.remove(M.blase); M.blase.material.map.dispose(); }
         M.blase = BAU.schwebeText(spruch, 0.34, { schrift: 36, immerSichtbar: true }); M.blase.position.y = 2.45; M.blase.renderOrder = 5; f.wurzel.add(M.blase);
         if (!M.karre && !M.traegt) f.setzePose('winken');
@@ -633,7 +636,8 @@ WELTEN.hof = (function () {
       var naechstes = aufWeide.sort(function (a, c) { return Math.hypot(a.x - S.x, a.z - S.z) - Math.hypot(c.x - S.x, c.z - S.z); })[0];
       vor(naechstes.x, naechstes.z, 2.6, naechstes.def.name + ' von der Weide holen', function () { nimm(naechstes); });
       vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Geh auf die Weide zu einem Pferd, um es wieder mitzunehmen.');
-    } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier können Pferde grasen. Bring eines aus dem Stall mit.');
+    } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Große Pferde können hier auch grasen.');
+    HOFLEBEN.aktionen(vor, S, P);
     return beste;
   }
 
@@ -661,6 +665,7 @@ WELTEN.hof = (function () {
   }
   function fuettere(P, was) {
     var st = P.st;
+    STAND.merke('gefuettert', 1);
     if (was === 'hafer') { st.hunger = Math.max(0, st.hunger - 0.5); st.hafer = 1; }
     else if (was === 'heu') { st.hunger = Math.max(0, st.hunger - 0.35); st.heu = 1; }
     else { st.hunger = Math.max(0, st.hunger - 0.12); }
@@ -697,6 +702,7 @@ WELTEN.hof = (function () {
       P.st.fit = Math.min(1, (P.st.fit || 0) + 0.05);
       STAND.speichere();
       API.start({ zurueckVon: ort });
+      HOFLEBEN.nachRitt(P);
       zeigeZustand(P, true);
     }
     if (welt === 'springen') KERN.springen({ turnier: !!opt.turnier, pferd: daten, zurueck: zurueck });
@@ -705,6 +711,10 @@ WELTEN.hof = (function () {
   function waehlePlatz(ort) {
     var P = S.fuehrt;
     if (!P) return;
+    if (HOFLEBEN.krank(P) && ort !== 'weide') {
+      karte('<h2>🤒 ' + P.def.name + ' ist krank</h2><div class="details">' + P.def.name + ' ' + HOFLEBEN.krank(P).zeichen + ' und kann heute nicht arbeiten. Die <b>Tierärztin</b> steht östlich vom Stall.</div>', []);
+      return;
+    }
     var kopf = pferdZeile(P);
     if (ort === 'training') karte('<h2>Trainingsplatz</h2>' + kopf, [
       { text: '🏇 Springen üben', aktion: function () { losreiten('springen', ort, {}); } },
@@ -713,7 +723,8 @@ WELTEN.hof = (function () {
       { text: '🏆 Springturnier', aktion: function () { losreiten('springen', ort, { turnier: true }); } },
       { text: '🎩 Dressurprüfung', aktion: function () { losreiten('dressur', ort, { turnier: true }); } }]);
     else if (ort === 'rennbahn') karte('<h2>🏁 Galopprennbahn</h2>' + kopf, [{ text: '🏁 Rennen starten', aktion: function () { losreiten('rennen', ort, { turnier: true }); } }]);
-    else if (ort === 'gelaende') karte('<h2>🌲 Geländestrecke</h2>' + kopf, [{ text: '🌲 Geländeritt starten', aktion: function () { losreiten('gelaende', ort, { turnier: true }); } }]);
+    else if (ort === 'gelaende') karte('<h2>🌲 Ins Gelände</h2>' + kopf, [{ text: '🌲 Geländeritt starten', aktion: function () { losreiten('gelaende', ort, { turnier: true }); } },
+      { text: '🌳 Ausritt mit Lotte', aktion: function () { losreiten('ausritt', ort, {}); } }]);
     else if (ort === 'longe') karte('<h2>⭕ Longierzirkel</h2>' + kopf, [
       { text: '⭕ Longieren', aktion: starteLonge },
       { text: '🤸 Voltigieren', aktion: function () { losreiten('voltigieren', ort, { turnier: true }); } }]);
@@ -794,8 +805,15 @@ WELTEN.hof = (function () {
   function zeigeSchmuck(P, fertig) {
     var d = STAND.daten, a = P.st.ausruestung;
     var eigene = LADEN.filter(function (w) { return d.besitz[w.id] && w.farbe; });
-    var html = '<h2>🎀 ' + P.def.name + ' schmücken</h2>' + (eigene.length ? '' : '<div class="details">Du hast noch keine Ausrüstung. Im <b>Reitladen</b> im Stall kannst du mit deinen Münzen einkaufen. Münzen gibt es für Siege und fürs Pflegen.</div>') + '<div class="liste" id="schmuckListe"></div>';
+    var html = '<h2>🎀 ' + P.def.name + ' schmücken</h2>' + (eigene.length ? '' : '<div class="details">Du hast noch keine Ausrüstung. Im <b>Reitladen</b> im Stall kannst du mit deinen Münzen einkaufen. Münzen gibt es für Siege und fürs Pflegen.</div>') + '<div class="liste" id="schmuckListe"></div>' +
+      '<div class="details" style="margin-top:10px">Wie soll dein Pferd heißen?<br><input id="pferdName" type="text" maxlength="14" value="' + KERN.esc(P.def.name) + '" style="font:inherit;padding:6px 10px;border-radius:10px;border:2px solid #d9cbb0;width:60%;text-align:center"> <button type="button" id="pferdNameOk" class="zweit" style="display:inline-block;width:auto;padding:6px 14px">Umbenennen</button></div>';
     KERN.zeigeKarte('mitte', html, [{ text: 'Fertig', aktion: function () { KERN.schliesseKarte(); if (fertig) fertig(); } }]);
+    document.getElementById('pferdNameOk').addEventListener('click', function () {
+      var neu = STAND.benenne(P.def, document.getElementById('pferdName').value);
+      zeigeZustand(P);
+      KERN.meldung('Ich heiße jetzt ' + neu + '!', 'gut'); KERN.klang('gut');
+      zeigeSchmuck(P, fertig);
+    });
     var liste = document.getElementById('schmuckListe');
     eigene.forEach(function (w) {
       var z = document.createElement('div');
@@ -823,6 +841,7 @@ WELTEN.hof = (function () {
     var imStall = S.x > STALL.x0 - 0.5 && S.x < STALL.x1 + 0.5 && S.z > STALL.z0 && S.z < STALL.z1;
     drinnen += ((imStall ? 1 : 0) - drinnen) * Math.min(1, dt * 4);
     dach.visible = drinnen < 0.5 && !kamFest;
+    szene.userData.unterDach = !dach.visible;
     suedWand.visible = dach.visible;
     if (kamFest) { kamZiel.copy(kamFest.pos); kamBlick.copy(kamFest.blick); }
     else if (modus === 'longe') {
@@ -846,6 +865,7 @@ WELTEN.hof = (function () {
     bewegePferde(dt);
     bewegeMaedchen(dt);
     if (modus === 'pflege') PFLEGE.schritt(dt, zeit);
+    HOFLEBEN.schritt(dt, zeit);
     if (modus === 'longe' && orte.longePferd) {
       var P = orte.longePferd;
       S.kurs = Math.atan2(P.x - S.x, P.z - S.z) + 0.5;
@@ -866,14 +886,14 @@ WELTEN.hof = (function () {
       var P2 = S.fuehrt || orte.longePferd || (modus === 'pflege' ? PFLEGE.pferd() : null);
       var b = !P2 && inBoxVon(S.x, S.z);
       if (b && b.pferd && b.pferd.ort === 'box') P2 = b.pferd;
-      var html = REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen);
+      var html = REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text());
       if (P2) html += REITEN.kachel(P2.def.name, 'Sauber ' + REITEN.messer(1 - P2.st.schmutz) + ' &nbsp;Satt ' + REITEN.messer(1 - P2.st.hunger) + ' &nbsp;Fit ' + REITEN.messer(P2.st.fit || 0));
       KERN.setzeHud(html);
     }
     zustandZeit -= dt;
     if (zustandZeit <= 0) { zustandZeit = 5; pferde.forEach(function (P3) { STAND.pferd(P3.def.id); zeigeZustand(P3); }); STAND.speichere(); }
   }
-  var hinweisText = null;
+  var hinweisText = null, fotoPunkt = new THREE.Vector3();
   function setzeHinweis(text) {
     if (text === hinweisText) return;
     hinweisText = text;
@@ -899,15 +919,29 @@ WELTEN.hof = (function () {
         S.x = t[0]; S.z = t[1] - (opt.zurueckVon === 'rennbahn' || opt.zurueckVon === 'gelaende' ? 1.5 : 0);
         S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8;
       }
+      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten2) {
+        STAND.daten.neuigkeiten2 = true; STAND.speichere();
+        modus = 'karte';
+        KERN.zeigeKarte('mitte', '<h2>✨ Neu auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
+          '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>. Gib ihm einen Namen und kümmere dich darum, dann wächst es.<br>' +
+          '• Östlich vom Stall warten die <b>Tierärztin</b> und der <b>Hufschmied</b>.<br>' +
+          '• Am <b>Schwarzen Brett</b> neben der Bank gibt es <b>Reitabzeichen</b> mit Prüfungen.<br>' +
+          '• Am Geländetor kannst du mit Lotte einen <b>Ausritt</b> an den See machen.<br>' +
+          '• Auf dem Dressurplatz gibt es die <b>Kür mit Musik</b>.<br>' +
+          '• Es gibt <b>Tag und Nacht</b>, Sonne und Regen. Mit <b>📷</b> oben rechts machst du Fotos.<br>' +
+          '• Beim <b>Schmücken</b> in der Box kannst du deinem Pferd einen <b>eigenen Namen</b> geben.</div>',
+          [{ text: 'Toll!', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
+      }
       if (!STAND.daten.begruesst) {
-        STAND.daten.begruesst = true; STAND.speichere();
+        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>🏡 Willkommen auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
           '• Lauf mit den <b>Pfeiltasten</b> (oder WASD). Auf dem iPad: <b>Finger auflegen und ziehen</b>.<br>' +
           '• Im <b>Stall</b> wohnen sechs Pferde. Geh in eine Box und <b>pflege</b> dein Pferd: abspritzen, striegeln, Hufe auskratzen, ausmisten, einstreuen.<br>' +
           '• Im <b>Vorratsraum</b> gibt es Hafer, Heu und Möhren.<br>' +
           '• Leg deinem Pferd das <b>Halfter</b> an und führe es zum Trainingsplatz, Turnierplatz, zur Rennbahn, ins Gelände, in die Schrittmaschine, den Longierzirkel oder auf die Weide.<br>' +
-          '• Für Siege und gute Pflege gibt es <b>Münzen</b> 🪙 für den <b>Reitladen</b>.</div>',
+          '• Für Siege und gute Pflege gibt es <b>Münzen</b> 🪙 für den <b>Reitladen</b>.<br>' +
+          '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>, östlich vom Stall sind <b>Tierärztin</b> und <b>Hufschmied</b>, am <b>Schwarzen Brett</b> gibt es Reitabzeichen.</div>',
           [{ text: 'Los geht\'s', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
     },
@@ -924,6 +958,7 @@ WELTEN.hof = (function () {
     setzeModus: function (m) { modus = m; API.ohneKnueppel = m === 'pflege'; },
     setzeKamera: function (k) { kamFest = k; },
     zeigeWerkzeug: zeigeWerkzeug, setzeHinweis: setzeHinweis, zeigeZustand: zeigeZustand, zeigeSchmuck: zeigeSchmuck, nimm: nimm,
+    fotoZiel: function () { var P = S.fuehrt || (modus === 'pflege' ? PFLEGE.pferd() : null); return fotoPunkt.set(P ? (P.x + S.x) / 2 : S.x, 1.3, P ? (P.z + S.z) / 2 : S.z); },
     spielerin: function () { return S; }, pferde: function () { return pferde; }, boxen: function () { return boxen; }, orte: ORT
   };
   return API;

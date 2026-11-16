@@ -22,6 +22,14 @@ Im Menü wählst du oben, was du spielen möchtest. Jeder Modus lässt sich dire
 - **Voltigieren:** Pflichtübungen auf dem galoppierenden Pferd an der Longe: Aufsprung, Grundsitz, Fahne, Mühle, Schere, Stehen, Abgang. Im Galopptakt beginnen, dann das Gleichgewicht halten.
 - **Münzen und Reitladen:** Für Pflege, Training und Siege gibt es Münzen. Im Reitladen kauft man Gamaschen, Fliegenhauben, Mähnenschleifen, Sättel und mehr und zieht sie den Pferden in der Box an.
 - Andere Reitmädchen laufen über den Hof, füttern, misten und reiten.
+- **Fohlen:** Auf der Weide wohnt ein Fohlen. Mit Milch, Bürsten und Streicheln wächst es zum großen Pferd heran.
+- **Tierärztin und Hufschmied:** Kranke Pferde untersuchen und richtig behandeln, abgelaufene Hufeisen selbst neu aufnageln.
+- **Reitabzeichen:** Am Schwarzen Brett gibt es sechs Abzeichen vom Steckenpferd bis zum Reitabzeichen Gold, jedes mit Aufgaben und einer Theorieprüfung.
+- **Ausritt:** gemütlich zu zweit durch Wald und Wiesen an den See, sechs Orte entdecken und Äpfel sammeln.
+- **Kür mit Musik:** frei im Dressurviereck reiten, passend zur Musik in Schritt, Trab und Galopp.
+- **Wetter und Tageszeiten:** Morgen, Mittag, Abend und Nacht, dazu Sonne, Wolken, Regen und Nebel.
+- **Fotomodus:** Mit 📷 hält das Spiel an, man dreht die Kamera frei und speichert ein Bild.
+- **Eigene Pferdenamen:** beim Schmücken in der Box.
 
 Auf iPad und iPhone läuft man mit dem Finger wie mit einem Steuerknüppel, der große Knopf unten führt die jeweilige Aktion aus.
 
@@ -50,7 +58,9 @@ Die ausführliche Anleitung steht in [LIESMICH.txt](LIESMICH.txt).
 | `js/figur.js` | bewegliche Figuren (Spielerin zu Fuß, andere Reitmädchen, Voltigiererin) |
 | `js/reiten.js` | gemeinsame Bausteine: Reiten, Kamera, Zäune, Bäume, Schilder |
 | `js/hof.js`, `js/pflege.js` | Pferdehof mit Stall, Vorratsraum, Laden und der Pflege in der Box |
-| `js/rennen.js`, `js/gelaende.js`, `js/dressur.js`, `js/voltigieren.js` | Galopprennen, Military, Dressur, Voltigieren |
+| `js/hofleben.js` | Tierärztin, Hufschmied, Fohlen, Reitabzeichen (Listen `ABZEICHEN` und `THEORIE` zum Erweitern) |
+| `js/wetter.js` | Tageszeiten und Wetter |
+| `js/rennen.js`, `js/gelaende.js`, `js/ausritt.js`, `js/dressur.js`, `js/voltigieren.js` | Galopprennen, Military, Ausritt, Dressur mit Kür, Voltigieren |
 | `js/platz.js` | Reitplatz, Stadion, Hindernisse |
 | `js/spiel.js` | Spielablauf, Punkte, Turnier, Kamera, Ton |
 | `js/three.min.js`, `js/gltf-lader.js` | 3D-Bibliothek three.js und Modell-Lader |

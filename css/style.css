@@ -193,3 +193,20 @@ button { font-family: inherit; cursor: pointer; }
 #balance .zone { position: absolute; top: 0; bottom: 0; background: #7ddc8a; }
 #balance .marke { position: absolute; top: 2px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: #e84393; border: 3px solid #fff; }
 #balance.schlecht .marke { background: #e5412d; }
+
+/* Hufschmied: Balken mit Hammer */
+.schlag { position: relative; height: 34px; margin: 12px auto; width: 92%; background: #efe6d2; border-radius: 17px; overflow: hidden; box-shadow: inset 0 2px 0 rgba(0,0,0,0.12); }
+.schlag .zone { position: absolute; top: 0; bottom: 0; background: #7ddc8a; }
+.schlag .marke { position: absolute; top: 3px; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; background: #6b6f76; border: 3px solid #fff; }
+
+/* Fotomodus: alles ausblenden ausser der Fotoleiste */
+#fotoLeiste, #fotoBlitz { display: none; }
+body.foto #hud, body.foto #weltLeiste, body.foto #legende, body.foto #springen, body.foto #lenkKnoepfe, body.foto #tempoKnoepfe,
+body.foto #werkzeuge, body.foto #weltHinweis, body.foto #meldung, body.foto #countdown, body.foto #takt, body.foto #balance, body.foto #karte, body.foto #menue { display: none !important; }
+body.foto #fotoLeiste { display: block; position: fixed; left: 0; right: 0; bottom: 14px; text-align: center; pointer-events: none; }
+#fotoTipp { display: inline-block; background: rgba(255, 250, 240, 0.9); border-radius: 12px; padding: 5px 14px; font-size: 14px; margin-bottom: 8px; }
+#fotoKnoepfe { display: flex; gap: 8px; justify-content: center; pointer-events: auto; }
+#fotoKnoepfe button { font: inherit; font-weight: bold; font-size: 16px; padding: 10px 16px; border-radius: 14px; border: 0; background: #fffaf0; box-shadow: 0 3px 0 rgba(0,0,0,0.25); cursor: pointer; }
+#fotoKnoepfe button.los { background: #e84393; color: #fff; }
+body.foto #fotoBlitz.an { display: block; position: fixed; inset: 0; background: #fff; pointer-events: none; animation: blitz 0.35s ease-out forwards; }
+@keyframes blitz { from { opacity: 0.9; } to { opacity: 0; } }

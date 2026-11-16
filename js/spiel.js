@@ -737,6 +737,7 @@
     var sterne = anteil >= 0.85 ? 3 : anteil >= 0.5 ? 2 : anteil > 0 ? 1 : 0;
     var titel = ['Weiter üben!', 'Geschafft!', 'Toll geritten!', 'Super Ritt!'][sterne];
     letztesErgebnis = { art: 'training', sterne: sterne, punkte: e.punkte };
+    STAND.merke('springen', Math.round(anteil * 100));
     var lohn = STAND.belohne(sterne * 2, 'Training');
     var schluessel = PARCOURS[parcoursNr].name;
     var alt = bestwerte[schluessel], rekord = '';
@@ -884,6 +885,7 @@
     var platzNr = -1;
     rang.forEach(function (t, i) { if (!t.ki && platzNr < 0) platzNr = i; });
     letztesErgebnis = { art: 'turnier', platz: platzNr + 1, sieg: !sieger.ki };
+    if (platzNr >= 0 && rang.length > 1) STAND.merke('springTurnier', platzNr + 1, true);
     var lohn = STAND.belohne([30, 15, 8][platzNr] || 3, 'Springturnier');
     zurueckSetzen();
     pferd.setzeOutfit(sieger.outfit);
@@ -959,7 +961,7 @@
     el('modusStart').style.display = springt ? 'none' : '';
     el('modusText').innerHTML = springt ? 'Springreiten auf dem Turnierplatz: allein üben oder ein Turnier gegen Mitspieler und Computergegner.' : WELTEN[spielModus].text;
     el('modusStart').textContent = springt ? '' : (WELTEN[spielModus].knopf || 'Los geht\'s');
-    el('menueMuenzen').textContent = '🪙 ' + STAND.daten.muenzen;
+    el('menueMuenzen').textContent = '🪙 ' + STAND.daten.muenzen + (Object.keys(STAND.daten.abzeichen).length ? '  🎖️ ' + Object.keys(STAND.daten.abzeichen).length : '');
     var jetzt = spielModus;
     spielModus = gewuenscht;          // solange die Modelle noch laden, bleibt der Wunsch erhalten
     return jetzt;
@@ -1314,13 +1316,119 @@
   insMenue();
   ladeModelle(function () { insMenue(); el('laden').style.display = 'none'; });
 
+  // ============================================================
+  //  FOTOMODUS  -  das Spiel haelt an, man dreht die Kamera frei
+  //  um das Pferd und speichert ein Bild (mit oder ohne Rahmen).
+  // ============================================================
+  var foto = { an: false, kam: new THREE.PerspectiveCamera(50, 1, 0.1, 900), ziel: new THREE.Vector3(), w: 0, h: 0.3, d: 8, rahmen: true, zeiger: {}, klasse: '' };
+  function fotoSzene() { return welt ? welt.szene : szene; }
+  function fotoStart() {
+    if (foto.an || (!welt && Z.modus === 'menue')) return;
+    var k = welt ? welt.kamera : kamera, z = foto.ziel;
+    k.updateMatrixWorld();
+    if (welt && welt.fotoZiel) z.copy(welt.fotoZiel());
+    else if (!welt || pferd.wurzel.parent === welt.szene) { pferd.wurzel.getWorldPosition(z); z.y += 1.4; }
+    else { k.getWorldDirection(z); z.multiplyScalar(10).add(k.position); }
+    var dx = k.position.x - z.x, dy = k.position.y - z.y, dz = k.position.z - z.z;
+    foto.d = Math.max(2.5, Math.min(40, Math.hypot(dx, dy, dz)));
+    foto.w = Math.atan2(dx, dz); foto.h = Math.max(0.03, Math.min(1.45, Math.asin(Math.max(-1, Math.min(1, dy / foto.d)))));
+    foto.kam.fov = Math.min(60, k.fov); foto.zeiger = {};
+    foto.an = true;
+    document.body.classList.add('foto');
+    for (var t in taste) taste[t] = false;
+    finger = {}; wisch.lenk = 0; wisch.hoch = 0;
+  }
+  function fotoEnde() {
+    foto.an = false;
+    document.body.classList.remove('foto');
+    letzte = performance.now();
+  }
+  function fotoBild() {
+    var z = foto.ziel, c = Math.cos(foto.h), k = foto.kam;
+    k.aspect = window.innerWidth / window.innerHeight; k.updateProjectionMatrix();
+    k.position.set(z.x + Math.sin(foto.w) * c * foto.d, z.y + Math.sin(foto.h) * foto.d, z.z + Math.cos(foto.w) * c * foto.d);
+    k.lookAt(z);
+    renderer.render(fotoSzene(), k);
+  }
+  function fotoAufnahme() {
+    fotoBild();
+    var quelle = renderer.domElement, c = document.createElement('canvas'), g;
+    if (foto.rahmen) {
+      // Rahmen wie bei einem Sofortbild, unten der Name und das Datum
+      var rand = Math.round(quelle.width * 0.035), unten = Math.round(quelle.width * 0.1);
+      c.width = quelle.width + rand * 2; c.height = quelle.height + rand + unten;
+      g = c.getContext('2d');
+      g.fillStyle = '#fffaf0'; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(quelle, rand, rand);
+      g.fillStyle = '#7a3b12'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = 'bold ' + Math.round(unten * 0.42) + 'px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
+      var wer = spieler[aktiv] ? spieler[aktiv].name : '';
+      g.fillText('🐴 ' + wer + ' · ' + new Date().toLocaleDateString('de-DE'), c.width / 2, quelle.height + rand + unten / 2);
+    } else {
+      c.width = quelle.width; c.height = quelle.height;
+      c.getContext('2d').drawImage(quelle, 0, 0);
+    }
+    var blitz = el('fotoBlitz');
+    blitz.classList.remove('an'); void blitz.offsetWidth; blitz.classList.add('an');
+    ton(1800, 0.04, 'square', 0.12); ton(900, 0.08, 'square', 0.1, 0.05);
+    var name = 'reitturnier-foto-' + Date.now() + '.png';
+    c.toBlob(function (blob) {
+      if (!blob) return;
+      // auf iPad / iPhone ueber "Teilen" (dort kann man das Bild in den Fotos sichern), sonst als Datei speichern
+      try {
+        var datei = new File([blob], name, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [datei] }) && /iPad|iPhone|Android/i.test(navigator.userAgent + (navigator.maxTouchPoints > 1 ? 'iPad' : ''))) {
+          navigator.share({ files: [datei], title: 'Reitturnier' }).catch(function () {});
+          return;
+        }
+      } catch (fehler) { /* dann eben als Datei */ }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }, 'image/png');
+    foto.letztes = c;
+  }
+  // Kamera drehen: ziehen; naeher / weiter: Mausrad oder zwei Finger
+  window.addEventListener('pointerdown', function (e) {
+    if (!foto.an || e.target !== renderer.domElement) return;
+    e.stopPropagation(); e.preventDefault();
+    foto.zeiger[e.pointerId] = { x: e.clientX, y: e.clientY };
+  }, true);
+  window.addEventListener('pointermove', function (e) {
+    var p = foto.zeiger[e.pointerId];
+    if (!foto.an || !p) return;
+    e.stopPropagation();
+    var ids = Object.keys(foto.zeiger);
+    if (ids.length >= 2) {
+      var o = foto.zeiger[ids[0] == e.pointerId ? ids[1] : ids[0]];
+      var alt = Math.hypot(p.x - o.x, p.y - o.y), neu = Math.hypot(e.clientX - o.x, e.clientY - o.y);
+      if (alt > 5 && neu > 5) foto.d = Math.max(2, Math.min(60, foto.d * alt / neu));
+    } else {
+      foto.w -= (e.clientX - p.x) * 0.008;
+      foto.h = Math.max(0.03, Math.min(1.45, foto.h + (e.clientY - p.y) * 0.006));
+    }
+    p.x = e.clientX; p.y = e.clientY;
+  }, true);
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) { if (foto.an && foto.zeiger[e.pointerId]) { delete foto.zeiger[e.pointerId]; e.stopPropagation(); } }, true);
+  });
+  window.addEventListener('wheel', function (e) { if (foto.an) foto.d = Math.max(2, Math.min(60, foto.d * (e.deltaY > 0 ? 1.1 : 0.9))); }, { passive: true });
+  window.addEventListener('keydown', function (e) { if (foto.an) { e.stopPropagation(); if (e.code === 'Escape') fotoEnde(); else if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); fotoAufnahme(); } } }, true);
+  el('foto').addEventListener('click', fotoStart);
+  el('weltFoto').addEventListener('click', fotoStart);
+  el('fotoEnde').addEventListener('click', fotoEnde);
+  el('fotoAus').addEventListener('click', fotoAufnahme);
+  el('fotoRahmen').addEventListener('click', function () { foto.rahmen = !foto.rahmen; el('fotoRahmen').textContent = '🖼️ Rahmen: ' + (foto.rahmen ? 'an' : 'aus'); });
+
   var letzte = performance.now();
   function bild(jetzt) {
     var dt = Math.min(0.05, (jetzt - letzte) / 1000);
     letzte = jetzt;
+    if (foto.an) { fotoBild(); requestAnimationFrame(bild); return; }
     if (welt) {
       Z.zeit += dt;
-      try { welt.schritt(dt, Z.zeit); } catch (fehler) { console.error(fehler); }
+      try { welt.schritt(dt, Z.zeit); WETTER.schritt(dt, welt); } catch (fehler) { console.error(fehler); }
       renderer.render(welt.szene, welt.kamera);
       requestAnimationFrame(bild);
       return;
@@ -1353,6 +1461,7 @@
   // fuer Tests und zum Ausprobieren in der Konsole
   window.SPIEL = {
     zustand: Z, wisch: wisch, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
+    foto: foto, fotoStart: fotoStart, fotoEnde: fotoEnde, fotoAufnahme: fotoAufnahme,
     turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd,
     // Zeit vorspulen (fuer Tests): rechnet sek Sekunden in kleinen Schritten
     vor: function (sek) { for (var t = 0; t < sek; t += 0.04) { Z.zeit += welt ? 0.04 : 0; if (welt) welt.schritt(0.04, Z.zeit); else { schritt(0.04); bewegeFallTeile(0.04); } } }

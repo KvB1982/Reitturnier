@@ -226,6 +226,7 @@ WELTEN.rennen = (function () {
   function zeigeErgebnis(rang) {
     modus = 'fertig';
     var platz = rang.indexOf(ich) + 1;
+    STAND.merke('rennen', platz, true);
     var lohn = STAND.belohne(PREISGELD.rennen[platz - 1] || 4, 'Galopprennen');
     if (platz === 1) KERN.klang('fanfare');
     KERN.setzeAktion(null);
