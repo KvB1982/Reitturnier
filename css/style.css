@@ -1,0 +1,127 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #9fd4f5; }
+body { font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif; color: #3a2a1c; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+#buehne { position: fixed; inset: 0; }
+#buehne canvas { display: block; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ---------- Menü ---------- */
+#menue {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%;
+  background: rgba(255, 250, 240, 0.95); padding: 18px 22px 22px; overflow-y: auto;
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.18);
+}
+#menue h1 { margin: 0; font-size: 30px; color: #7a3b12; }
+.unter { margin: 4px 0 12px; font-size: 15px; }
+.zeile { margin-bottom: 7px; }
+.zeilenName { font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #7a3b12; }
+.knoepfe { display: flex; flex-wrap: wrap; gap: 7px; }
+.knoepfe.spalte { flex-direction: column; }
+.farbe { width: 31px; height: 31px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #b9a78f; padding: 0; }
+.farbe.aktiv { box-shadow: 0 0 0 3px #e84393; transform: scale(1.12); }
+.wahl { padding: 7px 13px; border-radius: 16px; border: 2px solid #c9b596; background: #fff; font-size: 14px; color: #3a2a1c; text-align: left; }
+.wahl.aktiv { border-color: #e84393; background: #ffe3f0; font-weight: bold; }
+.gross { display: block; width: 100%; margin-top: 14px; padding: 14px; font-size: 22px; font-weight: bold; color: #fff; background: #27ae60; border: none; border-radius: 16px; box-shadow: 0 5px 0 #1b7d44; }
+.gross:active { transform: translateY(3px); box-shadow: 0 2px 0 #1b7d44; }
+.zweit { display: block; width: 100%; margin-top: 12px; padding: 10px; font-size: 16px; background: #fff; border: 2px solid #c9b596; border-radius: 14px; color: #3a2a1c; }
+.hilfe { font-size: 13px; margin: 4px 0 0; line-height: 1.4; }
+#startKnoepfe { position: sticky; bottom: -22px; background: linear-gradient(rgba(255,250,240,0), #fffaf0 18%); padding: 12px 0 14px; margin-bottom: -22px; }
+#startKnoepfe .gross { margin-top: 0; }
+#startKnoepfe .zweit { margin-top: 10px; }
+#spielerName { margin-top: 7px; width: 100%; padding: 8px 12px; font: inherit; font-size: 15px; border: 2px solid #c9b596; border-radius: 12px; background: #fff; color: #3a2a1c; }
+.knoepfe.abstand { margin-top: 7px; }
+.hilfe .g { color: #1faa3c; }
+
+@media (max-width: 760px) {
+  #menue { top: auto; left: 0; width: 100%; height: 56%; box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18); border-radius: 18px 18px 0 0; padding: 12px 16px 16px; }
+  #menue h1 { font-size: 22px; }
+  .unter { display: none; }
+}
+
+/* ---------- Spielanzeige ---------- */
+#hud, #legende, #springen, #countdown, #meldung { display: none; }
+.im-spiel #hud { display: flex; }
+.im-spiel #legende { display: flex; }
+.im-spiel #springen, .im-spiel #countdown, .im-spiel #meldung { display: block; }
+.im-spiel #menue, .im-warten #menue, .im-ehrung #menue { display: none; }
+
+#hud { position: fixed; top: 10px; left: 10px; right: 10px; gap: 8px; align-items: flex-start; pointer-events: none; }
+.kachel { background: rgba(255, 250, 240, 0.9); border-radius: 12px; padding: 5px 12px; min-width: 78px; text-align: center; font-size: 22px; font-weight: bold; }
+.kachel.breit { font-size: 17px; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kachel.breit span:last-child { display: block; line-height: 26px; overflow: hidden; text-overflow: ellipsis; }
+.kachel .klein { display: block; font-size: 11px; font-weight: normal; color: #7a3b12; }
+.rechts { margin-left: auto; display: flex; gap: 8px; pointer-events: auto; }
+.rechts button { background: rgba(255, 250, 240, 0.9); border: none; border-radius: 12px; padding: 9px 13px; font-size: 16px; color: #3a2a1c; }
+
+#legende { position: fixed; left: 10px; bottom: 10px; gap: 10px; flex-wrap: wrap; max-width: 34%; background: rgba(255, 250, 240, 0.85); border-radius: 10px; padding: 5px 9px; font-size: 12px; pointer-events: none; }
+#legende i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+
+#springen {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+  width: 190px; height: 64px; border-radius: 32px; border: none;
+  background: #e84393; color: #fff; font-size: 23px; font-weight: bold; letter-spacing: 1px;
+  box-shadow: 0 6px 0 #a82467;
+}
+#springen:active { transform: translateX(-50%) translateY(4px); box-shadow: 0 2px 0 #a82467; }
+
+#countdown { position: fixed; top: 30%; left: 0; right: 0; text-align: center; font-size: 110px; font-weight: bold; color: #fff; text-shadow: 0 4px 0 #7a3b12, 0 0 18px rgba(0, 0, 0, 0.35); pointer-events: none; }
+
+.meldung { position: fixed; top: 20%; left: 0; right: 0; text-align: center; font-size: 46px; font-weight: bold; color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 14px rgba(0, 0, 0, 0.3); opacity: 0; pointer-events: none; }
+.meldung.zeigen { animation: plopp 1.1s ease-out forwards; }
+.meldung.perfekt { color: #7dff8f; }
+.meldung.gut { color: #d4ff8a; }
+.meldung.knapp { color: #ffe36b; }
+.meldung.rot { color: #ff8a7a; }
+@keyframes plopp {
+  0% { opacity: 0; transform: scale(0.5); }
+  15% { opacity: 1; transform: scale(1.2); }
+  30% { transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+/* ---------- Lenken und Tempo ---------- */
+#lenkKnoepfe, #tempoKnoepfe { display: none; position: fixed; bottom: 16px; gap: 10px; }
+.im-spiel.frei #lenkKnoepfe { display: flex; left: 16px; bottom: 54px; }
+.im-spiel.mit-tempo #tempoKnoepfe { display: flex; flex-direction: column; right: 16px; }
+#lenkKnoepfe button, #tempoKnoepfe button { width: 72px; height: 64px; border-radius: 18px; border: none; background: rgba(255, 250, 240, 0.9); font-size: 28px; color: #7a3b12; box-shadow: 0 5px 0 rgba(122, 59, 18, 0.35); touch-action: none; }
+#lenkKnoepfe button:active, #tempoKnoepfe button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(122, 59, 18, 0.35); }
+.balken { height: 6px; background: #e6d7bd; border-radius: 3px; margin-top: 3px; overflow: hidden; }
+#tempoBalken { height: 100%; width: 50%; background: #27ae60; }
+.kachel.warn #tempoBalken { background: #e5412d; }
+.kachel.warn { color: #c0392b; }
+#tempoKachel { font-size: 17px; min-width: 110px; }
+.knoepfe.spalte { flex-direction: column; }
+
+/* ---------- Karten: Ergebnis, Rangliste, Siegerehrung ---------- */
+#karte { position: fixed; inset: 0; display: none; padding: 16px; }
+#karte.offen { display: flex; }
+#karte.mitte { align-items: center; justify-content: center; background: rgba(40, 25, 10, 0.4); }
+#karte.unten { align-items: flex-end; justify-content: center; pointer-events: none; }
+#karte.unten .karte { pointer-events: auto; width: 380px; padding: 14px 22px 18px; }
+#karte.seite { align-items: stretch; justify-content: flex-end; padding: 0; pointer-events: none; }
+#karte.seite .karte { pointer-events: auto; width: 400px; border-radius: 0; overflow-y: auto; box-shadow: -6px 0 24px rgba(0, 0, 0, 0.18); padding-top: 26px; }
+.karte { background: #fffaf0; border-radius: 22px; padding: 20px 26px 22px; width: 420px; max-width: 100%; max-height: 100%; overflow-y: auto; text-align: center; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); }
+.karte h2 { margin: 0 0 4px; font-size: 27px; color: #7a3b12; }
+.karte .klein { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #b0764a; font-weight: bold; }
+.sterne { font-size: 52px; color: #f1b40f; line-height: 1.15; }
+.grossPunkte { font-size: 24px; font-weight: bold; margin-bottom: 6px; }
+.details { font-size: 15px; line-height: 1.55; }
+.rekord { font-size: 15px; color: #e84393; font-weight: bold; min-height: 20px; margin-top: 6px; }
+.tabelle { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 16px; }
+.tabelle th { font-size: 12px; color: #b0764a; font-weight: bold; padding: 3px 6px; border-bottom: 2px solid #e6d7bd; }
+.tabelle td { padding: 6px; border-bottom: 1px solid #efe4cf; text-align: center; }
+.tabelle .links { text-align: left; }
+.tabelle tr.mensch td { font-weight: bold; }
+.tabelle small { color: #9a8a76; font-weight: normal; }
+.tabelle td:first-child { width: 34px; font-size: 19px; }
+@media (max-width: 760px) {
+  #karte.seite { align-items: flex-end; }
+  #karte.seite .karte { width: 100%; max-height: 56%; border-radius: 18px 18px 0 0; }
+  .kachel { min-width: 0; padding: 4px 8px; font-size: 17px; }
+  .kachel.breit { display: none; }
+  #hud { flex-wrap: wrap; }
+}
+
+#laden { position: fixed; left: 16px; bottom: 16px; background: rgba(255, 250, 240, 0.92); border-radius: 12px; padding: 8px 14px; font-size: 15px; pointer-events: none; }
+.hilfe.dank { font-size: 11px; color: #9a8a76; margin-top: 8px; }

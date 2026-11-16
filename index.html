@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Reitturnier</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="im-menue">
+  <div id="buehne"></div>
+
+  <!-- ============ Menü: Spieler, Ankleiden, Turnier ============ -->
+  <div id="menue">
+    <h1>🐴 Reitturnier</h1>
+    <div class="zeile">
+      <div class="zeilenName">Wer reitet mit?</div>
+      <div class="knoepfe" id="spielerTabs"></div>
+      <input id="spielerName" type="text" maxlength="16" placeholder="Name" aria-label="Name des Spielers">
+    </div>
+    <div id="auswahl"></div>
+    <div class="zeile">
+      <div class="zeilenName">Parcours</div>
+      <div class="knoepfe" id="parcoursWahl"></div>
+    </div>
+    <div class="zeile">
+      <div class="zeilenName">Computergegner im Turnier</div>
+      <div class="knoepfe" id="gegnerZahl"></div>
+      <div class="knoepfe abstand" id="gegnerStufe"></div>
+    </div>
+    <div class="zeile">
+      <div class="zeilenName">Steuerung</div>
+      <div class="knoepfe spalte" id="steuerungWahl"></div>
+    </div>
+    <div class="zeile">
+      <div class="zeilenName">Stadion</div>
+      <div class="knoepfe" id="stadionWahl"></div>
+    </div>
+    <p class="hilfe" id="hilfeText"></p>
+    <p class="hilfe dank">3D-Modelle: Pferd „Animated Rigged Horse With Saddle“ von Ayan, Hindernisse „Show jumping“ von Every 3D (beide Sketchfab, Lizenz CC BY 4.0).</p>
+    <div id="startKnoepfe">
+      <button id="turnier" class="gross" type="button">🏆 Turnier starten</button>
+      <button id="training" class="zweit" type="button">Training (allein üben)</button>
+    </div>
+  </div>
+
+  <!-- ============ Anzeige im Spiel ============ -->
+  <div id="hud">
+    <div class="kachel breit"><span class="klein">Reiter</span><span id="reiterName"></span></div>
+    <div class="kachel"><span class="klein">Punkte</span><span id="punkte">0</span></div>
+    <div class="kachel" id="zielKachel"><span class="klein">Zu schlagen</span><span id="zielPunkte">–</span></div>
+    <div class="kachel"><span class="klein">Hindernis</span><span id="hindernisNr">1 / 5</span></div>
+    <div class="kachel"><span class="klein">Zeit</span><span id="uhr">0.0 s</span></div>
+    <div class="kachel" id="tempoKachel"><span class="klein">Tempo</span><span id="tempo">Galopp</span><div class="balken"><div id="tempoBalken"></div></div></div>
+    <div class="rechts">
+      <button id="ueberspringen" type="button">Überspringen ⏭</button>
+      <button id="ton" type="button" aria-label="Ton an/aus">🔊</button>
+      <button id="zumMenue" type="button">Menü</button>
+    </div>
+  </div>
+  <div id="legende">
+    <span><i style="background:#1faa3c"></i>Perfekt 3</span>
+    <span><i style="background:#9be05a"></i>Gut 2</span>
+    <span><i style="background:#ffd23c"></i>Knapp 1</span>
+    <span><i style="background:#e5412d"></i>Abwurf</span>
+  </div>
+  <div id="meldung" class="meldung"></div>
+  <div id="countdown"></div>
+  <button id="springen" type="button">SPRINGEN</button>
+  <div id="lenkKnoepfe">
+    <button id="knopf-links" type="button" aria-label="links">◀</button>
+    <button id="knopf-rechts" type="button" aria-label="rechts">▶</button>
+  </div>
+  <div id="tempoKnoepfe">
+    <button id="knopf-schneller" type="button" aria-label="schneller">▲</button>
+    <button id="knopf-langsamer" type="button" aria-label="langsamer">▼</button>
+  </div>
+
+  <!-- ============ Karte für Ergebnisse, Rangliste, Siegerehrung ============ -->
+  <div id="karte">
+    <div class="karte">
+      <div id="karteInhalt"></div>
+      <div id="karteKnoepfe"></div>
+    </div>
+  </div>
+
+  <div id="laden">Pferd wird gesattelt …</div>
+
+  <script src="js/three.min.js"></script>
+  <script src="js/gltf-lader.js"></script>
+  <script src="modelle/pferd.js"></script>
+  <script src="modelle/hindernisse.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/pferd.js"></script>
+  <script src="js/platz.js"></script>
+  <script src="js/spiel.js"></script>
+</body>
+</html>

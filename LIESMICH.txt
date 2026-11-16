@@ -1,0 +1,74 @@
+REITTURNIER - ein 3D-Springreitspiel
+====================================
+
+SO STARTEST DU DAS SPIEL
+  Doppelklick auf "index.html". Das Spiel oeffnet sich im Browser
+  (Chrome, Edge oder Firefox). Es braucht kein Internet und keine Installation.
+
+SO SPIELST DU
+  1. Zieh deine Reiterin an, such dir ein Pferd und einen Parcours aus.
+  2. Klick auf "Los geht's!". Das Pferd galoppiert von allein.
+  3. Vor jedem Hindernis liegt ein Farbstreifen auf dem Boden, und der Ring
+     unter dem Pferd zeigt dieselbe Farbe. Druecke die LEERTASTE (oder klicke /
+     tippe auf den Bildschirm), wenn der Ring gruen ist:
+        Dunkelgruen = Perfekt  (3 Punkte)
+        Hellgruen   = Gut      (2 Punkte)
+        Gelb        = Knapp    (1 Punkt)
+        Rot         = Abwurf   (0 Punkte, die Stange faellt)
+     Wenn du gar nicht drueckst, verweigert das Pferd.
+
+TURNIER
+  - Im Menue unter "Wer reitet mit?" kann man bis zu 4 Mitspieler anlegen.
+    Jeder hat einen eigenen Namen, ein eigenes Outfit und ein eigenes Pferd.
+    Geritten wird nacheinander am selben Rechner.
+  - Dazu kommen bis zu 3 Computergegner (Sehr leicht, Leicht, Mittel, Schwer).
+  - Wer die meisten Punkte hat, gewinnt. Bei Gleichstand an der Spitze gibt
+    es ein Stechen: Es wird schneller geritten, und bei gleichen Punkten
+    gewinnt, wer genauer abgesprungen ist.
+  - Die Siegerin bekommt eine Goldmedaille, ihr Pferd eine Siegerschleife.
+    Beides traegt man danach auch im Menue.
+  - "Training" ist ein einzelner Ritt zum Ueben, ohne Gegner.
+
+STEUERUNG (im Menue waehlbar)
+  - Automatisch (leicht): Das Pferd laeuft den Weg allein, du springst nur.
+  - Selbst lenken (schwer): Du lenkst mit den Pfeiltasten links / rechts
+    (oder A / D) der Reihe nach zu den Hindernissen. Der rosa Pfeil zeigt
+    das naechste Hindernis, die weissen Punkte den besten Weg. Wer an einem
+    Hindernis vorbeireitet, bekommt dafuer keine Punkte.
+  - Lenken + Tempo (sehr schwer): Zusaetzlich bestimmst du mit Pfeil hoch /
+    runter (oder W / S) das Tempo. Zu langsam: Das Pferd verweigert.
+    Zu schnell: Nur perfekte Abspruenge gelingen. Schnelles Reiten lohnt
+    sich trotzdem, denn bei Gleichstand gewinnt die schnellere Zeit.
+  Auf Tablet und Handy gibt es dafuer Knoepfe auf dem Bildschirm.
+  Computergegner reiten immer automatisch.
+
+STADION
+  Die Tribuenen mit Zuschauern kann man im Menue ein- und ausschalten.
+  Bei guten Spruengen jubelt und klatscht das Publikum.
+
+DAS SPIEL ERWEITERN
+  Fast alles Einstellbare steht in der Datei  js/config.js :
+    - neue Farben fuer Jacke, Helm, Pferd ...   (Liste AUSWAHL)
+    - wie streng das Timing ist                 (TIMING)
+    - neue Parcours mit eigenen Hindernissen    (PARCOURS)
+    - wie gut die Computergegner sind           (GEGNER_STUFEN)
+  Die Datei mit einem Texteditor oeffnen, aendern, speichern und die Seite
+  im Browser neu laden (F5).
+
+  Weitere Dateien:
+    modelle/      die fertigen 3D-Modelle (Pferd, Hindernisse), als Text verpackt.
+                  Loescht man die beiden Zeilen mit "modelle/" in index.html,
+                  erscheinen wieder das selbstgebaute Pferd und die alten Hindernisse.
+    js/pferd.js   Aussehen und Bewegung von Pferd und Reiterin
+    js/platz.js   Reitplatz und die Hindernis-Arten
+    js/spiel.js   Spielablauf, Punkte, Kamera
+    css/style.css Aussehen von Menue und Anzeigen
+
+VERWENDETE 3D-MODELLE (Lizenz CC BY 4.0, https://creativecommons.org/licenses/by/4.0/)
+  - "Animated Rigged Horse With Saddle" von Ayan
+    https://sketchfab.com/3d-models/animated-rigged-horse-with-saddle-b08743c2c4734fb98a4e0a2f5767c318
+    Fuer das Spiel angepasst: umgefaerbt, Satteltasche ausgeblendet, Animation als Schleife.
+  - "Show jumping | Horse jumping obstacles" von Every 3D
+    https://sketchfab.com/3d-models/show-jumping-horse-jumping-obstacles-67ff46cf20504428a1f7cf7c2e73ed3d
+    Fuer das Spiel angepasst: Texturen verkleinert, Teile neu zusammengestellt und eingefaerbt.
+  - three.js (MIT-Lizenz), siehe js/three-LICENSE.txt
