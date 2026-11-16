@@ -4,7 +4,9 @@ Ein 3D-Springreitspiel für den Browser. Das Pferd galoppiert über einen Parcou
 
 ## Starten
 
-Repository herunterladen (grüner Knopf **Code**, dann **Download ZIP**), entpacken und `index.html` doppelklicken. Das Spiel läuft in Chrome, Edge oder Firefox, ohne Installation und ohne Internet.
+**Direkt spielen:** https://kvb1982.github.io/Reitturnier/ (auch auf iPad und iPhone)
+
+Oder ohne Internet: Repository herunterladen (grüner Knopf **Code**, dann **Download ZIP**), entpacken und `index.html` doppelklicken. Das Spiel läuft in Chrome, Edge oder Firefox, ohne Installation und ohne Internet.
 
 ## Was das Spiel kann
 
