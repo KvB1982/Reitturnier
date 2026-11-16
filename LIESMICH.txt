@@ -1,11 +1,56 @@
-REITTURNIER - ein 3D-Springreitspiel
-====================================
+REITTURNIER - ein 3D-Reitspiel mit Pferdehof
+============================================
 
 SO STARTEST DU DAS SPIEL
   Doppelklick auf "index.html". Das Spiel oeffnet sich im Browser
   (Chrome, Edge oder Firefox). Es braucht kein Internet und keine Installation.
 
-SO SPIELST DU
+PFERDEHOF UND MODI
+  Im Menue waehlst du oben, was du spielen moechtest: Pferdehof, Springen,
+  Galopprennen, Military, Dressur oder Voltigieren. Jeden Modus kann man
+  direkt starten. Auf dem Pferdehof geht man zu Fuss dorthin.
+
+  Pferdehof
+    - Laufen: Pfeiltasten oder W A S D. Auf iPad / iPhone den Finger auf den
+      Bildschirm legen und in die Richtung ziehen (wie ein Steuerknueppel).
+    - Der grosse Knopf unten (oder LEERTASTE) macht das, was gerade dransteht:
+      Box betreten, Futter nehmen, Pferd mitnehmen, Platz betreten ...
+    - Im Stall stehen sechs Pferde. Jedes hat Anzeigen fuer Sauberkeit,
+      Hunger und Fitness. Ein gepflegtes, sattes Pferd hat gute Laune.
+    - In der Box: abspritzen, striegeln, Hufe auskratzen, ausmisten, frisches
+      Stroh einstreuen, schmuecken. Zum Putzen mit Maus oder Finger ueber
+      das Pferd reiben.
+    - Im Vorratsraum Hafer, Heu oder Moehren holen und in die Box bringen.
+    - "Mitnehmen" fuehrt das Pferd am Halfter. Dann zum Trainingsplatz,
+      Turnierplatz, zur Rennbahn, ins Gelaende, zur Schrittmaschine, zum
+      Longierzirkel oder auf die Weide gehen. Der Ort bestimmt den Modus.
+    - Fuer Pflege, Training und Siege gibt es Muenzen. Im Reitladen kauft
+      man dafuer Gamaschen, Fliegenhauben, Schleifen, Saettel und mehr.
+
+  Dressur
+    Viereck 20 x 40 Meter mit den Bahnpunkten A K E H C M B F und X.
+    Reite die rosa Linie in der angesagten Gangart. Pfeil hoch / runter
+    wechselt die Gangart (Halt, Schritt, Trab, Galopp), links / rechts lenkt.
+    Die Richter geben fuer jede Lektion eine Note von 0 bis 10.
+
+  Galopprennen
+    Eine Runde gegen fuenf Gegner. Hoch / runter = treiben oder zuruecknehmen,
+    links / rechts = Spur wechseln, LEERTASTE = anfeuern. Ausdauer einteilen!
+
+  Military (Gelaenderitt)
+    Auf Zeit durch alle Tore: ueber Baumstaemme, Hecken und Graeben, durch
+    den Fluss, ueber die Bruecke, bergauf und bergab durch den Wald.
+    Fehler und ausgelassene Tore kosten Strafsekunden.
+
+  Voltigieren
+    Das Pferd galoppiert an der Longe im Kreis. Fuer jede Uebung (Aufsprung,
+    Grundsitz, Fahne, Muehle, Schere, Stehen, Abgang):
+      1. LEERTASTE druecken oder tippen, wenn der rosa Ring den weissen
+         Kreis trifft (das ist der Galopptakt).
+      2. Den rosa Punkt mit links / rechts in der gruenen Mitte halten.
+    Die Richter geben fuer jede Uebung eine Note von 0 bis 10.
+
+SPRINGEN: SO SPIELST DU
   1. Zieh deine Reiterin an, such dir ein Pferd und einen Parcours aus.
   2. Klick auf "Los geht's!". Das Pferd galoppiert von allein.
   3. Vor jedem Hindernis liegt ein Farbstreifen auf dem Boden, und der Ring
@@ -63,7 +108,15 @@ DAS SPIEL ERWEITERN
     modelle/      die fertigen 3D-Modelle (Pferd, Hindernisse), als Text verpackt.
                   Loescht man die beiden Zeilen mit "modelle/" in index.html,
                   erscheinen wieder das selbstgebaute Pferd und die alten Hindernisse.
-    js/pferd.js   Aussehen und Bewegung von Pferd und Reiterin
+    js/pferd.js   Aussehen und Bewegung von Pferd und Reiterin im Springen
+    js/stand.js   Spielstand (Muenzen, Zustand der Pferde, gekaufte Sachen)
+    js/herde.js   Pferde fuer Hof und Rennen: Fellfarben, Schmutz, Gangarten
+    js/figur.js   bewegliche Figuren (Spielerin zu Fuss, andere Reitmaedchen)
+    js/reiten.js  gemeinsame Bausteine fuer alle Reit-Modi
+    js/hof.js, js/pflege.js   Pferdehof und Pflege in der Box
+    js/rennen.js, js/gelaende.js, js/dressur.js, js/voltigieren.js   die Modi
+    In js/config.js stehen auch die Hofpferde (HOF_PFERDE), die Artikel im
+    Reitladen (LADEN) und die Preisgelder (PREISGELD).
     js/platz.js   Reitplatz und die Hindernis-Arten
     js/spiel.js   Spielablauf, Punkte, Kamera
     css/style.css Aussehen von Menue und Anzeigen

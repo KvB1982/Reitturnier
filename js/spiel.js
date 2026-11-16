@@ -74,7 +74,7 @@
   function zeigeStadion() { platz.stadion.gruppe.visible = stadionAn; platz.haus.visible = !stadionAn; }
   zeigeStadion();
   var taste = { links: false, rechts: false, schneller: false, langsamer: false };
-  var wisch = { lenk: 0 };   // Lenken durch Wischen (iPad / iPhone): -1 rechts ... +1 links
+  var wisch = { lenk: 0, hoch: 0 };   // Lenken durch Wischen (iPad / iPhone): -1 rechts ... +1 links
   // halbe Breite, in der man ein Hindernis anreiten muss (Modell-Hindernisse sind schmaler)
   function halbeBreite() { return HINDERNIS_TEILE ? 1.5 : 2.2; }
 
@@ -721,7 +721,14 @@
   function starteTraining() {
     T = null;
     var s = spieler[aktiv];
-    starteRitt({ name: s.name, outfit: s.outfit, ki: null }, { fertig: zeigeTrainingsErgebnis });
+    starteRitt({ name: s.name, outfit: reitOutfit(s.outfit), ki: null }, { fertig: zeigeTrainingsErgebnis });
+  }
+  // Outfit zum Reiten: im Hofleben sitzt man auf dem Pferd, das man aus dem Stall geholt hat
+  var hofPferd = null;
+  function reitOutfit(o) {
+    var n = kopie(o);
+    if (hofPferd) { n.fell = hofPferd.fell; n.ausruestung = hofPferd.ausruestung; if (hofPferd.ausruestung && hofPferd.ausruestung.decke) n.decke = hofPferd.ausruestung.decke; }
+    return n;
   }
 
   function zeigeTrainingsErgebnis(e) {
@@ -729,6 +736,8 @@
     var anteil = e.punkte / max;
     var sterne = anteil >= 0.85 ? 3 : anteil >= 0.5 ? 2 : anteil > 0 ? 1 : 0;
     var titel = ['Weiter üben!', 'Geschafft!', 'Toll geritten!', 'Super Ritt!'][sterne];
+    letztesErgebnis = { art: 'training', sterne: sterne, punkte: e.punkte };
+    var lohn = STAND.belohne(sterne * 2, 'Training');
     var schluessel = PARCOURS[parcoursNr].name;
     var alt = bestwerte[schluessel], rekord = '';
     if (alt === undefined || e.punkte > alt) {
@@ -742,8 +751,8 @@
       '<h2>' + titel + '</h2>' +
       '<div class="sterne">' + '★★★'.slice(0, sterne) + '☆☆☆'.slice(0, 3 - sterne) + '</div>' +
       '<div class="grossPunkte">' + e.punkte + ' von ' + max + ' Punkten</div>' + detailsHtml(e) +
-      '<div class="rekord">' + rekord + '</div>',
-      [{ text: 'Nochmal reiten', aktion: starteTraining }, { text: 'Zurück zum Menü', klasse: 'zweit', aktion: insMenue }]);
+      '<div class="rekord">' + rekord + '</div>' + lohn,
+      [{ text: 'Nochmal reiten', aktion: starteTraining }, { text: heimText(), klasse: 'zweit', aktion: heim }]);
   }
 
   function detailsHtml(e) {
@@ -766,7 +775,7 @@
   function starteTurnier() {
     var stufe = GEGNER_STUFEN.filter(function (s) { return s[0] === gegnerStufe; })[0] || GEGNER_STUFEN[1];
     var teilnehmer = spieler.map(function (s, i) {
-      return { name: s.name, outfit: kopie(s.outfit), ki: null, spielerNr: i, erg: null, stech: null };
+      return { name: s.name, outfit: i === aktiv ? reitOutfit(s.outfit) : kopie(s.outfit), ki: null, spielerNr: i, erg: null, stech: null };
     });
     var namen = GEGNER_NAMEN.slice().sort(function () { return Math.random() - 0.5; });
     var anzahl = gegnerAnzahl;
@@ -872,6 +881,10 @@
       spieler[sieger.spielerNr].siege++;
       speichereSpieler();
     }
+    var platzNr = -1;
+    rang.forEach(function (t, i) { if (!t.ki && platzNr < 0) platzNr = i; });
+    letztesErgebnis = { art: 'turnier', platz: platzNr + 1, sieg: !sieger.ki };
+    var lohn = STAND.belohne([30, 15, 8][platzNr] || 3, 'Springturnier');
     zurueckSetzen();
     pferd.setzeOutfit(sieger.outfit);
     pferd.setzeAuszeichnung(true);
@@ -882,16 +895,28 @@
     var html = '<div class="klein">Siegerehrung</div><h2>🏆 ' + esc(sieger.name) + ' gewinnt!</h2>' +
       '<div class="details">' + (sieger.ki ? 'Diesmal hat der Computer gewonnen. Gleich nochmal versuchen!' :
         'Die Reiterin bekommt die <b>Goldmedaille</b> 🥇<br>und das Pferd eine <b>Siegerschleife</b> 🏵️ ans Zaumzeug!') + '</div>' +
-      tabelleHtml(true);
+      tabelleHtml(true) + lohn;
     zeigeKarte('seite', html, [
       { text: 'Neues Turnier', aktion: starteTurnier },
-      { text: 'Zurück zum Menü', klasse: 'zweit', aktion: insMenue }
+      { text: heimText(), klasse: 'zweit', aktion: heim }
     ]);
   }
 
   // ---------- Menue ----------
+  // Wer vom Pferdehof aus reitet, kommt danach dorthin zurueck (rueckkehr), sonst ins Menue.
+  var rueckkehr = null, letztesErgebnis = null;
+  function heim() {
+    if (!rueckkehr) { insMenue(); return; }
+    var r = rueckkehr; rueckkehr = null;
+    clearTimeout(wartenTimer); T = null; schliesseKarte(); el('countdown').textContent = '';
+    zurueckSetzen();
+    r(letztesErgebnis);
+  }
+  function heimText() { return rueckkehr ? 'Zurück zum Hof' : 'Zurück zum Menü'; }
   function insMenue() {
     clearTimeout(wartenTimer);
+    verlasseWelt();
+    rueckkehr = null;
     T = null;
     schliesseKarte();
     el('countdown').textContent = '';
@@ -917,8 +942,33 @@
     });
   }
 
+  // Welcher Modus ist im Menue angewaehlt? ('springen' oder eine Welt aus WELTEN)
+  var spielModus = lade('reitturnier_modus', 'hof');
+  function baueModusWahl() {
+    var modi = [];
+    for (var k in WELTEN) if (WELTEN[k].name && HERDE.bereit()) modi.push([k, WELTEN[k].name]);
+    modi.splice(Math.min(1, modi.length), 0, ['springen', '🏇 Springen']);
+    var gewuenscht = spielModus;
+    if (spielModus !== 'springen' && !(WELTEN[spielModus] && WELTEN[spielModus].name && HERDE.bereit())) spielModus = 'springen';
+    knopfReihe(el('modusWahl'), modi,
+      function (e) { return e[0] === spielModus; },
+      function (e) { spielModus = e[0]; speichere('reitturnier_modus', spielModus); baueMenue(); });
+    var springt = spielModus === 'springen';
+    el('springZeilen').style.display = springt ? '' : 'none';
+    el('turnier').style.display = el('training').style.display = springt ? '' : 'none';
+    el('modusStart').style.display = springt ? 'none' : '';
+    el('modusText').innerHTML = springt ? 'Springreiten auf dem Turnierplatz: allein üben oder ein Turnier gegen Mitspieler und Computergegner.' : WELTEN[spielModus].text;
+    el('modusStart').textContent = springt ? '' : (WELTEN[spielModus].knopf || 'Los geht\'s');
+    el('menueMuenzen').textContent = '🪙 ' + STAND.daten.muenzen;
+    var jetzt = spielModus;
+    spielModus = gewuenscht;          // solange die Modelle noch laden, bleibt der Wunsch erhalten
+    return jetzt;
+  }
+  el('modusStart').addEventListener('click', function () { if (WELTEN[spielModus] && HERDE.bereit()) WELTEN[spielModus].start({}); });
+
   function baueMenue() {
     if (aktiv >= spieler.length) aktiv = 0;
+    baueModusWahl();
     // --- Spieler-Reiter ---
     var tabs = el('spielerTabs');
     tabs.innerHTML = '';
@@ -1021,6 +1071,59 @@
     zeigeAktivenSpieler();
   }
 
+  // ============================================================
+  //  WELTEN  -  Pferdehof, Rennbahn, Gelaende, Dressur, Voltigieren
+  //  Jede Welt hat eine eigene Szene und Kamera. Solange eine Welt aktiv ist,
+  //  ruht das Springreiten.  Die Welten stehen in WELTEN (eigene Dateien).
+  // ============================================================
+  var welt = null;
+  function betreteWelt(w) {
+    if (welt && welt !== w && welt.verlaesst) welt.verlaesst();
+    clearTimeout(wartenTimer);
+    schliesseKarte();
+    el('countdown').textContent = '';
+    ring.visible = false;
+    for (var k in taste) taste[k] = false;
+    finger = {}; wisch.lenk = 0; wisch.hoch = 0;
+    welt = w;
+    Z.modus = 'welt';
+    document.body.className = 'im-welt ' + (w.klasse || '');
+    setzeAktion(null);
+    setzeHud('');
+    groesse();
+  }
+  function verlasseWelt() {
+    if (!welt) return;
+    var w = welt; welt = null;
+    if (w.verlaesst) w.verlaesst();
+    szene.add(pferd.wurzel);                 // das Reitpferd gehoert wieder auf den Springplatz
+    pferd.wurzel.scale.setScalar(1);
+    pferd.setzeGang('galopp');
+    pferd.setzeReiterin(true);
+    setzeAktion(null);
+    setzeHud('');
+  }
+  // Springreiten von einer Welt aus starten (danach geht es mit zurueck() wieder dorthin)
+  function springenVomHof(opt) {
+    verlasseWelt();
+    hofPferd = opt.pferd || null;
+    rueckkehr = function (erg) { hofPferd = null; opt.zurueck(erg); };
+    if (opt.turnier) starteTurnier(); else starteTraining();
+  }
+  var aktionText = null;
+  function setzeAktion(text) {
+    if (text === aktionText) return;
+    aktionText = text;
+    el('springen').textContent = text || 'SPRINGEN';
+    document.body.classList.toggle('mit-aktion', !!text);
+  }
+  var hudText = null;
+  function setzeHud(html) {
+    if (html === hudText) return;
+    hudText = html;
+    el('weltHud').innerHTML = html;
+  }
+
   // ---------- Kamera ----------
   var kamZiel = new THREE.Vector3(), kamBlick = new THREE.Vector3(), blickJetzt = new THREE.Vector3();
   var kameraSprung = true;
@@ -1051,6 +1154,12 @@
   function groesse() {
     var w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h);
+    if (welt) {
+      welt.kamera.aspect = w / h;
+      welt.kamera.updateProjectionMatrix();
+      if (welt.groesse) welt.groesse(w, h);
+      return;
+    }
     kamera.aspect = w / h;
     if (Z.modus === 'menue' || Z.modus === 'ehrung') {
       // Pferd neben das Menue ruecken (nach links, auf dem Handy nach oben)
@@ -1073,6 +1182,12 @@
   var TASTEN = { ArrowLeft: 'links', KeyA: 'links', ArrowRight: 'rechts', KeyD: 'rechts', ArrowUp: 'schneller', KeyW: 'schneller', ArrowDown: 'langsamer', KeyS: 'langsamer' };
   window.addEventListener('keydown', function (e) {
     if (e.target && e.target.tagName === 'INPUT') return;
+    if (welt) {
+      if (TASTEN[e.code]) { taste[TASTEN[e.code]] = true; e.preventDefault(); }
+      else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE') { e.preventDefault(); if (!e.repeat && welt.aktion) welt.aktion(); }
+      else if (welt.tasteGedrueckt) welt.tasteGedrueckt(e.code);
+      return;
+    }
     var imRitt = Z.modus === 'ritt' || Z.modus === 'countdown';
     if (TASTEN[e.code] && imRitt && Z.frei) { taste[TASTEN[e.code]] = true; e.preventDefault(); return; }
     if (e.code === 'Space' || (e.code === 'ArrowUp' && !Z.frei)) {
@@ -1083,26 +1198,39 @@
     }
   });
   window.addEventListener('keyup', function (e) { if (TASTEN[e.code]) taste[TASTEN[e.code]] = false; });
-  window.addEventListener('blur', function () { for (var k in taste) taste[k] = false; finger = {}; wisch.lenk = 0; });
+  window.addEventListener('blur', function () { for (var k in taste) taste[k] = false; finger = {}; wisch.lenk = 0; wisch.hoch = 0; });
   // Wischen und Tippen auf dem Bild (iPad, iPhone, auch mit der Maus):
   // tippen = springen, links / rechts wischen = lenken, hoch / runter wischen = schneller / langsamer.
   // Der Finger darf nach dem Wischen liegen bleiben, dann lenkt das Pferd weiter.
   var WISCH = { tot: 12, voll: 70, proMeter: 28, tippZeit: 400 };
   var finger = {};
   function wischLenkung() {
-    var summe = 0;
-    for (var id in finger) summe += finger[id].lenk;
+    var summe = 0, hoch = 0;
+    for (var id in finger) { summe += finger[id].lenk; hoch += finger[id].hoch || 0; }
     wisch.lenk = Math.max(-1, Math.min(1, summe));
+    wisch.hoch = Math.max(-1, Math.min(1, hoch));
   }
   function fingerWeg(e) {
     var f = finger[e.pointerId];
     if (!f) return;
     delete finger[e.pointerId];
     wischLenkung();
+    if (welt) {
+      if (welt.zeiger) welt.zeiger('ende', e);
+      if (e.type === 'pointerup' && !f.achse && performance.now() - f.zeit < WISCH.tippZeit && welt.tipp) welt.tipp(e);
+      return;
+    }
     if (e.type === 'pointerup' && !f.achse && performance.now() - f.zeit < WISCH.tippZeit) springen(e);
   }
   var flaeche = renderer.domElement;
   flaeche.addEventListener('pointerdown', function (e) {
+    if (welt) {
+      e.preventDefault();
+      finger[e.pointerId] = { x: e.clientX, y: e.clientY, altY: e.clientY, zeit: performance.now(), achse: '', lenk: 0, hoch: 0 };
+      try { flaeche.setPointerCapture(e.pointerId); } catch (fehler) {}
+      if (welt.zeiger) welt.zeiger('start', e);
+      return;
+    }
     if (!Z.frei) { springen(e); return; }
     e.preventDefault();
     finger[e.pointerId] = { x: e.clientX, y: e.clientY, altY: e.clientY, zeit: performance.now(), achse: '', lenk: 0 };
@@ -1112,6 +1240,18 @@
     var f = finger[e.pointerId];
     if (!f) return;
     var dx = e.clientX - f.x, dy = e.clientY - f.y;
+    if (welt) {
+      // in den Welten wirkt der Finger wie ein Steuerknueppel: links/rechts und vor/zurueck gleichzeitig
+      if (!f.achse && (Math.abs(dx) >= WISCH.tot || Math.abs(dy) >= WISCH.tot)) f.achse = 'xy';
+      if (f.achse && !welt.ohneKnueppel) {
+        var wx = Math.abs(dx) - WISCH.tot, wy = Math.abs(dy) - WISCH.tot;
+        f.lenk = wx > 0 ? -(dx > 0 ? 1 : -1) * Math.min(1, wx / (WISCH.voll - WISCH.tot)) : 0;
+        f.hoch = wy > 0 ? -(dy > 0 ? 1 : -1) * Math.min(1, wy / (WISCH.voll - WISCH.tot)) : 0;
+        wischLenkung();
+      }
+      if (welt.zeiger) welt.zeiger('zug', e);
+      return;
+    }
     if (!f.achse) {
       if (Math.abs(dx) < WISCH.tot && Math.abs(dy) < WISCH.tot) return;
       f.achse = (Z.mitTempo && Math.abs(dy) > Math.abs(dx)) ? 'y' : 'x';
@@ -1127,19 +1267,23 @@
     }
   });
   ['pointerup', 'pointercancel'].forEach(function (ev) { flaeche.addEventListener(ev, fingerWeg); });
-  el('springen').addEventListener('pointerdown', springen);
+  el('springen').addEventListener('pointerdown', function (e) {
+    if (welt) { e.preventDefault(); if (welt.aktion) welt.aktion(); return; }
+    springen(e);
+  });
   // Knoepfe auf dem Bildschirm (fuer Tablet und Handy)
   ['links', 'rechts', 'schneller', 'langsamer'].forEach(function (name) {
     var b = el('knopf-' + name);
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); taste[name] = true; });
+    b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { taste[name] = false; }); });
   });
 
   el('turnier').addEventListener('click', starteTurnier);
   el('training').addEventListener('click', starteTraining);
-  el('zumMenue').addEventListener('click', insMenue);
+  el('zumMenue').addEventListener('click', function () { heim(); });
   el('ueberspringen').addEventListener('click', ueberspringe);
-  function zeigeTon() { el('ton').textContent = tonAn ? '🔊' : '🔇'; }
+  function zeigeTon() { el('ton').textContent = el('weltTon').textContent = tonAn ? '🔊' : '🔇'; }
   el('ton').addEventListener('click', function () { tonAn = !tonAn; speichere('reitturnier_ton', tonAn); zeigeTon(); });
   zeigeTon();
 
@@ -1162,7 +1306,7 @@
         }, function (e) { console.warn('Modell konnte nicht geladen werden', e); weiter(); });
       } catch (e) { console.warn(e); weiter(); }
     }
-    eins(window.MODELL_PFERD, pferd.nutzeModell);
+    eins(window.MODELL_PFERD, function (g) { HERDE.vorbereiten(g); pferd.nutzeModell(g); });
     eins(window.MODELL_HINDERNISSE, bereiteHindernisTeile);
     if (--offen === 0) fertig();
   }
@@ -1174,6 +1318,13 @@
   function bild(jetzt) {
     var dt = Math.min(0.05, (jetzt - letzte) / 1000);
     letzte = jetzt;
+    if (welt) {
+      Z.zeit += dt;
+      try { welt.schritt(dt, Z.zeit); } catch (fehler) { console.error(fehler); }
+      renderer.render(welt.szene, welt.kamera);
+      requestAnimationFrame(bild);
+      return;
+    }
     schritt(dt);
     bewegeFallTeile(dt);
     platz.stadion.bewege(dt, Z.zeit);
@@ -1183,9 +1334,27 @@
   }
   requestAnimationFrame(bild);
 
+  // ---------- Was die Welten vom Spiel benutzen duerfen ----------
+  window.KERN = {
+    renderer: renderer, el: el, lade: lade, speichere: speichere, esc: esc, gauss: gauss, kopie: kopie,
+    ton: ton, huf: huf, galoppTon: galoppTon, klang: klang, applaus: function (d, l) { var a = stadionAn; stadionAn = true; applaus(d, l); stadionAn = a; },
+    taste: taste, wisch: wisch, meldung: meldung, zeigeKarte: zeigeKarte, schliesseKarte: schliesseKarte,
+    pferd: pferd, betrete: betreteWelt, insMenue: insMenue, springen: springenVomHof,
+    setzeAktion: setzeAktion, setzeHud: setzeHud,
+    spieler: function () { return spieler[aktiv]; },
+    welt: function () { return welt; },
+    zufallsOutfit: zufallsOutfit, gegnerStufe: function () { return gegnerStufe; },
+    steuerung: function () { return steuerung; }, baueWeg: baueWeg,
+    zeit: function () { return Z.zeit; }
+  };
+  el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });
+  el('weltTon').addEventListener('click', function () { tonAn = !tonAn; speichere('reitturnier_ton', tonAn); zeigeTon(); });
+
   // fuer Tests und zum Ausprobieren in der Konsole
   window.SPIEL = {
     zustand: Z, wisch: wisch, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
-    turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd
+    turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd,
+    // Zeit vorspulen (fuer Tests): rechnet sek Sekunden in kleinen Schritten
+    vor: function (sek) { for (var t = 0; t < sek; t += 0.04) { Z.zeit += welt ? 0.04 : 0; if (welt) welt.schritt(0.04, Z.zeit); else { schritt(0.04); bewegeFallTeile(0.04); } } }
   };
 })();

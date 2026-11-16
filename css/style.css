@@ -130,3 +130,66 @@ button { font-family: inherit; cursor: pointer; }
 @media (pointer: coarse) {
   .im-spiel.frei #lenkKnoepfe, .im-spiel.mit-tempo #tempoKnoepfe { display: none; }
 }
+
+/* ---------- Welten: Pferdehof, Rennbahn, Gelaende, Dressur, Voltigieren ---------- */
+#weltLeiste, #werkzeuge, #weltHinweis { display: none; }
+.im-welt #menue { display: none; }
+.im-welt #weltLeiste { display: flex; position: fixed; top: 10px; left: 10px; right: 10px; gap: 8px; align-items: flex-start; pointer-events: none; }
+#weltHud { display: flex; flex-wrap: wrap; gap: 8px; }
+#weltHud .kachel { font-size: 18px; min-width: 0; }
+#weltHud .kachel.gross2 { font-size: 22px; }
+.im-welt.mit-aktion #springen { display: block; width: auto; min-width: 190px; max-width: 86vw; padding: 0 26px; font-size: 20px; letter-spacing: 0; white-space: nowrap; }
+.im-welt #countdown, .im-welt #meldung { display: block; }
+.im-welt.mit-lenken #lenkKnoepfe { display: flex; left: 16px; bottom: 54px; }
+.im-welt.mit-tempo #tempoKnoepfe { display: flex; flex-direction: column; right: 16px; }
+@media (pointer: coarse) { .im-welt.mit-lenken #lenkKnoepfe, .im-welt.mit-tempo #tempoKnoepfe { display: none; } }
+.messer { display: inline-block; width: 74px; height: 9px; background: #e6d7bd; border-radius: 5px; overflow: hidden; vertical-align: 1px; margin-left: 2px; }
+.messer i { display: block; height: 100%; background: #27ae60; border-radius: 5px; }
+.messer.mittel i { background: #f1b40f; }
+.messer.schlecht i { background: #e5412d; }
+.lohn { margin-top: 8px; font-size: 19px; font-weight: bold; color: #b8860b; }
+.lohn small { font-weight: normal; color: #9a8a76; }
+#menueMuenzen { font-size: 17px; color: #b8860b; margin-left: 8px; white-space: nowrap; }
+
+#weltHinweis { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); background: rgba(255, 250, 240, 0.92); border-radius: 14px; padding: 7px 16px; font-size: 16px; max-width: 92vw; text-align: center; pointer-events: none; }
+.im-welt.mit-hinweis #weltHinweis { display: block; }
+
+.im-welt.mit-werkzeug #werkzeuge { display: flex; position: fixed; left: 0; right: 0; bottom: 10px; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 0 8px; }
+#werkzeuge button { min-width: 78px; padding: 7px 8px 6px; border-radius: 16px; border: 3px solid transparent; background: rgba(255, 250, 240, 0.94); font-size: 13px; color: #3a2a1c; box-shadow: 0 4px 0 rgba(122, 59, 18, 0.3); }
+#werkzeuge button b { display: block; font-size: 27px; line-height: 1.15; font-weight: normal; }
+#werkzeuge button.aktiv { border-color: #e84393; background: #ffe3f0; }
+#werkzeuge button.fertig { background: #dff5e3; }
+#werkzeuge button.los { background: #27ae60; color: #fff; }
+.im-welt.mit-werkzeug #weltHinweis { bottom: 104px; }
+
+.liste { text-align: left; margin-top: 8px; }
+.liste .eintrag { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #efe4cf; font-size: 15px; }
+.liste .eintrag .bild { font-size: 26px; width: 34px; text-align: center; }
+.liste .eintrag .text { flex: 1; line-height: 1.3; }
+.liste .eintrag .text small { color: #9a8a76; }
+.liste .eintrag button { padding: 7px 12px; border-radius: 14px; border: 2px solid #c9b596; background: #fff; font-size: 14px; color: #3a2a1c; white-space: nowrap; }
+.liste .eintrag button.kauf { background: #27ae60; border-color: #1b7d44; color: #fff; font-weight: bold; }
+.liste .eintrag button.an { background: #ffe3f0; border-color: #e84393; font-weight: bold; }
+.liste .eintrag button:disabled { opacity: 0.45; }
+.farbtupfer { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #b9a78f; vertical-align: -3px; margin-right: 4px; }
+.karte.breit2 { width: 520px; }
+.note { font-size: 46px; font-weight: bold; color: #7a3b12; line-height: 1.1; }
+#karteKnoepfe .gross + .gross { margin-top: 10px; }
+@media (max-width: 760px) {
+  #weltHud .kachel { font-size: 14px; padding: 4px 7px; }
+  .messer { width: 46px; }
+  #werkzeuge button { min-width: 62px; font-size: 11px; padding: 5px 5px 4px; }
+  #werkzeuge button b { font-size: 22px; }
+}
+
+/* ---------- Voltigieren: Takt-Ring und Balance-Balken ---------- */
+#takt, #balance { display: none; position: fixed; pointer-events: none; }
+.welt-volti.zeig-takt #takt { display: block; left: 50%; top: 30%; width: 120px; height: 120px; margin-left: -60px; }
+#takt .ziel { position: absolute; inset: 30px; border-radius: 50%; border: 6px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 0 2px rgba(0,0,0,0.25); }
+#takt .ring { position: absolute; inset: 30px; border-radius: 50%; border: 6px solid #e84393; }
+#takt.gut .ziel { border-color: #7dff8f; }
+#takt span { position: absolute; left: -60px; right: -60px; top: 128px; text-align: center; font-weight: bold; font-size: 18px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+.welt-volti.zeig-balance #balance { display: block; left: 50%; top: 34%; width: 300px; max-width: 80vw; height: 30px; transform: translateX(-50%); background: rgba(255,250,240,0.9); border-radius: 15px; overflow: hidden; box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
+#balance .zone { position: absolute; top: 0; bottom: 0; background: #7ddc8a; }
+#balance .marke { position: absolute; top: 2px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: #e84393; border: 3px solid #fff; }
+#balance.schlecht .marke { background: #e5412d; }

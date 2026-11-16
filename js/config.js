@@ -97,3 +97,45 @@ var LENKEN = {
   zuLangsam: 5,      // langsamer als das -> Pferd verweigert den Sprung
   zuSchnell: 10.5    // schneller als das -> nur perfekte Absprunge bleiben fehlerfrei
 };
+
+
+// ============================================================
+//  PFERDEHOF
+// ============================================================
+// Hier melden sich die Welten an (Hof, Rennbahn, Gelaende, Dressur, Voltigieren).
+var WELTEN = {};
+
+// Die Pferde im Stall. fell: siehe FELLE in herde.js
+// tempo / sprung / ausdauer: 1 (wenig) bis 5 (viel)
+var HOF_PFERDE = [
+  { id: 'blitz', name: 'Blitz', fell: 'brauner', tempo: 5, sprung: 3, ausdauer: 3, art: 'schnell wie der Wind' },
+  { id: 'sternchen', name: 'Sternchen', fell: 'schimmel', tempo: 3, sprung: 5, ausdauer: 3, art: 'springt am liebsten' },
+  { id: 'donner', name: 'Donner', fell: 'rappe', tempo: 4, sprung: 4, ausdauer: 3, art: 'stark und mutig' },
+  { id: 'karamell', name: 'Karamell', fell: 'palomino', tempo: 3, sprung: 3, ausdauer: 5, art: 'wird nie müde' },
+  { id: 'flocke', name: 'Flocke', fell: 'apfel', tempo: 4, sprung: 3, ausdauer: 4, art: 'ruhig und brav' },
+  { id: 'kruemel', name: 'Krümel', fell: 'schecke', tempo: 3, sprung: 4, ausdauer: 4, art: 'frech und verfressen' }
+];
+
+// Wie schnell Pferde schmutzig und hungrig werden (Anteil pro Stunde, auch wenn das Spiel zu ist)
+var HOF_REGELN = { schmutzProStunde: 0.03, hungerProStunde: 0.06, mistProStunde: 0.05 };
+
+// Reitladen: art = gamaschen | ohren (Fliegenhaube) | schleife (Maehnenschleifen) | decke (Satteldecke) | putz (Putzzeug)
+var LADEN = [
+  { id: 'gam_weiss', art: 'gamaschen', name: 'Gamaschen weiß', farbe: '#f5f5f5', preis: 20 },
+  { id: 'gam_pink', art: 'gamaschen', name: 'Gamaschen pink', farbe: '#e84393', preis: 30 },
+  { id: 'gam_blau', art: 'gamaschen', name: 'Gamaschen blau', farbe: '#1f6fd0', preis: 30 },
+  { id: 'gam_gruen', art: 'gamaschen', name: 'Gamaschen grün', farbe: '#27ae60', preis: 30 },
+  { id: 'ohr_weiss', art: 'ohren', name: 'Fliegenhaube weiß', farbe: '#f5f5f5', preis: 25 },
+  { id: 'ohr_pink', art: 'ohren', name: 'Fliegenhaube pink', farbe: '#e84393', preis: 35 },
+  { id: 'ohr_blau', art: 'ohren', name: 'Fliegenhaube blau', farbe: '#1f6fd0', preis: 35 },
+  { id: 'schl_rot', art: 'schleife', name: 'Mähnenschleifen rot', farbe: '#d11f3a', preis: 15 },
+  { id: 'schl_gelb', art: 'schleife', name: 'Mähnenschleifen gelb', farbe: '#f1c40f', preis: 15 },
+  { id: 'schl_lila', art: 'schleife', name: 'Mähnenschleifen lila', farbe: '#8e44ad', preis: 15 },
+  { id: 'decke_tuerkis', art: 'decke', name: 'Sattel türkis', farbe: '#1abc9c', preis: 40 },
+  { id: 'decke_gold', art: 'decke', name: 'Sattel gold', farbe: '#d4a017', preis: 60 },
+  { id: 'decke_regenbogen', art: 'decke', name: 'Sattel himbeer', farbe: '#c2185b', preis: 40 },
+  { id: 'putz_turbo', art: 'putz', name: 'Zauberstriegel (putzt doppelt so schnell)', preis: 50 }
+];
+
+// Muenzen fuer Siege: [1. Platz, 2. Platz, 3. Platz]
+var PREISGELD = { rennen: [40, 20, 10], gelaende: [45, 25, 12], dressur: [40, 22, 10], voltigieren: [35, 20, 10] };

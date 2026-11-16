@@ -13,13 +13,19 @@
 
   <!-- ============ Menü: Spieler, Ankleiden, Turnier ============ -->
   <div id="menue">
-    <h1>🐴 Reitturnier</h1>
+    <h1>🐴 Reitturnier <span id="menueMuenzen"></span></h1>
+    <div class="zeile">
+      <div class="zeilenName">Was möchtest du spielen?</div>
+      <div class="knoepfe" id="modusWahl"></div>
+      <p class="hilfe" id="modusText"></p>
+    </div>
     <div class="zeile">
       <div class="zeilenName">Wer reitet mit?</div>
       <div class="knoepfe" id="spielerTabs"></div>
       <input id="spielerName" type="text" maxlength="16" placeholder="Name" aria-label="Name des Spielers">
     </div>
     <div id="auswahl"></div>
+    <div id="springZeilen">
     <div class="zeile">
       <div class="zeilenName">Parcours</div>
       <div class="knoepfe" id="parcoursWahl"></div>
@@ -38,8 +44,10 @@
       <div class="knoepfe" id="stadionWahl"></div>
     </div>
     <p class="hilfe" id="hilfeText"></p>
+    </div>
     <p class="hilfe dank">3D-Modelle: Pferd „Animated Rigged Horse With Saddle“ von Ayan, Hindernisse „Show jumping“ von Every 3D (beide Sketchfab, Lizenz CC BY 4.0).</p>
     <div id="startKnoepfe">
+      <button id="modusStart" class="gross" type="button">Los geht's</button>
       <button id="turnier" class="gross" type="button">🏆 Turnier starten</button>
       <button id="training" class="zweit" type="button">Training (allein üben)</button>
     </div>
@@ -77,6 +85,17 @@
     <button id="knopf-langsamer" type="button" aria-label="langsamer">▼</button>
   </div>
 
+  <!-- ============ Anzeige in den Welten (Hof, Rennbahn, Gelände, ...) ============ -->
+  <div id="weltLeiste">
+    <div id="weltHud"></div>
+    <div class="rechts">
+      <button id="weltTon" type="button" aria-label="Ton an/aus">🔊</button>
+      <button id="weltZurueck" type="button">Menü</button>
+    </div>
+  </div>
+  <div id="werkzeuge"></div>
+  <div id="weltHinweis"></div>
+
   <!-- ============ Karte für Ergebnisse, Rangliste, Siegerehrung ============ -->
   <div id="karte">
     <div class="karte">
@@ -92,8 +111,18 @@
   <script src="modelle/pferd.js"></script>
   <script src="modelle/hindernisse.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/stand.js"></script>
+  <script src="js/herde.js"></script>
+  <script src="js/figur.js"></script>
   <script src="js/pferd.js"></script>
   <script src="js/platz.js"></script>
+  <script src="js/reiten.js"></script>
+  <script src="js/hof.js"></script>
+  <script src="js/pflege.js"></script>
+  <script src="js/rennen.js"></script>
+  <script src="js/gelaende.js"></script>
+  <script src="js/dressur.js"></script>
+  <script src="js/voltigieren.js"></script>
   <script src="js/spiel.js"></script>
 </body>
 </html>

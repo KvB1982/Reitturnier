@@ -488,22 +488,27 @@ function bauePferdMitReiterin() {
   // ---------------- Outfit setzen ----------------
   function setzeOutfit(o) {
     letzteFarben = o;
+    var fellHex = (typeof o.fell === 'string' && o.fell.charAt(0) === '#') ? o.fell : HERDE.fellAus(o.fell).koerper;
     M.jacke.color.set(o.jacke);
     M.hose.color.set(o.hose);
     M.helm.color.set(o.helm);
     M.stiefel.color.set(o.stiefel);
     M.haare.color.set(o.haare);
-    M.fell.color.set(o.fell);
+    M.fell.color.set(fellHex);
     M.decke.color.set(o.decke);
     // Maehne und Beine passend zur Fellfarbe
-    var f = new THREE.Color(o.fell);
+    var f = new THREE.Color(fellHex);
     var hell = (f.r + f.g + f.b) / 3;
     if (hell > 0.8) { M.maehne.color.set(0xd8d2c4); M.bein.color.set(0xcfc9bb); M.nase.color.set(0x6b5a55); }       // Schimmel
     else if (o.fell === '#d9a55a') { M.maehne.color.set(0xf3ead2); M.bein.color.copy(f); M.nase.color.set(0x4a342a); } // Palomino
     else if (o.fell === '#9a9a9a') { M.maehne.color.set(0x3a3a3a); M.bein.color.set(0x4a4a4a); M.nase.color.set(0x2a2626); } // Grauer
     else if (o.fell === '#8b5a2b') { M.maehne.color.set(0x17100a); M.bein.color.set(0x21160e); M.nase.color.set(0x2a1c16); } // Brauner mit schwarzen Beinen
-    else { M.maehne.color.copy(dunkler(o.fell, 0.35)); M.bein.color.copy(dunkler(o.fell, 0.75)); M.nase.color.copy(dunkler(o.fell, 0.5)); }
-    if (modell) { modellMat.fell.color.set(o.fell); modellMat.sattel.color.set(o.decke); }
+    else { M.maehne.color.copy(dunkler(fellHex, 0.35)); M.bein.color.copy(dunkler(fellHex, 0.75)); M.nase.color.copy(dunkler(fellHex, 0.5)); }
+    if (modell) {
+      if (anstr) { anstr.setzeFell(o.fell); anstr.setzeSchmutz(o.schmutz || 0); } else modellMat.fell.color.set(fellHex);
+      modellMat.sattel.color.set(o.decke);
+      if (ausr) ausr.setze(o.ausruestung);
+    }
     if (frisur.userData.art !== o.frisur) { baueFrisur(o.frisur); frisur.userData.art = o.frisur; }
     var g = o.gesicht || 'blesse';
     if (gesicht.userData.art !== g) { baueGesicht(g); gesicht.userData.art = g; }
@@ -518,7 +523,9 @@ function bauePferdMitReiterin() {
   // ======================= FERTIGES 3D-MODELL =======================
   // Wenn ein Pferdemodell geladen wurde, ersetzt es das selbstgebaute Pferd.
   // Die Reiterin bleibt und sitzt auf dem Sattel des Modells.
-  var modell = null, mixer = null, galopp = null, galoppDauer = 1;
+  var modell = null, mixer = null, galoppDauer = 1;
+  var gangAkt = {}, gangName = 'galopp', anstr = null, ausr = null;
+  var GANG_VOLL = { galopp: 1, trab: 0.8, schritt: 0.5 };
   var modellMat = { fell: null, sattel: null };
   var rueckenKnochen = null, kopfKnochen = null;
   var rueckenRuhe = new THREE.Vector3(), hilf = new THREE.Vector3();
@@ -573,26 +580,18 @@ function bauePferdMitReiterin() {
     halter.add(dreher);
     koerper.add(halter);
 
-    // Galopp: aus der Animation nur den Teil nehmen, der sich wiederholen laesst
-    var clip = gltf.animations[0];
-    if (clip) {
-      var teil = THREE.AnimationUtils.subclip(clip, 'galopp', 7, 25, 24);
-      var ende = teil.duration + 0.09;
-      teil.tracks.forEach(function (t) {       // weicher Uebergang vom Ende zurueck zum Anfang
-        var n = t.getValueSize();
-        var zeiten = new Float32Array(t.times.length + 1), werte = new Float32Array(t.values.length + n);
-        zeiten.set(t.times); zeiten[t.times.length] = ende;
-        werte.set(t.values);
-        for (var i = 0; i < n; i++) werte[t.values.length + i] = t.values[i];
-        t.times = zeiten; t.values = werte;
-      });
-      teil.duration = ende;
-      galoppDauer = ende;
+    // Gangarten (Galopp aus dem Modell, Schritt und Trab daraus abgeleitet, siehe herde.js)
+    var gaenge = HERDE.gangarten();
+    if (gaenge) {
+      galoppDauer = gaenge.dauer;
       mixer = new THREE.AnimationMixer(szene);
-      galopp = mixer.clipAction(teil);
-      galopp.play();
-      galopp.setEffectiveWeight(0);
+      ['galopp', 'trab', 'schritt'].forEach(function (g) {
+        gangAkt[g] = mixer.clipAction(gaenge[g]);
+        gangAkt[g].play();
+        gangAkt[g].setEffectiveWeight(0);
+      });
     }
+    if (HERDE.bereit()) { anstr = HERDE.anstrich(szene, 1); ausr = HERDE.baueAusruestung(szene); }
     szene.traverse(function (o) {
       if (o.isBone && o.name.indexOf('spine009') === 0) rueckenKnochen = o;
       if (o.isBone && o.name.indexOf('skull') === 0) kopfKnochen = o;
@@ -611,15 +610,16 @@ function bauePferdMitReiterin() {
   // Modell bewegen: Galopp-Animation passend zur Strecke, Reiterin folgt dem Ruecken
   function bewegeModell(phase, staerke, sprung) {
     if (mixer) {
-      var t;
+      var u, g;
       if (sprung >= 0) {
-        galopp.setEffectiveWeight(1);
-        t = (0.62 + sprung * 0.38) * galoppDauer;          // Absprung -> Beine anziehen -> Landung
+        u = 0.62 + sprung * 0.38;                           // Absprung -> Beine anziehen -> Landung
+        for (g in gangAkt) gangAkt[g].setEffectiveWeight(g === 'galopp' ? 1 : 0);
       } else {
-        galopp.setEffectiveWeight(Math.min(1, staerke * 1.3));
-        t = (phase / (Math.PI * 2)) * galoppDauer;
+        u = ((phase / (Math.PI * 2)) % 1 + 1) % 1;
+        for (g in gangAkt) gangAkt[g].setEffectiveWeight(g === gangName ? GANG_VOLL[g] * Math.min(1, staerke * 1.3) : 0);
       }
-      mixer.setTime(t % galoppDauer);
+      for (g in gangAkt) gangAkt[g].time = u * galoppDauer;
+      mixer.update(0);
     }
     wurzel.updateMatrixWorld(true);
     var dy = 0, dz = 0;
@@ -697,6 +697,10 @@ function bauePferdMitReiterin() {
     hatModell: function () { return !!modell; },
     bewege: bewege,
     schuettle: schuettle,
-    kopfGerade: kopfGerade
+    kopfGerade: kopfGerade,
+    setzeGang: function (g) { gangName = g; },
+    setzeReiterin: function (an) { reiterin.visible = !!an; },
+    reiterin: reiterin,
+    rueckenHoehe: function () { return reiterin.position.y; }
   };
 }
