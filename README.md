@@ -13,6 +13,7 @@ Repository herunterladen (grüner Knopf **Code**, dann **Download ZIP**), entpac
 - Turnier mit bis zu 4 Spielern am selben Rechner und bis zu 3 Computergegnern in vier Stärken
 - Stechen bei Gleichstand, Siegerehrung mit Medaille und Siegerschleife
 - Drei Steuerungsarten: automatisch, selbst lenken, lenken und Tempo bestimmen
+- Auf iPad und iPhone: tippen springt, links / rechts wischen lenkt, hoch / runter wischen ändert das Tempo
 - Stadion mit Zuschauern, Galoppklang und Applaus
 
 Die ausführliche Anleitung steht in [LIESMICH.txt](LIESMICH.txt).

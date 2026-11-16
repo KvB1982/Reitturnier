@@ -2,7 +2,7 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #9fd4f5; }
 body { font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif; color: #3a2a1c; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
 #buehne { position: fixed; inset: 0; }
-#buehne canvas { display: block; }
+#buehne canvas { display: block; touch-action: none; -webkit-touch-callout: none; }
 button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Menü ---------- */
@@ -125,3 +125,8 @@ button { font-family: inherit; cursor: pointer; }
 
 #laden { position: fixed; left: 16px; bottom: 16px; background: rgba(255, 250, 240, 0.92); border-radius: 12px; padding: 8px 14px; font-size: 15px; pointer-events: none; }
 .hilfe.dank { font-size: 11px; color: #9a8a76; margin-top: 8px; }
+
+/* Auf Touch-Geraeten wird gewischt, die Pfeilknoepfe braucht es dort nicht */
+@media (pointer: coarse) {
+  .im-spiel.frei #lenkKnoepfe, .im-spiel.mit-tempo #tempoKnoepfe { display: none; }
+}

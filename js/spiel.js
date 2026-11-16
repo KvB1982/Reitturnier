@@ -74,6 +74,7 @@
   function zeigeStadion() { platz.stadion.gruppe.visible = stadionAn; platz.haus.visible = !stadionAn; }
   zeigeStadion();
   var taste = { links: false, rechts: false, schneller: false, langsamer: false };
+  var wisch = { lenk: 0 };   // Lenken durch Wischen (iPad / iPhone): -1 rechts ... +1 links
   // halbe Breite, in der man ein Hindernis anreiten muss (Modell-Hindernisse sind schmaler)
   function halbeBreite() { return HINDERNIS_TEILE ? 1.5 : 2.2; }
 
@@ -550,7 +551,7 @@
 
     // Selbst lenken
     if (Z.frei) {
-      var lenk = Z.modus === 'ritt' ? (taste.links ? 1 : 0) - (taste.rechts ? 1 : 0) : 0;
+      var lenk = Z.modus === 'ritt' ? Math.max(-1, Math.min(1, (taste.links ? 1 : 0) - (taste.rechts ? 1 : 0) + wisch.lenk)) : 0;
       Z.lenkGlatt += (lenk - Z.lenkGlatt) * Math.min(1, dt * 8);
       var dreh = LENKEN.drehung * Math.min(1, 7.5 / Math.max(Z.tempo, 1));   // schneller = groessere Boegen
       Z.kurs += Z.lenkGlatt * dreh * dt * (Z.pferdModus === 'sprung' ? 0.25 : 1);
@@ -1014,8 +1015,8 @@
     el('hilfeText').innerHTML = steuerung === 'auto'
       ? 'Drücke die <b>Leertaste</b> (oder tippe auf den Bildschirm), wenn der Ring unter dem Pferd <b class="g">grün</b> ist.'
       : steuerung === 'lenken'
-        ? 'Lenke mit <b>← →</b> (oder A / D) der Reihe nach zu den Hindernissen und springe mit der <b>Leertaste</b>, wenn der Ring <b class="g">grün</b> ist. Der rosa Pfeil zeigt das nächste Hindernis.'
-        : 'Lenke mit <b>← →</b>, bestimme mit <b>↑ ↓</b> das Tempo und springe mit der <b>Leertaste</b>. Zu langsam: Das Pferd verweigert. Zu schnell: Nur perfekte Absprünge gelingen. Bei Gleichstand gewinnt die schnellere Zeit.';
+        ? 'Lenke mit <b>← →</b> (oder A / D) der Reihe nach zu den Hindernissen und springe mit der <b>Leertaste</b>, wenn der Ring <b class="g">grün</b> ist. Der rosa Pfeil zeigt das nächste Hindernis.<br><b>iPad / iPhone:</b> nach links oder rechts wischen lenkt (Finger liegen lassen), tippen springt.'
+        : 'Lenke mit <b>← →</b>, bestimme mit <b>↑ ↓</b> das Tempo und springe mit der <b>Leertaste</b>. Zu langsam: Das Pferd verweigert. Zu schnell: Nur perfekte Absprünge gelingen. Bei Gleichstand gewinnt die schnellere Zeit.<br><b>iPad / iPhone:</b> links / rechts wischen lenkt, hoch / runter wischen macht schneller / langsamer, tippen springt.';
 
     zeigeAktivenSpieler();
   }
@@ -1082,8 +1083,50 @@
     }
   });
   window.addEventListener('keyup', function (e) { if (TASTEN[e.code]) taste[TASTEN[e.code]] = false; });
-  window.addEventListener('blur', function () { for (var k in taste) taste[k] = false; });
-  renderer.domElement.addEventListener('pointerdown', function (e) { if (!Z.frei) springen(e); });
+  window.addEventListener('blur', function () { for (var k in taste) taste[k] = false; finger = {}; wisch.lenk = 0; });
+  // Wischen und Tippen auf dem Bild (iPad, iPhone, auch mit der Maus):
+  // tippen = springen, links / rechts wischen = lenken, hoch / runter wischen = schneller / langsamer.
+  // Der Finger darf nach dem Wischen liegen bleiben, dann lenkt das Pferd weiter.
+  var WISCH = { tot: 12, voll: 70, proMeter: 28, tippZeit: 400 };
+  var finger = {};
+  function wischLenkung() {
+    var summe = 0;
+    for (var id in finger) summe += finger[id].lenk;
+    wisch.lenk = Math.max(-1, Math.min(1, summe));
+  }
+  function fingerWeg(e) {
+    var f = finger[e.pointerId];
+    if (!f) return;
+    delete finger[e.pointerId];
+    wischLenkung();
+    if (e.type === 'pointerup' && !f.achse && performance.now() - f.zeit < WISCH.tippZeit) springen(e);
+  }
+  var flaeche = renderer.domElement;
+  flaeche.addEventListener('pointerdown', function (e) {
+    if (!Z.frei) { springen(e); return; }
+    e.preventDefault();
+    finger[e.pointerId] = { x: e.clientX, y: e.clientY, altY: e.clientY, zeit: performance.now(), achse: '', lenk: 0 };
+    try { flaeche.setPointerCapture(e.pointerId); } catch (fehler) {}
+  });
+  flaeche.addEventListener('pointermove', function (e) {
+    var f = finger[e.pointerId];
+    if (!f) return;
+    var dx = e.clientX - f.x, dy = e.clientY - f.y;
+    if (!f.achse) {
+      if (Math.abs(dx) < WISCH.tot && Math.abs(dy) < WISCH.tot) return;
+      f.achse = (Z.mitTempo && Math.abs(dy) > Math.abs(dx)) ? 'y' : 'x';
+      f.altY = e.clientY;
+    }
+    if (f.achse === 'x') {
+      var weit = Math.abs(dx) - WISCH.tot;
+      f.lenk = weit > 0 ? -(dx > 0 ? 1 : -1) * Math.min(1, weit / (WISCH.voll - WISCH.tot)) : 0;
+      wischLenkung();
+    } else if (Z.mitTempo && Z.modus === 'ritt') {
+      Z.wunschTempo = Math.max(LENKEN.tempoMin, Math.min(LENKEN.tempoMax, Z.wunschTempo + (f.altY - e.clientY) / WISCH.proMeter));
+      f.altY = e.clientY;
+    }
+  });
+  ['pointerup', 'pointercancel'].forEach(function (ev) { flaeche.addEventListener(ev, fingerWeg); });
   el('springen').addEventListener('pointerdown', springen);
   // Knoepfe auf dem Bildschirm (fuer Tablet und Handy)
   ['links', 'rechts', 'schneller', 'langsamer'].forEach(function (name) {
@@ -1142,7 +1185,7 @@
 
   // fuer Tests und zum Ausprobieren in der Konsole
   window.SPIEL = {
-    zustand: Z, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
+    zustand: Z, wisch: wisch, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
     turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd
   };
 })();

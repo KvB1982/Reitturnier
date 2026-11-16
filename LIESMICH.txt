@@ -39,7 +39,11 @@ STEUERUNG (im Menue waehlbar)
     runter (oder W / S) das Tempo. Zu langsam: Das Pferd verweigert.
     Zu schnell: Nur perfekte Abspruenge gelingen. Schnelles Reiten lohnt
     sich trotzdem, denn bei Gleichstand gewinnt die schnellere Zeit.
-  Auf Tablet und Handy gibt es dafuer Knoepfe auf dem Bildschirm.
+  Auf iPad, iPhone und anderen Touch-Geraeten:
+    - tippen = springen
+    - nach links / rechts wischen = lenken (Finger liegen lassen, dann lenkt
+      das Pferd weiter; loslassen = geradeaus)
+    - nach oben / unten wischen = schneller / langsamer
   Computergegner reiten immer automatisch.
 
 STADION
