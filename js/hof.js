@@ -102,7 +102,7 @@ WELTEN.hof = (function () {
     baueMaedchen();
     var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
       frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
-      inBoxVon: inBoxVon, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
+      inBoxVon: inBoxVon, mistModell: function () { return orte.mistModell; }, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
     HOFLEBEN.baue(ctx);
     HOFTAG.baue(ctx);
     gebaut = true;
@@ -161,7 +161,8 @@ WELTEN.hof = (function () {
     // Vorratsraum: Hafersaecke, Heuballen, Moehrenkiste
     var F = ORT.futter;
     for (var sa = 0; sa < 3; sa++) { var sack = BAU.netz(new THREE.CapsuleGeometry(0.28, 0.4, 4, 8), 0xd8c08a, szene, F.hafer[0] - 0.35 + sa * 0.38, 0.45 + (sa === 1 ? 0.05 : 0), F.hafer[1] - 0.2); sack.rotation.z = (sa - 1) * 0.12; }
-    BAU.kasten(1.3, 0.6, 0.8, 0xd3bb55, szene, F.heu[0], 0.3, F.heu[1] - 0.2); BAU.kasten(1.3, 0.6, 0.8, 0xc9b24e, szene, F.heu[0] + 0.1, 0.9, F.heu[1] - 0.25);
+    var heuA = BAU.kasten(1.3, 0.6, 0.8, 0xd3bb55, szene, F.heu[0], 0.3, F.heu[1] - 0.2), heuB = BAU.kasten(1.3, 0.6, 0.8, 0xc9b24e, szene, F.heu[0] + 0.1, 0.9, F.heu[1] - 0.25);
+    MODELLE3D.setze('heueckig', szene, { x: F.heu[0], z: F.heu[1] - 0.2, masse: [1.4, 1.2, 0.9], statt: [heuA, heuB] });
     BAU.kasten(1.0, 0.5, 0.7, 0x9a6b3f, szene, F.moehre[0], 0.25, F.moehre[1] - 0.2);
     for (var mo = 0; mo < 7; mo++) { var moe = BAU.netz(new THREE.ConeGeometry(0.06, 0.32, 6), 0xf08a24, szene, F.moehre[0] - 0.35 + mo * 0.12, 0.56, F.moehre[1] - 0.2 + (mo % 2) * 0.12); moe.rotation.z = Math.PI / 2 + mo; }
     waende.push([0.2, STALL.z0, STALL.x1, -5.3]);
@@ -169,11 +170,12 @@ WELTEN.hof = (function () {
       var t = BAU.tafel(e[0], 0.3, { farbe: '#7a3b12' }); t.position.set(e[1][0], 1.9, STALL.z0 + 0.12); szene.add(t);
     });
     // Reitladen: Theke, Regal mit bunten Sachen
-    BAU.kasten(4.5, 1.0, 0.6, 0x9a6b3f, szene, 4, 0.5, 5.6);
+    var thekeAlt = [BAU.kasten(4.5, 1.0, 0.6, 0x9a6b3f, szene, 4, 0.5, 5.6)];
     waende.push([1.7, 5.2, 6.3, STALL.z1]);
     ['#e84393', '#1f6fd0', '#27ae60', '#f1c40f', '#8e44ad', '#f5f5f5'].forEach(function (f, k) {
-      BAU.kasten(0.45, 0.3, 0.3, f, szene, 2.2 + k * 0.72, 1.17, 5.7);
+      thekeAlt.push(BAU.kasten(0.45, 0.3, 0.3, f, szene, 2.2 + k * 0.72, 1.17, 5.7));
     });
+    MODELLE3D.setze('theke', szene, { x: 4, z: 5.78, dreh: Math.PI / 2, masse: [1.3, 2.3, 4.3], statt: thekeAlt, schatten: false });
     // Dach (wird ausgeblendet, wenn man im Stall ist)
     dach = new THREE.Group(); szene.add(dach);
     var breit = STALL.x1 - STALL.x0 + 1.2, tief = (STALL.z1 - STALL.z0) / 2 + 0.7, hoch = 2.4;
@@ -187,7 +189,17 @@ WELTEN.hof = (function () {
       var gm = BAU.netz(new THREE.ShapeGeometry(giebel), new THREE.MeshStandardMaterial({ color: WAND, side: THREE.DoubleSide, roughness: 0.9 }), dach, x, H, 0);
       gm.rotation.y = Math.PI / 2;
     });
+    var dachAlt = dach.children.slice();
     var schild = BAU.tafel('🐴 Stall', 0.7, { farbe: '#7a3b12' }); schild.position.set(STALL.x1 + 0.12, 3.6, 0); schild.rotation.y = Math.PI / 2; dach.add(schild);
+    // Stall von aussen als 3D-Modell (nur sichtbar, solange man draussen ist)
+    MODELLE3D.setze('stall', dach, { x: (STALL.x0 + STALL.x1) / 2, z: 0, masse: [21.8, 6.8, 16.4], statt: dachAlt, fertig: function (gr, k) {
+      schild.position.set(STALL.x1 + 0.9, 4.3, 0);
+      // Das Modell hat nur an einer Seite ein Tor: die Osthälfte gespiegelt noch einmal als Westhälfte nehmen
+      var mitte = (STALL.x0 + STALL.x1) / 2, k2 = k.clone(); k2.scale.x = -k.scale.x; gr.add(k2);
+      function halb(o, ebene) { o.traverse(function (t) { if (t.isMesh) { t.material = t.material.clone(); t.material.clippingPlanes = [ebene]; t.material.clipShadows = true; } }); }
+      halb(k, new THREE.Plane(new THREE.Vector3(1, 0, 0), -mitte)); halb(k2, new THREE.Plane(new THREE.Vector3(-1, 0, 0), mitte));
+    } });
+    waende.push([STALL.x0, STALL.z0 - 0.75, STALL.x1, STALL.z0], [STALL.x0, STALL.z1, STALL.x1, STALL.z1 + 0.75]);
   }
 
   function baueAussen() {
@@ -207,8 +219,12 @@ WELTEN.hof = (function () {
       });
     }
     // kleine Tribuene und Fahnen am Turnierplatz
-    for (var st = 0; st < 3; st++) BAU.kasten(18, 0.5, 1.2, 0xb9b2a4, szene, 37, 0.25 + st * 0.5, 34.2 + st * 1.2);
-    waende.push([28, 33.6, 46, 37.4]);
+    var tribAlt = [];
+    for (var st = 0; st < 3; st++) tribAlt.push(BAU.kasten(18, 0.5, 1.2, 0xb9b2a4, szene, 37, 0.25 + st * 0.5, 34.2 + st * 1.2));
+    waende.push([28, 33.6, 46, 38.6]);
+    [31, 37, 43].forEach(function (tx, i) { MODELLE3D.setze('tribuene', szene, { x: tx, z: 36.1, dreh: Math.PI / 2, masse: [5.0, 4.2, 5.9], statt: i ? [] : tribAlt }); });
+    [[25.5, 34.6, Math.PI / 2], [48.5, 34.6, Math.PI / 2], [54.2, 17, Math.PI], [54.2, 27, Math.PI]].forEach(function (z) { MODELLE3D.setze('zuschauer', szene, { x: z[0], z: z[1], dreh: z[2], hoehe: 1.75 }); });
+    MODELLE3D.setze('richter', szene, { x: 54.6, z: 22, dreh: -Math.PI / 2, hoehe: 3.0 }); kreise.push([54.6, 22, 1.3, 0, 0]);
     ['#e5412d', '#f1c40f', '#1f6fd0', '#27ae60', '#e84393'].forEach(function (f, i) { var fl = BAU.flagge(f, 3.4); fl.position.set(24 + i * 6.5, 0, 11.4); szene.add(fl); });
 
     // Longierzirkel und Schrittmaschine
@@ -234,6 +250,7 @@ WELTEN.hof = (function () {
     var w5 = BAU.wegweiser('Weide', { hoehe: 0.7, fuss: 1.9 }); w5.position.set(-20.5, 0, -14.4); szene.add(w5);
     // Misthaufen und Schubkarren-Platz
     var mist = BAU.netz(new THREE.SphereGeometry(2.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x6b4a2a, szene, ORT.mist[0], 0, ORT.mist[1]); mist.scale.set(1, 0.55, 0.8);
+    MODELLE3D.setze('misthaufen', szene, { x: ORT.mist[0], z: ORT.mist[1], masse: [4.3, 2.7, 3.7], statt: [mist], fertig: function (g) { orte.mistModell = g; } });
     kreise.push([ORT.mist[0], ORT.mist[1], 1.9, 0, 0]);
 
     // Tore zur Rennbahn und ins Gelaende
@@ -271,11 +288,19 @@ WELTEN.hof = (function () {
     }
     szene.add(blumen);
     // Bank und Heuballen am Hofplatz, Wassertrog
-    BAU.kasten(2.0, 0.1, 0.5, 0x9a6b3f, szene, 12, 0.5, 8.6); BAU.kasten(2.0, 0.5, 0.08, 0x9a6b3f, szene, 12, 0.8, 8.85);
-    BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, szene, 11.2, 0.25, 8.6); BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, szene, 12.8, 0.25, 8.6);
+    var bankAlt = [BAU.kasten(2.0, 0.1, 0.5, 0x9a6b3f, szene, 12, 0.5, 8.6), BAU.kasten(2.0, 0.5, 0.08, 0x9a6b3f, szene, 12, 0.8, 8.85),
+      BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, szene, 11.2, 0.25, 8.6), BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, szene, 12.8, 0.25, 8.6)];
     waende.push([11, 8.3, 13, 9]);
+    MODELLE3D.setze('bank', szene, { x: 12, z: 8.65, dreh: Math.PI, breite: 2.1, statt: bankAlt });
     var ballen = BAU.walze(0.7, 0.7, 1.2, 0xd3bb55, szene, -14, 0.7, 4.5, 14); ballen.rotation.z = Math.PI / 2; kreise.push([-14, 4.5, 0.9, 0, 0]);
-    BAU.kasten(2.2, 0.6, 0.8, 0x6b6f76, szene, 13.5, 0.3, -3); BAU.kasten(2.0, 0.05, 0.6, 0x4aa3df, szene, 13.5, 0.58, -3); waende.push([12.4, -3.4, 14.6, -2.6]);
+    MODELLE3D.setze('heurund', szene, { x: -14, z: 4.5, hoehe: 1.45, statt: [ballen] });
+    MODELLE3D.setze('heueckig', szene, { x: -14.2, z: 6.6, dreh: 0.3, hoehe: 0.9 }); kreise.push([-14.2, 6.6, 0.8, 0, 0]);
+    var trogAlt = [BAU.kasten(2.2, 0.6, 0.8, 0x6b6f76, szene, 13.5, 0.3, -3), BAU.kasten(2.0, 0.05, 0.6, 0x4aa3df, szene, 13.5, 0.58, -3)]; waende.push([12.4, -3.4, 14.6, -2.6]);
+    MODELLE3D.setze('wassertrog', szene, { x: 13.5, z: -3, dreh: Math.PI / 2, masse: [1.0, 0.75, 2.3], statt: trogAlt });
+    // Sattelbock und Putzkiste vor dem Stalltor, Apfelbaeume am Wohnhaus
+    MODELLE3D.setze('sattelbock', szene, { x: 9.3, z: 4.2, hoehe: 1.25 }); MODELLE3D.setze('putzkiste', szene, { x: 9.2, z: 5.6, dreh: -Math.PI / 2, hoehe: 0.75 });
+    waende.push([8.6, 3.4, 9.9, 6.2]);
+    [[19.6, -19.5, 4.6], [6.6, -18.6, 4.2], [23.4, -13.6, 3.9]].forEach(function (a, i) { MODELLE3D.setze('apfelbaum', szene, { x: a[0], z: a[1], dreh: i * 2.1, hoehe: a[2] }); kreise.push([a[0], a[1], 0.45, 0, 0]); });
   }
 
   // ---------- Pferde ----------
@@ -1086,7 +1111,7 @@ WELTEN.hof = (function () {
     setzeKamera: function (k) { kamFest = k; },
     zeigeWerkzeug: zeigeWerkzeug, setzeHinweis: setzeHinweis, zeigeZustand: zeigeZustand, zeigeSchmuck: zeigeSchmuck, nimm: nimm,
     fotoZiel: function () { var P = S.fuehrt || (modus === 'pflege' ? PFLEGE.pferd() : null); return fotoPunkt.set(P ? (P.x + S.x) / 2 : S.x, 1.3, P ? (P.z + S.z) / 2 : S.z); },
-    spielerin: function () { return S; }, pferde: function () { return pferde; }, boxen: function () { return boxen; }, orte: ORT
+    spielerin: function () { return S; }, kam: function () { return kam; }, pferde: function () { return pferde; }, boxen: function () { return boxen; }, orte: ORT
   };
   return API;
 })();

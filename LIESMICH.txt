@@ -170,6 +170,7 @@ EIN TAG AUF DEM HOF
     Blumen pfluecken.
     js/hoftag.js  Wohnhaus, Tag und Nacht, Aufgaben, Schubkarre, Landschaft
     js/mode.js    Kappen, Frisuren, Kleidung
+    js/modelle3d.js  laedt die 3D-Modelle aus modelle/umwelt/
 
 VERWENDETE 3D-MODELLE (Lizenz CC BY 4.0, https://creativecommons.org/licenses/by/4.0/)
   - "Animated Rigged Horse With Saddle" von Ayan
@@ -178,4 +179,7 @@ VERWENDETE 3D-MODELLE (Lizenz CC BY 4.0, https://creativecommons.org/licenses/by
   - "Show jumping | Horse jumping obstacles" von Every 3D
     https://sketchfab.com/3d-models/show-jumping-horse-jumping-obstacles-67ff46cf20504428a1f7cf7c2e73ed3d
     Fuer das Spiel angepasst: Texturen verkleinert, Teile neu zusammengestellt und eingefaerbt.
+  - Gebaeude, Baeume, Moebel, Tiere und Fahrzeuge in modelle/umwelt/ wurden mit
+    3D AI Studio (https://www.3daistudio.com) erzeugt und fuer das Spiel verkleinert.
+    Im Menue laesst sich die Landschaft auf "Einfach (schneller)" stellen.
   - three.js (MIT-Lizenz), siehe js/three-LICENSE.txt

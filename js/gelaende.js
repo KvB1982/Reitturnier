@@ -92,10 +92,12 @@ WELTEN.gelaende = (function () {
         szene.add(fl);
       });
       var g = t.gruppe;
+      var vorher = g.children.length;
       if (t.art === 'stamm') {
         var stamm = BAU.walze(0.45, 0.5, t.breit, 0x7a5230, g, 0, y + 0.42, 0, 10); stamm.rotation.z = Math.PI / 2;
         BAU.walze(0.4, 0.45, t.breit * 0.8, 0x6b4526, g, 0, y + 0.42 + (t.hoch > 0.85 ? 0.55 : -9), 0.1, 10).rotation.z = Math.PI / 2;
         BAU.walze(0.13, 0.15, 0.7, 0x6b4526, g, 1.2, y + 0.9, 0.3, 6).rotation.x = 0.5;
+        MODELLE3D.setze('baumstamm', g, { y: y - 0.05, vordreh: Math.PI / 4, masse: [t.breit, t.hoch + 0.25, 1.5], statt: g.children.slice(vorher) });
       } else if (t.art === 'hecke') {
         BAU.kasten(t.breit, t.hoch, 0.9, 0x2f7d3a, g, 0, y + t.hoch / 2, 0);
         for (var b = 0; b < 7; b++) BAU.netz(new THREE.IcosahedronGeometry(0.5, 0), new THREE.MeshStandardMaterial({ color: b % 2 ? 0x3a8f45 : 0x2f7d3a, flatShading: true, roughness: 1 }), g, -t.breit / 2 + 0.4 + b * (t.breit - 0.8) / 6, y + t.hoch, 0);

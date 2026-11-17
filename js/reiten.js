@@ -166,6 +166,21 @@ var BAU = (function () {
     [[1.7, 3.0, 2.4], [1.3, 2.6, 4.0], [0.9, 2.2, 5.5]].forEach(function (e) {
       teil(new THREE.ConeGeometry(e[0], e[1], 8), nadeln, tanne, function (b, i) { d.position.set(b[0], b[1] + e[2] * b[3], b[2]); d.scale.setScalar(b[3]); d.rotation.set(0, i, 0); });
     });
+    // schoenere Baeume als 3D-Modelle; die einfachen bleiben stehen, bis alles geladen ist
+    if (typeof MODELLE3D !== 'undefined' && !MODELLE3D.aus()) {
+      var alt = g.children.slice(), offen = 0, fern = liste.length > 120 ? '_xl' : '_l', sorten = {};   // grosse Waelder bekommen die ganz einfachen Baeume
+      sorten['eiche' + fern] = [[], 5.8]; sorten['birke' + fern] = [[], 6.4]; sorten['tanne' + fern] = [[], 6.8];
+      laub.forEach(function (b, i) { sorten[(i % 4 === 3 ? 'birke' : 'eiche') + fern][0].push(b); });
+      tanne.forEach(function (b) { sorten['tanne' + fern][0].push(b); });
+      Object.keys(sorten).forEach(function (n) {
+        if (!sorten[n][0].length) return;
+        offen++;
+        MODELLE3D.streue(n, g, sorten[n][0], sorten[n][1], function (neu) {
+          if (liste.length > 450) neu.children.forEach(function (t) { t.castShadow = false; });     // ferne Landschaft: Schatten sparen
+          if (--offen === 0) alt.forEach(function (a) { a.visible = false; });
+        });
+      });
+    }
     return g;
   }
 

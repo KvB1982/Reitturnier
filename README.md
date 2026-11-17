@@ -87,4 +87,6 @@ Beide stehen unter der Lizenz [CC BY 4.0](https://creativecommons.org/licenses/b
 - [Animated Rigged Horse With Saddle](https://sketchfab.com/3d-models/animated-rigged-horse-with-saddle-b08743c2c4734fb98a4e0a2f5767c318) von Ayan: umgefärbt, Satteltasche ausgeblendet, Animation als Schleife
 - [Show jumping, Horse jumping obstacles](https://sketchfab.com/3d-models/show-jumping-horse-jumping-obstacles-67ff46cf20504428a1f7cf7c2e73ed3d) von Every 3D: Texturen verkleinert, Teile neu zusammengestellt und eingefärbt
 
+Die Gebäude, Bäume, Möbel, Tiere und Fahrzeuge in `modelle/umwelt/` (Stall, Wohnhaus, Tribüne, Windmühle, Dorf, Kirche, Traktor, Hofhund Bello, Hühner und mehr) wurden mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel verkleinert. Geladen werden sie von `js/modelle3d.js`; fehlt eine Datei, bleibt die einfache Form aus Klötzen stehen. Im Menü lässt sich die Landschaft auf „Einfach (schneller)" stellen.
+
 Die 3D-Bibliothek [three.js](https://threejs.org) steht unter der MIT-Lizenz, siehe `js/three-LICENSE.txt`.

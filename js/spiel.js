@@ -6,6 +6,7 @@
 
   // ---------- Grundgeruest ----------
   var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.localClippingEnabled = true;       // für halbierte 3D-Modelle (Stall)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1064,6 +1065,10 @@
     knopfReihe(el('stadionWahl'), [[true, 'Mit Zuschauern'], [false, 'Ohne']],
       function (e) { return e[0] === stadionAn; },
       function (e) { stadionAn = e[0]; speichere('reitturnier_stadion', stadionAn); zeigeStadion(); baueMenue(); });
+    // 3D-Modelle für Gebäude, Bäume und Tiere: auf langsamen Geräten abschaltbar (lädt die Seite neu)
+    knopfReihe(el('modellWahl'), [[true, 'Schön'], [false, 'Einfach (schneller)']],
+      function (e) { return e[0] === !MODELLE3D.aus(); },
+      function (e) { if (e[0] === !MODELLE3D.aus()) return; speichere('reitturnier_modelle', e[0]); location.reload(); });
     el('hilfeText').innerHTML = steuerung === 'auto'
       ? 'Drücke die <b>Leertaste</b> (oder tippe auf den Bildschirm), wenn der Ring unter dem Pferd <b class="g">grün</b> ist.'
       : steuerung === 'lenken'

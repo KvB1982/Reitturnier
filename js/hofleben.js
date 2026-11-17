@@ -71,6 +71,7 @@ var HOFLEBEN = (function () {
     [[-1, 1.4], [1, 1.4], [-1, -1.3], [1, -1.3]].forEach(function (r) { var rad = BAU.walze(0.36, 0.36, 0.25, 0x222222, wagen, r[0] * 0.95, 0.36, r[1], 12); rad.rotation.z = Math.PI / 2; });
     var kreuz = new THREE.Group(); kreuz.position.set(-1.02, 1.35, 0); wagen.add(kreuz);
     BAU.kasten(0.04, 0.7, 0.22, 0x2e9e5b, kreuz, 0, 0, 0); BAU.kasten(0.04, 0.22, 0.7, 0x2e9e5b, kreuz, 0, 0, 0);
+    MODELLE3D.setze('tierarztauto', wagen, { z: 0.3, dreh: -Math.PI / 2, breite: 5.2, statt: wagen.children.slice() });
     H.waende.push([ARZT[0] + 2.1, ARZT[1] - 3.4, ARZT[0] + 4.3, ARZT[1] + 2.2]);
     var t1 = BAU.wegweiser('🩺 Tierärztin', { hoehe: 0.7, fuss: 1.9 }); t1.position.set(ARZT[0] - 3.2, 0, ARZT[1] - 2.6); s.add(t1);
     arzt = baueFigur({ jacke: '#ffffff', hose: '#3a7bd5', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'kurz' }, { helm: false });
@@ -84,7 +85,8 @@ var HOFLEBEN = (function () {
     var dach = BAU.kasten(4.4, 0.14, 3.6, 0x5a5f66, sm, 0, 2.75, 0); dach.rotation.x = 0.12;
     BAU.kasten(1.2, 0.9, 0.9, 0x6b6f76, sm, 1.0, 0.45, -0.9);
     glut = BAU.netz(new THREE.BoxGeometry(0.9, 0.12, 0.6), new THREE.MeshBasicMaterial({ color: 0xff7a1a }), sm, 1.0, 0.94, -0.9); glut.castShadow = false;
-    BAU.kasten(0.5, 0.45, 0.4, 0x4a3320, sm, -0.8, 0.22, 0.6); BAU.kasten(0.75, 0.2, 0.3, 0x3a3d42, sm, -0.8, 0.55, 0.6);
+    var amboss = [BAU.kasten(0.5, 0.45, 0.4, 0x4a3320, sm, -0.8, 0.22, 0.6), BAU.kasten(0.75, 0.2, 0.3, 0x3a3d42, sm, -0.8, 0.55, 0.6)];
+    MODELLE3D.setze('schmiede', sm, { x: -0.7, z: 0.2, dreh: Math.PI / 2, laenge: 2.0, statt: amboss });
     H.waende.push([SCHMIED[0] + 0.6, SCHMIED[1] - 3.1, SCHMIED[0] + 4.6, SCHMIED[1] + 0.1]);
     var t2 = BAU.wegweiser('🔨 Hufschmied', { hoehe: 0.7, fuss: 1.9 }); t2.position.set(SCHMIED[0] - 3.2, 0, SCHMIED[1] - 3); s.add(t2);
     schmied = baueFigur({ jacke: '#5a3a1e', hose: '#3d4046', stiefel: '#2a1c12', haare: '#2a1c12', frisur: 'kurz' }, { helm: false });

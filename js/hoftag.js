@@ -185,6 +185,7 @@ var HOFTAG = (function () {
     for (var i = -1; i <= 1; i += 2) { BAU.kasten(0.04, 0.04, 0.9, 0x8a8f96, g, i * 0.3, 0.6, 0.2); BAU.kasten(0.04, 0.42, 0.04, 0x8a8f96, g, i * 0.3, 0.21, 0.5); }
     var haufen = BAU.netz(new THREE.SphereGeometry(0.36, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0x4a3320, g, 0, 0.67, 0.85);
     haufen.visible = false;
+    MODELLE3D.setze('schubkarre', g, { z: 0.72, dreh: -Math.PI / 2, breite: 1.9, statt: g.children.filter(function (t) { return t !== haufen; }), fertig: function () { haufen.position.y = 0.62; } });
     szene.add(g);
     karre = { g: g, haufen: haufen, x: KARRE_PLATZ[0], z: KARRE_PLATZ[1], kurs: 0, ladung: 0, geschoben: false };
     g.position.set(karre.x, 0, karre.z);
@@ -227,7 +228,12 @@ var HOFTAG = (function () {
     zeigeHaufen();
     STAND.speichere();
   }
-  function zeigeHaufen() { if (misthaufen) { var s = 0.25 + Math.min(1, (d.misthaufen || 0) / 60) * 0.9; misthaufen.scale.set(s, s * 0.75, s); } }
+  function zeigeHaufen() {
+    if (!misthaufen) return;
+    var s = 0.25 + Math.min(1, (d.misthaufen || 0) / 60) * 0.9, m = C.mistModell && C.mistModell();
+    misthaufen.scale.set(s, s * 0.75, s);
+    if (m) { misthaufen.visible = false; m.scale.setScalar(0.72 + s * 0.4); }
+  }
 
   // ---------- Bauen ----------
   function wand(x0, z0, x1, z1, h, farbe, eltern, y) {
@@ -263,7 +269,12 @@ var HOFTAG = (function () {
       gm.rotation.y = Math.PI / 2;
     });
     BAU.kasten(0.7, 1.6, 0.7, 0xa9432f, hausDach, H.x1 - 1.6, HOEHE + 1.6, mz - 1);
+    var hausAlt = hausDach.children.slice();
     var schild = BAU.tafel('🏠 Dein Zimmer', 0.5, { farbe: '#7a3b12' }); schild.position.set(t, 2.45, H.z1 + 0.13); hausDach.add(schild);
+    // das Haus von aussen als 3D-Modell (verschwindet wie das Dach, wenn man drinnen ist)
+    MODELLE3D.setze('wohnhaus', hausDach, { x: mx - 0.5, z: mz + 0.15, dreh: -Math.PI / 2, masse: [9.9, 6.6, 10.2], fertig: function () {
+      hausAlt.forEach(function (a) { a.visible = false; }); schild.position.set(t, 3.0, H.z1 + 1.0);
+    } });
     // Fenster (leuchten nachts) und Lampe über der Tür
     var glas = leucht(0xffe9a8); glas.color.set(0xbfe3f7);
     [[H.x0 + 1.8, H.z1 + 0.11], [H.x1 - 1.8, H.z1 + 0.11]].forEach(function (p) { BAU.kasten(1.2, 0.9, 0.06, glas, hausDach, p[0], 1.85, p[1]); });
@@ -279,20 +290,24 @@ var HOFTAG = (function () {
     laterne(t + 2.2, -12.6, 2.6); laterne(9.6, 4.2, 2.8); laterne(-13.6, -1.9, 2.8);
 
     // --- Möbel ---
-    var HOLZ = 0x9a6b3f, bx = BETT[0], bz = BETT[1];
+    var HOLZ = 0x9a6b3f, bx = BETT[0], bz = BETT[1], ab = szene.children.length;
+    function modell(name, o) { o.statt = szene.children.slice(ab); o.schatten = false; MODELLE3D.setze(name, szene, o); ab = szene.children.length; }   // ersetzt die Klötze seit dem letzten Aufruf
     BAU.kasten(2.1, 0.35, 1.1, HOLZ, szene, bx, 0.2, bz); BAU.kasten(2.0, 0.16, 1.0, 0xffffff, szene, bx, 0.45, bz);
     BAU.kasten(1.35, 0.1, 1.04, 0xff8fc0, szene, bx + 0.33, 0.56, bz); BAU.kasten(0.45, 0.12, 0.7, 0xfff3c4, szene, bx - 0.72, 0.58, bz);
     BAU.kasten(0.12, 0.9, 1.1, HOLZ, szene, bx - 1.05, 0.45, bz);
     C.waende.push([bx - 1.1, bz - 0.6, bx + 1.1, bz + 0.6]);
+    modell('bett', { x: bx, z: bz, dreh: Math.PI / 2, masse: [1.2, 1.0, 2.2] });
     BAU.kasten(1.7, 2.1, 0.6, 0xb98a55, szene, SCHRANK[0], 1.05, SCHRANK[1]); BAU.kasten(0.03, 1.9, 0.02, 0x6b4a2a, szene, SCHRANK[0], 1.05, SCHRANK[1] + 0.31);
     for (i = -1; i <= 1; i += 2) BAU.netz(new THREE.SphereGeometry(0.04, 8, 6), 0xf2c230, szene, SCHRANK[0] + i * 0.1, 1.05, SCHRANK[1] + 0.33);
     C.waende.push([SCHRANK[0] - 0.9, SCHRANK[1] - 0.4, SCHRANK[0] + 0.9, SCHRANK[1] + 0.35]);
+    modell('schrank', { x: SCHRANK[0], z: SCHRANK[1], dreh: -Math.PI / 2, masse: [0.75, 2.15, 1.7] });
     BAU.kasten(0.7, 0.06, 1.5, HOLZ, szene, TISCH[0], 0.75, TISCH[1]);
     [[-0.28, -0.65], [0.28, -0.65], [-0.28, 0.65], [0.28, 0.65]].forEach(function (p) { BAU.kasten(0.06, 0.75, 0.06, 0x7a4a2a, szene, TISCH[0] + p[0], 0.37, TISCH[1] + p[1]); });
     BAU.kasten(0.34, 0.05, 0.46, 0xe84393, szene, TISCH[0], 0.81, TISCH[1]).rotation.y = 0.2;
     BAU.kasten(0.3, 0.02, 0.42, 0xffffff, szene, TISCH[0], 0.845, TISCH[1]).rotation.y = 0.2;
     BAU.kasten(0.4, 0.45, 0.4, 0xb98a55, szene, TISCH[0] - 0.75, 0.22, TISCH[1]);
     C.waende.push([TISCH[0] - 0.4, TISCH[1] - 0.8, TISCH[0] + 0.4, TISCH[1] + 0.8]);
+    modell('schreibtisch', { x: TISCH[0] - 0.25, z: TISCH[1], dreh: Math.PI, masse: [1.45, 1.3, 1.5] });
     BAU.kasten(0.35, 1.5, 1.5, HOLZ, szene, REGAL[0], 0.75, REGAL[1]);
     [0.55, 1.05, 1.52].forEach(function (y, k) {
       for (i = 0; i < 3; i++) {
@@ -302,6 +317,7 @@ var HOFTAG = (function () {
       }
     });
     C.waende.push([REGAL[0] - 0.25, REGAL[1] - 0.8, REGAL[0] + 0.25, REGAL[1] + 0.8]);
+    modell('pokalregal', { x: REGAL[0] - 0.05, z: REGAL[1], masse: [0.6, 1.8, 1.5], fertig: function () { zimmerTeile.regalModell = true; zeigeZimmer(); } });
 
     // --- Sachen aus dem Reitladen ---
     function teil(id) { var g = new THREE.Group(); szene.add(g); zimmerTeile[id] = g; return g; }
@@ -337,7 +353,7 @@ var HOFTAG = (function () {
   }
   function zeigeZimmer() {
     LADEN.forEach(function (w) { if (w.kat === 'zimmer' && zimmerTeile[w.id]) zimmerTeile[w.id].visible = !!d.besitz[w.id]; });
-    for (var i = 0; i < 9; i++) if (zimmerTeile['pokal' + i]) zimmerTeile['pokal' + i].visible = i < 2 + d.sterne;
+    for (var i = 0; i < 9; i++) if (zimmerTeile['pokal' + i]) zimmerTeile['pokal' + i].visible = !zimmerTeile.regalModell && i < 2 + d.sterne;
   }
 
   // Fahrrad, Hofkatze
@@ -349,6 +365,7 @@ var HOFTAG = (function () {
     var s2 = BAU.kasten(0.05, 0.6, 0.05, rot, g, 0, 0.6, 0.42); s2.rotation.x = 0.3;
     BAU.kasten(0.16, 0.05, 0.26, 0x2a1c12, g, 0, 0.9, -0.36); BAU.kasten(0.5, 0.04, 0.04, 0x8a8f96, g, 0, 0.95, 0.36);
     BAU.kasten(0.26, 0.2, 0.2, 0xb9843c, g, 0, 0.82, 0.56);
+    MODELLE3D.setze('fahrrad', g, { dreh: Math.PI, laenge: 1.8, statt: g.children.slice() });
     C.kreise.push([RAD[0], RAD[1], 0.5, 0, 0]);
     var w = BAU.wegweiser('🚲 Nach Hause', { hoehe: 0.6, fuss: 1.8 }); w.position.set(RAD[0] + 1.6, 0, RAD[1] - 1.2); szene.add(w);
   }
@@ -367,8 +384,44 @@ var HOFTAG = (function () {
     var schwanz = new THREE.Group(); schwanz.position.set(0, 0.3, -0.26); g.add(schwanz);
     BAU.netz(new THREE.CapsuleGeometry(0.03, 0.34, 3, 6), grau, schwanz, 0, 0.17, 0);
     szene.add(g);
-    katze = { g: g, kopf: kopf, schwanz: schwanz, x: 11, z: 7.4, kurs: 0, ziel: 1, warte: 4, phase: 0, schnurr: 0, schild: null };
+    katze = { g: g, kopf: kopf, schwanz: schwanz, x: 11, z: 7.4, kurs: 0, ziel: 1, warte: 4, phase: 0, schnurr: 0, schild: null, lauf: g.children.slice(), sitz: null };
     katze.schild = BAU.schwebeText('Minka', 0.24, { schrift: 40 }); katze.schild.position.y = 0.85; g.add(katze.schild);
+    // sitzt Minka, sieht man das 3D-Modell; läuft sie, die bewegliche Katze
+    katze.sitz = MODELLE3D.setze('katze', g, { vordreh: -Math.PI / 2, hoehe: 0.5, z: 0.05 }); katze.sitz.visible = false;
+  }
+  // Hofhund Bello, Hühner, Traktor
+  var bello, huehner = [];
+  function baueTiere() {
+    bello = { x: 11.1, z: -12.3 };
+    var g = MODELLE3D.setze('hund', szene, { x: bello.x, z: bello.z, dreh: -Math.PI / 2 + 0.5, breite: 1.15 });
+    var sch = BAU.schwebeText('Bello', 0.24, { schrift: 40 }); sch.position.y = 0.95; sch.visible = false; g.add(sch);
+    MODELLE3D.lade('hund', function () { sch.visible = true; bello.da = true; });
+    C.kreise.push([bello.x, bello.z, 0.45, 0, 0]);
+    for (var i = 0; i < 4; i++) {
+      var h = { g: new THREE.Group(), x: -12 + i * 1.6, z: -12.5 - (i % 2) * 1.4, kurs: i * 1.9, warte: 1 + i, zx: 0, zz: 0, phase: i };
+      h.modell = MODELLE3D.setze('huhn', h.g, { vordreh: -Math.PI / 2, hoehe: 0.5 + (i % 2) * 0.06 });
+      szene.add(h.g); huehner.push(h);
+    }
+    MODELLE3D.setze('traktor', szene, { x: -27, z: -24.5, dreh: 0.12, breite: 6.4 }); C.kreise.push([-27, -24.5, 2.6, 0, 0]);
+  }
+  function bewegeHuehner(dt) {
+    huehner.forEach(function (h) {
+      var pickt = 0;
+      if (h.warte > 0) { h.warte -= dt; pickt = Math.max(0, Math.sin(zeit * 9 + h.phase)) * 0.5; if (h.warte <= 0) { h.zx = -13 + Math.random() * 7.5; h.zz = -15.5 + Math.random() * 4.8; } }
+      else {
+        var dx = h.zx - h.x, dz = h.zz - h.z, e = Math.hypot(dx, dz);
+        if (e < 0.15) h.warte = 2 + Math.random() * 5;
+        else { h.kurs = Math.atan2(dx, dz); h.x += dx / e * 0.7 * dt; h.z += dz / e * 0.7 * dt; }
+      }
+      var fl = Math.hypot(S.x - h.x, S.z - h.z);
+      if (fl < 1.3) { h.zx = h.x + (h.x - S.x) / fl * 3; h.zz = h.z + (h.z - S.z) / fl * 3; h.warte = 0; }     // Hühner laufen weg, wenn man zu nah kommt
+      h.g.position.set(h.x, h.warte > 0 ? 0 : Math.abs(Math.sin(zeit * 11 + h.phase)) * 0.04, h.z);
+      h.g.rotation.y = h.kurs; h.modell.rotation.x = pickt;
+    });
+  }
+  function streichleBello() {
+    KERN.ton(190, 0.09, 'square', 0.12); KERN.ton(240, 0.12, 'square', 0.12, 0.16);
+    KERN.meldung('🐶 Bello wedelt mit dem Schwanz', 'perfekt');
   }
   function bewegeKatze(dt) {
     var k = katze;
@@ -384,7 +437,9 @@ var HOFTAG = (function () {
     var sitzt = k.warte > 0;
     k.g.position.set(k.x, imKorb ? 0.16 : Math.abs(Math.sin(k.phase)) * (sitzt ? 0 : 0.03), k.z);
     k.g.rotation.y = k.kurs;
-    k.g.rotation.x = sitzt ? -0.28 : 0;
+    var modell = sitzt && k.sitz.children.length > 0;
+    k.sitz.visible = modell; k.lauf.forEach(function (t) { t.visible = !modell; });
+    k.g.rotation.x = sitzt && !modell ? -0.28 : 0;
     k.schwanz.rotation.x = -0.5 + Math.sin(zeit * (k.schnurr > 0 ? 9 : 2.5)) * 0.25;
     k.schwanz.rotation.z = Math.sin(zeit * 1.7) * 0.35;
     k.kopf.rotation.z = k.schnurr > 0 ? Math.sin(zeit * 10) * 0.12 : 0;
@@ -410,6 +465,7 @@ var HOFTAG = (function () {
       [-420, -160, -260, -50, 0xa7d46a], [270, -170, 430, -60, 0xf2d84a], [-80, 190, 80, 300, 0xb98f5a], [-430, 40, -290, 170, 0xcfe08a], [260, 170, 420, 290, 0xe9cf7a]].forEach(function (f) { flaeche(f[0], f[1], f[2], f[3], f[4], 0.014); });
     var ballen = [];
     for (i = 0; i < 14; i++) { var hb = BAU.walze(1.3, 1.3, 1.6, 0xd9c060, szene, -225 + zuf() * 110, 1.3, 80 + zuf() * 100, 12); hb.rotation.z = Math.PI / 2; hb.rotation.y = zuf() * 3; ballen.push(hb); }
+    MODELLE3D.streue('heurund', szene, ballen.map(function (hb, k) { return [hb.position.x, 0, hb.position.z, 1, 0, k * 1.3]; }), 2.7, function () { ballen.forEach(function (hb) { hb.visible = false; }); });
     // Fluss im Westen mit Brücke
     var fluss = flaeche(-150, -800, -128, 800, 0x4aa3df, 0.018);
     fluss.material = new THREE.MeshStandardMaterial({ color: 0x4aa3df, roughness: 0.2 });
@@ -422,9 +478,12 @@ var HOFTAG = (function () {
       BAU.kasten(b, h, t, hausFarben[i % 5], hg, 0, h / 2, 0);
       var dc = BAU.netz(new THREE.ConeGeometry(0.72, 1, 4), dachFarben[i % 4], hg, 0, h + 1.9, 0); dc.rotation.y = Math.PI / 4; dc.scale.set(b * 1.08, 3.8, t * 1.08);
       BAU.kasten(1.2, 2.2, 0.1, 0x6b4a2a, hg, 0, 1.1, t / 2 + 0.03);
+      MODELLE3D.setze('dorfhaus', hg, { dreh: (i % 3) * Math.PI / 2, hoehe: h + 4.5, statt: hg.children.slice() });
     }
+    var vorKirche = szene.children.length;
     BAU.kasten(10, 9, 18, 0xf3ead8, szene, 128, 4.5, -40.5 - 22); var kd = BAU.netz(new THREE.ConeGeometry(0.72, 1, 4), 0x8a3324, szene, 128, 11, -62.5); kd.rotation.y = Math.PI / 4; kd.scale.set(10.5, 4, 19);
     BAU.kasten(6, 22, 6, 0xf3ead8, szene, 128, 11, -49); BAU.netz(new THREE.ConeGeometry(4.6, 10, 4), 0x5b6f8f, szene, 128, 27, -49).rotation.y = Math.PI / 4;
+    MODELLE3D.setze('kirche', szene, { x: 128, z: -58, dreh: -Math.PI / 2, hoehe: 31, statt: szene.children.slice(vorKirche) });
     // Galopprennbahn im Südwesten und Geländestrecke im Südosten
     var oval = BAU.netz(new THREE.RingGeometry(0.72, 1, 56), 0xe3cf9c, szene, -62, 0.02, 105); oval.rotation.x = -Math.PI / 2; oval.scale.set(62, 36, 1); oval.castShadow = false;
     [0.7, 1.02].forEach(function (r) { var gl = BAU.netz(new THREE.TorusGeometry(1, 0.012, 4, 64), 0xffffff, szene, -62, 1.0, 105); gl.rotation.x = Math.PI / 2; gl.scale.set(62 * r, 36 * r, 30); });
@@ -440,6 +499,7 @@ var HOFTAG = (function () {
     BAU.walze(3.2, 5, 16, 0xf3ead8, muehle, 0, 8, 0, 10); BAU.netz(new THREE.ConeGeometry(4, 4, 10), 0x8a3324, muehle, 0, 18, 0);
     muehle.rad = new THREE.Group(); muehle.rad.position.set(0, 15, 4.2); muehle.add(muehle.rad);
     for (i = 0; i < 4; i++) { var fl = new THREE.Group(); fl.rotation.z = i * Math.PI / 2; muehle.rad.add(fl); BAU.kasten(0.4, 12, 0.2, 0x7a4a2a, fl, 0, 6.5, 0); BAU.kasten(2.6, 9, 0.1, 0xffffff, fl, 1.2, 7.6, 0); }
+    MODELLE3D.setze('windmuehle', muehle, { dreh: -Math.PI / 4, hoehe: 22, statt: muehle.children.slice() });
     // Heißluftballon
     ballon = new THREE.Group(); szene.add(ballon);
     BAU.netz(new THREE.SphereGeometry(9, 16, 12), 0xe84393, ballon, 0, 0, 0).scale.y = 1.15;
@@ -483,9 +543,9 @@ var HOFTAG = (function () {
 
   function baue(ctx) {
     C = ctx; szene = ctx.szene; S = ctx.S;
-    baueHaus(); baueRad(); baueKatze(); baueKarre(); baueUmland();
+    baueHaus(); baueRad(); baueKatze(); baueKarre(); baueTiere(); baueUmland();
     misthaufen = BAU.netz(new THREE.SphereGeometry(2.4, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x5a3d22, szene, ctx.ORT.mist[0] + 0.3, 0, ctx.ORT.mist[1] - 0.2);
-    zeigeHaufen();
+    zeigeHaufen(); MODELLE3D.lade('misthaufen', zeigeHaufen);
     letzteStunde = d.stunde;
   }
 
@@ -508,12 +568,13 @@ var HOFTAG = (function () {
     vor(REGAL[0] + 0.8, REGAL[1], 1.3, '🏆 Pokalregal', zeigeRegal);
     vor(RAD[0], RAD[1], 2.0, '🚲 Nach Hause fahren', function () { fragSchlafen('rad'); });
     if (!P) vor(katze.x, katze.z, 1.5, '🐱 Minka streicheln', streichle);
+    if (!P && bello.da) vor(bello.x, bello.z, 1.6, '🐶 Bello streicheln', streichleBello);
   }
 
   function schritt(dt, z) {
     zeit = z;
     schaufelZeit = Math.max(0, schaufelZeit - dt);
-    bewegeKatze(dt);
+    bewegeKatze(dt); bewegeHuehner(dt);
     if (karre.geschoben) {
       karre.kurs = S.kurs; karre.x = S.x + Math.sin(S.kurs) * 0.28; karre.z = S.z + Math.cos(S.kurs) * 0.28;
       karre.g.position.set(karre.x, 0, karre.z); karre.g.rotation.y = karre.kurs;

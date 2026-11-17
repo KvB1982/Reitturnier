@@ -105,15 +105,18 @@ WELTEN.ausritt = (function () {
     BAU.kasten(4.2, 2.4, 3.4, 0x8a5a33, hu, 0, 1.2, 0); BAU.kasten(0.9, 1.7, 0.1, 0x5a3a1e, hu, 0.6, 0.85, 1.72); BAU.kasten(0.9, 0.8, 0.1, 0xcfe6f5, hu, -1.0, 1.4, 1.72);
     var hd = BAU.netz(new THREE.ConeGeometry(3.6, 1.7, 4), 0x6b3a24, hu, 0, 3.25, 0); hd.rotation.y = Math.PI / 4; hd.scale.set(1.05, 1, 0.85);
     baeume.push([-86, -10, 2.6]);
+    MODELLE3D.setze('huette', hu, { breite: 5.6, statt: hu.children.slice() });
     // Picknickplatz: Decke, Korb, Bank
     var py = boden(2, -44), pk = new THREE.Group(); pk.position.set(2, py, -44); szene.add(pk);
     BAU.kasten(2.6, 0.04, 2.0, 0xe5412d, pk, 0, 0.06, 0).castShadow = false;
     for (i = 0; i < 4; i++) BAU.kasten(0.6, 0.045, 2.0, 0xffffff, pk, -0.98 + i * 0.66, 0.065, 0).castShadow = false;
     BAU.kasten(0.6, 0.4, 0.42, 0xb9843c, pk, 0.5, 0.26, 0.3); BAU.netz(new THREE.SphereGeometry(0.12, 8, 6), 0xd11f3a, pk, -0.4, 0.2, -0.2);
     BAU.netz(new THREE.SphereGeometry(0.12, 8, 6), 0x7cc35a, pk, -0.65, 0.2, 0.1);
+    MODELLE3D.setze('picknickkorb', pk, { x: 0.45, y: 0.05, z: 0.3, dreh: 0.5, hoehe: 0.6, statt: pk.children.slice(-3) });
     // Gipfel: Bank und Fahne
     var gy = boden(-58, -78), gp = new THREE.Group(); gp.position.set(-58, gy, -78); szene.add(gp);
     BAU.kasten(2.0, 0.1, 0.5, 0x9a6b3f, gp, 2.4, 0.5, 0); BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, gp, 1.6, 0.25, 0); BAU.kasten(0.1, 0.5, 0.4, 0x7a4a2a, gp, 3.2, 0.25, 0);
+    MODELLE3D.setze('bank', gp, { x: 2.4, z: -0.12, breite: 2.1, statt: gp.children.slice() });
     var fl = BAU.flagge(0xe84393, 4.5); fl.position.set(-2, 0, 0); gp.add(fl);
     // Steg am See und Enten
     var sg = new THREE.Group(); sg.position.set(SEE[0] - 21, 0, SEE[1] + 8); sg.rotation.y = -1.2; szene.add(sg);
@@ -124,6 +127,7 @@ WELTEN.ausritt = (function () {
       BAU.netz(new THREE.SphereGeometry(0.28, 8, 6), i ? 0xffffff : 0x8a6a3c, en).scale.set(1, 0.7, 1.5);
       BAU.netz(new THREE.SphereGeometry(0.14, 8, 6), i ? 0xffffff : 0x2f7d3a, en, 0, 0.26, 0.3);
       BAU.netz(new THREE.ConeGeometry(0.05, 0.16, 5), 0xf08a24, en, 0, 0.24, 0.47).rotation.x = Math.PI / 2;
+      MODELLE3D.setze('ente', en, { y: -0.1, hoehe: 0.52, statt: en.children.slice(), schatten: false });
       szene.add(en); enten.push({ g: en, w: i * 1.6, r: 5 + i * 2.2 });
     }
     // Sitzplaetze: Picknickdecke und Bank auf dem Huegel. [x, z, Pose, Blickrichtung, Platz der Freundin dx, dz]
@@ -142,6 +146,24 @@ WELTEN.ausritt = (function () {
     // Ruderboot am Steg (Deko)
     var boot = new THREE.Group(); boot.position.set(STEG.x + 5.5, WASSER + 0.12, STEG.z - 0.5); boot.rotation.y = 0.5; szene.add(boot);
     BAU.kasten(1.2, 0.4, 3.2, 0x2d8fd0, boot, 0, 0, 0); BAU.kasten(1.0, 0.1, 2.9, 0xb9843c, boot, 0, 0.12, 0); BAU.kasten(1.1, 0.08, 0.3, 0x9a6b3f, boot, 0, 0.26, 0.2);
+    MODELLE3D.setze('boot', boot, { y: -0.42, dreh: Math.PI / 2, breite: 3.6, statt: boot.children.slice() });
+    // Schilf am Ufer, Felsen und Büsche in der Landschaft
+    var schilf = [], felsen = [], buesche = [];
+    for (i = 0; i < 44; i++) {
+      var sw = i / 44 * 6.283 + zuf() * 0.1, sr = SEE[2] + 12;
+      while (sr > 6 && boden(SEE[0] + Math.sin(sw) * sr, SEE[1] + Math.cos(sw) * sr) > WASSER - 0.12) sr -= 0.4;
+      var sx = SEE[0] + Math.sin(sw) * sr, sz = SEE[1] + Math.cos(sw) * sr;
+      if (sr <= 6 || Math.hypot(sx - STEG.x, sz - STEG.z) < 11 || pfadAbstand(sx, sz) < 5 || i % 4 === 3) continue;
+      schilf.push([sx, WASSER - 0.15, sz, 0.8 + zuf() * 0.6, 0, zuf() * 6]);
+    }
+    for (i = 0; i < 400 && (felsen.length < 16 || buesche.length < 46); i++) {
+      var qx = -135 + zuf() * 270, qz = -135 + zuf() * 270, qh = boden(qx, qz), qf = pfadAbstand(qx, qz), qg = zuf();
+      if (qh < 0.5 || qf < 4.5 || Math.hypot(qx - START[0], qz - START[1]) < 16 || Math.hypot(qx - 2, qz + 44) < 6 || Math.hypot(qx + 86, qz + 10) < 6 || Math.hypot(qx + 58, qz + 78) < 7) continue;
+      if (baeume.some(function (b) { return Math.hypot(b[0] - qx, b[1] - qz) < 2.2; })) continue;
+      if (i % 4 === 0 && felsen.length < 16 && qf < 30) { felsen.push([qx, qh - 0.25, qz, 0.7 + qg * 1.3, 0, qg * 6]); baeume.push([qx, qz, 0.5 + qg * 0.9]); }
+      else if (buesche.length < 46 && qf < 45) { buesche.push([qx, qh - 0.1, qz, 0.75 + qg * 0.7, 0, qg * 6]); baeume.push([qx, qz, 0.55]); }
+    }
+    MODELLE3D.streue('schilf', szene, schilf, 1.9); MODELLE3D.streue('felsen', szene, felsen, 1.5); MODELLE3D.streue('busch', szene, buesche, 1.4);
     // Schilder ueber den Orten
     ORTE.forEach(function (o) {
       var y = Math.max(WASSER, boden(o[2], o[3]));
