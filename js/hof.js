@@ -915,12 +915,12 @@ WELTEN.hof = (function () {
   var KAM_START = { w: 0, e: 0.785, d: 18.4 }, KAM_WEIT = { e: 1.0, d: 150 };
   var kam = { w: 0, e: KAM_START.e, d: KAM_START.d, zw: 0, ze: KAM_START.e, zd: KAM_START.d, taste: null, zeiger: {}, rechts: null };
   function kamGrenzen() {
-    kam.ze = Math.max(0.2, Math.min(1.5, kam.ze)); kam.zd = Math.max(5, Math.min(230, kam.zd));
+    kam.ze = Math.max(0.06, Math.min(1.5, kam.ze)); kam.zd = Math.max(5, Math.min(230, kam.zd));
   }
   function kamKnoepfe() {
     if (KERN.el('kamKnoepfe')) return;
     var k = document.createElement('div'); k.id = 'kamKnoepfe';
-    [['aufgaben', '📋', 'Aufgaben für heute'], ['links', '⟲', 'Kamera nach links drehen'], ['rechts', '⟳', 'Kamera nach rechts drehen'], ['nah', '＋', 'näher'], ['fern', '－', 'weiter weg'], ['karte', '🗺️', 'Übersicht']].forEach(function (e) {
+    [['aufgaben', '📋', 'Aufgaben für heute'], ['karte', '🗺️', 'Übersicht'], ['links', '⟲', 'Kamera nach links drehen'], ['rechts', '⟳', 'Kamera nach rechts drehen'], ['nah', '＋', 'näher'], ['fern', '－', 'weiter weg'], ['hoch', '▲', 'Kamera höher, mehr von oben'], ['flach', '▼', 'Kamera flacher, mehr von der Seite']].forEach(function (e) {
       var b = document.createElement('button'); b.type = 'button'; b.textContent = e[1]; b.title = e[2]; b.setAttribute('aria-label', e[2]);
       if (e[0] === 'aufgaben') b.addEventListener('click', function () { if (modus === 'frei') HOFTAG.zeigeAufgaben(); });
       else if (e[0] === 'karte') b.addEventListener('click', function () {
@@ -968,6 +968,7 @@ WELTEN.hof = (function () {
     // Knoepfe und Tasten
     if (kam.taste === 'links') kam.zw += dt * 1.6; else if (kam.taste === 'rechts') kam.zw -= dt * 1.6;
     else if (kam.taste === 'nah') kam.zd *= Math.exp(-dt * 1.4); else if (kam.taste === 'fern') kam.zd *= Math.exp(dt * 1.4);
+    else if (kam.taste === 'hoch') kam.ze += dt * 0.9; else if (kam.taste === 'flach') kam.ze -= dt * 0.9;
     kamGrenzen();
     var k = Math.min(1, dt * 8);
     kam.w += (kam.zw - kam.w) * k; kam.e += (kam.ze - kam.e) * k; kam.d += (kam.zd - kam.d) * k;
@@ -986,7 +987,7 @@ WELTEN.hof = (function () {
       var d = (weit ? kam.d : kam.d + (Math.min(kam.d, 13.6) - kam.d) * drinnen) * schmal;
       var c = Math.cos(e);
       kamZiel.set(S.x + Math.sin(kam.w) * c * d, 0.5 + Math.sin(e) * d, S.z + Math.cos(kam.w) * c * d);
-      kamBlick.set(S.x, 0.5, S.z);
+      kamBlick.set(S.x, 0.5 + Math.max(0, 0.6 - e) * 2.2, S.z);      // flache Kamera schaut etwas höher, sonst sieht man nur Boden
     }
     if (kamSprung) { kamera.position.copy(kamZiel); blickJetzt.copy(kamBlick); kamSprung = false; }
     else { kamera.position.lerp(kamZiel, 1 - Math.exp(-6 * dt)); blickJetzt.lerp(kamBlick, 1 - Math.exp(-6 * dt)); }

@@ -432,15 +432,20 @@ var HERDE = (function () {
       if (sprung >= 0) { u = 0.62 + sprung * 0.38; akt.galopp.setEffectiveWeight(1); akt.trab.setEffectiveWeight(0); akt.schritt.setEffectiveWeight(0); }
       for (g in akt) akt[g].time = u * gang.dauer;
       mixer.update(0);
-      if (kopfTief > 0.001) {
-        // Kopf senken (fressen): Halsknochen nach unten drehen
+      if (kopfTief > 0.001 || halsGedreht) {
+        // Kopf senken (fressen): Halsknochen nach unten drehen.
+        // Steht das Pferd still, schreibt die Animation die Knochen nicht neu. Dann von der gemerkten
+        // Grundhaltung ausgehen, sonst dreht sich der Hals in jedem Bild weiter.
         for (var name in halsRuhe) {
-          var b = knochen[name];
-          b.quaternion.multiply(hq.setFromAxisAngle(achse, kopfTief * (name === 'spine016' ? -0.5 : name === 'spine014' ? 0.3 : 0.62)));
+          var b = knochen[name], m = halsMerk[name] || (halsMerk[name] = { basis: new THREE.Quaternion(), zuletzt: new THREE.Quaternion() });
+          if (halsGedreht && b.quaternion.equals(m.zuletzt)) b.quaternion.copy(m.basis); else m.basis.copy(b.quaternion);
+          if (kopfTief > 0.001) b.quaternion.multiply(hq.setFromAxisAngle(achse, kopfTief * (name === 'spine016' ? -0.5 : name === 'spine014' ? 0.3 : 0.62)));
+          m.zuletzt.copy(b.quaternion);
         }
+        halsGedreht = kopfTief > 0.001;
       }
     }
-    var hq = new THREE.Quaternion(), achse = new THREE.Vector3(1, 0, 0);
+    var hq = new THREE.Quaternion(), achse = new THREE.Vector3(1, 0, 0), halsMerk = {}, halsGedreht = false;
 
     return {
       wurzel: wurzel, koerper: koerper, szene: szene, knochen: knochen, farbe: farbe,
