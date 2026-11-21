@@ -2,9 +2,15 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Reitturnier">
+  <meta name="theme-color" content="#9fd4f5">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon-192.png">
   <title>Reitturnier</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -129,6 +135,7 @@
   <script src="js/config.js"></script>
   <script src="sounds/sounds.js"></script>
   <script src="js/sound.js"></script>
+  <script src="js/native.js"></script>
   <script src="js/stand.js"></script>
   <script src="js/herde.js"></script>
   <script src="js/mode.js"></script>
@@ -150,5 +157,9 @@
   <script src="js/dressur.js"></script>
   <script src="js/voltigieren.js"></script>
   <script src="js/spiel.js"></script>
+  <script>
+    // Zum Home-Bildschirm hinzugefügt: Dateien merken, damit das Spiel auch ohne Internet läuft (nicht in der App nötig).
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  </script>
 </body>
 </html>

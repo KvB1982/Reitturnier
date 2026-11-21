@@ -1,0 +1,17 @@
+{
+  "appId": "de.kvb1982.reitturnier",
+  "appName": "Reitturnier",
+  "webDir": "www",
+  "backgroundColor": "#8fd0ee",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false,
+    "backgroundColor": "#8fd0ee"
+  },
+  "plugins": {
+    "SystemBars": {
+      "hidden": true
+    }
+  }
+}

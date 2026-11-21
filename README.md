@@ -6,6 +6,8 @@ Ein 3D-Reitspiel für den Browser mit einem ganzen Pferdehof: Pferde pflegen und
 
 **Direkt spielen:** https://kvb1982.github.io/Reitturnier/ (auch auf iPad und iPhone)
 
+**Als App auf iPad und iPhone:** Anleitung in [APP-ANLEITUNG.md](APP-ANLEITUNG.md) (Xcode-Projekt im Ordner `ios`, oder in Safari über „Zum Home-Bildschirm“).
+
 Oder ohne Internet: Repository herunterladen (grüner Knopf **Code**, dann **Download ZIP**), entpacken und `index.html` doppelklicken. Das Spiel läuft in Chrome, Edge oder Firefox, ohne Installation und ohne Internet.
 
 ## Pferdehof und Modi
