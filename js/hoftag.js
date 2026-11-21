@@ -100,7 +100,7 @@ var HOFTAG = (function () {
       letzteStunde = 7;
       STAND.speichere();
       blende(null, false);
-      [523, 659, 784].forEach(function (f, i) { KERN.ton(f, 0.3, 'triangle', 0.14, 0.4 + i * 0.16); });
+      if (!SOUND.spiel('hahn', 0.6, 1, 0.4)) [523, 659, 784].forEach(function (f, i) { KERN.ton(f, 0.3, 'triangle', 0.14, 0.4 + i * 0.16); });
       setTimeout(function () {
         schlaeft = false;
         C.karte('<div class="klein">Tag ' + d.tag + ' · 7:00 Uhr · ' + WETTER.NAME[d.wetter] + '</div><h2>☀️ Guten Morgen!</h2>' +
@@ -300,7 +300,7 @@ var HOFTAG = (function () {
       }
     } else { n = 1; d.hofMist = Math.max(0, d.hofMist - 1); var letzter = hofMist[d.hofMist]; ziel.m.position.x = letzter.position.x; ziel.m.position.z = letzter.position.z; letzter.position.set(mx, 0.12, mz); zeigeHofMist(); }
     gabel.voll = n; gabel.klump.visible = true; schaufelZeit = 0.5;
-    KERN.ton(240, 0.07, 'triangle', 0.16); KERN.ton(180, 0.09, 'triangle', 0.14, 0.12);
+    if (!SOUND.spiel('gabel', 0.8)) { KERN.ton(240, 0.07, 'triangle', 0.16); KERN.ton(180, 0.09, 'triangle', 0.14, 0.12); }
     // steht die Mistkarre gleich daneben, fliegt der Mist sofort hinein
     if (!K.geschoben && K.ladung < KARRE_MAX && Math.hypot(S.x - K.x, S.z - K.z) < 4.6) setTimeout(function () { if (gabel.voll) wirfInKarre(); }, 380);
     STAND.speichere();
@@ -310,7 +310,7 @@ var HOFTAG = (function () {
     if (n <= 0) { KERN.meldung('Die Schubkarre ist voll! Kipp sie am Misthaufen aus.', 'knapp'); return; }
     gabel.voll -= n; gabel.klump.visible = gabel.voll > 0; schaufelZeit = 0.45;
     S.kurs = Math.atan2(K.x - S.x, K.z - S.z);
-    wirf(handPunkt(), karrenPunkt(K), 0x4a3320, 1, function () { K.ladung += n; zeigeLadung(K); KERN.ton(150, 0.08, 'square', 0.1); if (K.ladung >= KARRE_MAX) KERN.meldung('Die Schubkarre ist voll!', 'knapp'); });
+    wirf(handPunkt(), karrenPunkt(K), 0x4a3320, 1, function () { K.ladung += n; zeigeLadung(K); if (!SOUND.spiel('schaufel', 0.6)) KERN.ton(150, 0.08, 'square', 0.1); if (K.ladung >= KARRE_MAX) KERN.meldung('Die Schubkarre ist voll!', 'knapp'); });
   }
   function wirfAufHaufen() {
     var n = gabel.voll, M = C.ORT.mist;
@@ -321,7 +321,7 @@ var HOFTAG = (function () {
   function bucheMist(n, still) {
     var lohn = Math.ceil(n / 2);
     d.muenzen += lohn; d.misthaufen = (d.misthaufen || 0) + n;
-    if (!still) { KERN.meldung('Mist abgeladen!  +' + lohn + ' 🪙', 'perfekt'); KERN.klang('gut'); } else KERN.ton(150, 0.08, 'square', 0.1);
+    if (!still) { KERN.meldung('Mist abgeladen!  +' + lohn + ' 🪙', 'perfekt'); KERN.klang('gut'); } else if (!SOUND.spiel('schaufel', 0.6)) KERN.ton(150, 0.08, 'square', 0.1);
     zaehle('mist', n);
     if (d.misthaufen >= 60) {
       d.misthaufen = 0; d.muenzen += 12;
@@ -673,13 +673,13 @@ var HOFTAG = (function () {
         else { h.kurs = Math.atan2(dx, dz); h.x += dx / e * 0.7 * dt; h.z += dz / e * 0.7 * dt; }
       }
       var fl = Math.hypot(S.x - h.x, S.z - h.z);
-      if (fl < 1.3) { h.zx = h.x + (h.x - S.x) / fl * 3; h.zz = h.z + (h.z - S.z) / fl * 3; h.warte = 0; }     // Hühner laufen weg, wenn man zu nah kommt
+      if (fl < 1.3) { h.zx = h.x + (h.x - S.x) / fl * 3; h.zz = h.z + (h.z - S.z) / fl * 3; h.warte = 0; SOUND.spiel('huhn', 0.45, 0.95 + Math.random() * 0.2, 0, { pause: 1.2 }); }     // Hühner laufen weg, wenn man zu nah kommt
       h.g.position.set(h.x, h.warte > 0 ? 0 : Math.abs(Math.sin(zeit * 11 + h.phase)) * 0.04, h.z);
       h.g.rotation.y = h.kurs; h.modell.rotation.x = pickt;
     });
   }
   function streichleBello() {
-    KERN.ton(190, 0.09, 'square', 0.12); KERN.ton(240, 0.12, 'square', 0.12, 0.16);
+    if (!SOUND.spiel('hund', 0.7)) { KERN.ton(190, 0.09, 'square', 0.12); KERN.ton(240, 0.12, 'square', 0.12, 0.16); } else SOUND.spiel('hund', 0.6, 1.08, 0.45);
     KERN.meldung('🐶 Bello wedelt mit dem Schwanz', 'perfekt');
   }
   function bewegeKatze(dt) {
@@ -706,7 +706,8 @@ var HOFTAG = (function () {
   function streichle() {
     katze.schnurr = 3.5; katze.warte = Math.max(katze.warte, 5);
     katze.kurs = Math.atan2(S.x - katze.x, S.z - katze.z);
-    for (var i = 0; i < 7; i++) KERN.ton(58 + (i % 2) * 6, 0.22, 'sawtooth', 0.07, i * 0.2);
+    SOUND.spiel('katze', 0.5);
+    for (var i = 0; i < 7; i++) KERN.ton(58 + (i % 2) * 6, 0.22, 'sawtooth', 0.07, 0.5 + i * 0.2);
     KERN.meldung('💕 Minka schnurrt', 'perfekt');
     zaehle('katze', 1);
   }

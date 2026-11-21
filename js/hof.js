@@ -834,7 +834,7 @@ WELTEN.hof = (function () {
       P.ort = wohin; P.tier.setzeZaum(false);
       if (wohin === 'maschine') { P.winkel = Math.PI; KERN.meldung('Schritt für Schritt …', 'gut'); }
       HOFTAG.zaehle(wohin, 1);
-      if (wohin === 'weide') { P.x = ORT.weide.tor[0] - 3; P.z = ORT.weide.tor[1]; P.ziel = null; P.warte = 0; KERN.meldung(P.def.name + ' freut sich!', 'perfekt'); }
+      if (wohin === 'weide') { P.x = ORT.weide.tor[0] - 3; P.z = ORT.weide.tor[1]; P.ziel = null; P.warte = 0; KERN.meldung(P.def.name + ' freut sich!', 'perfekt'); SOUND.spiel('wiehern', 0.6, 1, 0.3); }
     }
     STAND.speichere();
     KERN.ton(520, 0.1, 'triangle', 0.15);
@@ -865,7 +865,7 @@ WELTEN.hof = (function () {
     st.hunger = Math.max(0, st.hunger - 0.75); st.hafer = 1; st.heu = 1;
     P.frisst = 10;
     if (hungrig) STAND.daten.muenzen += 2;
-    KERN.meldung(P.def.name + ' frisst' + (hungrig ? '  +2 🪙' : ''), 'gut'); KERN.klang('gut');
+    KERN.meldung(P.def.name + ' frisst' + (hungrig ? '  +2 🪙' : ''), 'gut'); KERN.klang('gut'); SOUND.spiel('fressen', 0.8, 1, 0.35);
     STAND.speichere();
     zeigeZustand(P);
     setTimeout(function () { st.hafer = 0; st.heu = 0; zeigeZustand(P); STAND.speichere(); }, 60000);
@@ -1129,6 +1129,7 @@ WELTEN.hof = (function () {
   function bewegeKamera(dt) {
     var imStall = (S.x > STALL.x0 - 0.5 && S.x < STALL.x1 + 0.5 && S.z > STALL.z0 && S.z < STALL.z1) || HOFTAG.imHaus(S.x, S.z);
     drinnen += ((imStall ? 1 : 0) - drinnen) * Math.min(1, dt * 4);
+    SOUND.setzeDrinnen(drinnen);
     // Knoepfe und Tasten
     if (kam.taste === 'links') kam.zw += dt * 1.6; else if (kam.taste === 'rechts') kam.zw -= dt * 1.6;
     else if (kam.taste === 'nah') kam.zd *= Math.exp(-dt * 1.4); else if (kam.taste === 'fern') kam.zd *= Math.exp(dt * 1.4);

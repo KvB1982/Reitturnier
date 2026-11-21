@@ -161,7 +161,7 @@ var PFLEGE = (function () {
       var weg = Math.hypot(zx - altX, zy - altY);
       if (weg < 6) return;
       if (werkzeug === 'striegel' && zeigerUnten) {
-        if (putze(zx, zy, Math.min(0.5, weg / 60), 0.27)) { if (Math.random() < 0.3) KERN.huf(0.03, 1800); }
+        if (putze(zx, zy, Math.min(0.5, weg / 60), 0.27)) { SOUND.schleife('buerste', 0.7); if (!SOUND.bereit() && Math.random() < 0.3) KERN.huf(0.03, 1800); }
       } else if (werkzeug === 'hufe' && zeigerUnten) kratze(zx, zy);
       altX = zx; altY = zy;
     } else { zeigerUnten = false; strahl.visible = false; spritzer.visible = false; }
@@ -193,7 +193,7 @@ var PFLEGE = (function () {
       var m = box.mist.splice(beste, 1)[0];
       hof.szene.remove(m);
       P.st.mist = box.mist.length / 8;
-      KERN.ton(200, 0.08, 'square', 0.08); KERN.ton(140, 0.1, 'square', 0.08, 0.07);
+      if (!SOUND.spiel('gabel', 0.7)) { KERN.ton(200, 0.08, 'square', 0.08); KERN.ton(140, 0.1, 'square', 0.08, 0.07); }
       if (!box.mist.length) { P.st.mist = 0; if (warMistig) { warMistig = false; lohn(2, 'Box ausgemistet!'); HOFTAG.zaehle('box', 1); } }
       zeigeFertig();
     } else if (werkzeug === 'stroh') {
@@ -234,8 +234,9 @@ var PFLEGE = (function () {
       strahl.visible = true;
       spritzer.visible = !!t;
       if (t) { spritzer.position.copy(t.point); spritzer.scale.setScalar(0.8 + Math.sin(zeit * 40) * 0.3); }
+      SOUND.schleife('wasser', 0.55);
       strahlTon -= dt;
-      if (strahlTon <= 0) { strahlTon = 0.07; KERN.huf(0.02, 3000 + Math.random() * 1500); }
+      if (strahlTon <= 0 && !SOUND.bereit()) { strahlTon = 0.07; KERN.huf(0.02, 3000 + Math.random() * 1500); }
     } else if (strahl.visible) { strahl.visible = false; spritzer.visible = false; }
     // Hufkreise folgen den Hufen
     hufRinge.forEach(function (r) {

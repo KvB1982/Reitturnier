@@ -75,6 +75,8 @@ Neu: `js/hoftag.js` (Wohnhaus, Tag und Nacht, Aufgaben, Schubkarre, Landschaft) 
 | `js/rennen.js`, `js/gelaende.js`, `js/ausritt.js`, `js/dressur.js`, `js/voltigieren.js` | Galopprennen, Military, Ausritt, Dressur mit Kür, Voltigieren |
 | `js/platz.js` | Reitplatz, Stadion, Hindernisse |
 | `js/spiel.js` | Spielablauf, Punkte, Turnier, Kamera, Ton |
+| `js/sound.js` | Echte Geräusche (Hufe, Wiehern, Vögel, Regen …), Lautstärke-Knopf |
+| `sounds/` | Geräusche als Text (`sounds.js`) und Quellenliste (`CREDITS.md`, alle CC0) |
 | `js/three.min.js`, `js/gltf-lader.js` | 3D-Bibliothek three.js und Modell-Lader |
 | `modelle/` | 3D-Modelle, als Text verpackt, damit das Spiel ohne Server läuft |
 

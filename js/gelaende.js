@@ -257,7 +257,7 @@ WELTEN.gelaende = (function () {
         else { fehler.angeschlagen++; strafe += STRAFE.angeschlagen; KERN.meldung('Angeschlagen! +' + STRAFE.angeschlagen + ' s', 'rot'); KERN.klang('abwurf'); }
       } else if (t.art === 'bach') {
         if (R.luft > 0.3) { KERN.meldung('Drüber!', 'perfekt'); KERN.klang('perfekt'); }
-        else { fehler.nass++; strafe += STRAFE.nass; R.tempo *= 0.3; KERN.meldung('Platsch! +' + STRAFE.nass + ' s', 'rot'); KERN.klang('oh'); }
+        else { fehler.nass++; strafe += STRAFE.nass; R.tempo *= 0.3; KERN.meldung('Platsch! +' + STRAFE.nass + ' s', 'rot'); SOUND.spiel('platsch', 0.8); KERN.klang('oh'); }
       } else if (t.art === 'furt') { KERN.meldung('Durch die Furt!', 'gut'); }
       else if (t.art === 'bruecke') { KERN.meldung('Über die Brücke!', 'gut'); }
       else if (t.art !== 'start' && t.art !== 'ziel') KERN.klang('knapp');

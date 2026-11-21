@@ -259,7 +259,7 @@ var REITEN = (function () {
       var sp = -1, luft = 0;
       if (R.sprung) {
         sp = (R.strecke - R.sprung.s0) / R.sprung.L;
-        if (sp >= 1) { R.sprung = null; sp = -1; if (R.laut > 0 && typeof KERN !== 'undefined') KERN.ton(80, 0.08, 'square', 0.1); }
+        if (sp >= 1) { R.sprung = null; sp = -1; if (R.laut > 0 && typeof KERN !== 'undefined' && !SOUND.spiel('landung', 0.8)) KERN.ton(80, 0.08, 'square', 0.1); }
         else { luft = R.sprung.H * 4 * sp * (1 - sp); neig = -Math.atan(R.sprung.H * 4 * (1 - 2 * sp) / R.sprung.L) * 0.75; }
       }
       R.luft = luft; R.y = boden;

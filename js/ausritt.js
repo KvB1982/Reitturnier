@@ -692,6 +692,7 @@ WELTEN.ausritt = (function () {
       muenzen += 3; STAND.daten.muenzen += 3;
       STAND.merke('ausritt', n);
       KERN.meldung('Entdeckt: ' + o[1] + '  +3 🪙', 'perfekt'); KERN.klang('perfekt');
+      if (o[0] === 'dorf') SOUND.spiel('glocke', 0.6, 1, 0.8);
       sage(o[4], 6);
       if (n === ORTE.length) { muenzen += 20; STAND.daten.muenzen += 20; setTimeout(function () { KERN.meldung('Alle Orte entdeckt!  +20 🪙', 'perfekt'); KERN.klang('fanfare'); }, 1600); }
       STAND.speichere();
@@ -699,7 +700,7 @@ WELTEN.ausritt = (function () {
     aepfel.forEach(function (a) {
       if (!a.da || Math.hypot(x - a.x, z - a.z) > 1.8) return;
       a.da = false; a.netz.visible = false; apfelZahl++; muenzen++; STAND.daten.muenzen++;
-      KERN.meldung('🍎 Mmmh!  +1 🪙', 'gut'); KERN.ton(880, 0.1, 'triangle', 0.16); KERN.ton(1320, 0.14, 'triangle', 0.14, 0.08);
+      KERN.meldung('🍎 Mmmh!  +1 🪙', 'gut'); SOUND.spiel('apfel', 0.7); KERN.ton(880, 0.1, 'triangle', 0.16); KERN.ton(1320, 0.14, 'triangle', 0.14, 0.08);
     });
     hufeisen.forEach(function (a) {
       if (!a.da || Math.hypot(x - a.x, z - a.z) > 2) return;
@@ -881,10 +882,13 @@ WELTEN.ausritt = (function () {
   }
   function bewegeWelt(dt) {
     var px = modus === 'fuss' ? I.x : M.x, pz = modus === 'fuss' ? I.z : M.z, pt = modus === 'fuss' ? I.tempo : M.tempo, i;
+    var bachWeit = fluss.abstand(px, pz, 34);
+    if (bachWeit < 34) SOUND.schleife('bach', Math.pow(1 - bachWeit / 34, 1.5) * 0.6);
     herden.forEach(function (H) {
       var e = Math.hypot(px - H.x, pz - H.z);
       if (e > 260) { H.tiere.forEach(function (T) { T.g.visible = false; }); return; }
       if (e < 30 && H.art !== 'schaf') sieh(H.art);
+      if (e < 26 && (H.art === 'kuh' || H.art === 'schaf')) SOUND.spiel(H.art, 0.45, 0.92 + Math.random() * 0.16, 0, { pause: 9 + Math.random() * 6 });
       if (H.scheu && H.flucht <= 0 && e < (pt > 3 ? H.scheu * 1.5 : pt > 0.4 ? H.scheu * 0.55 : 3)) {      // weglaufen: im Schritt kommt man näher heran
         H.flucht = 5; var w = Math.atan2(H.x - px, H.z - pz) + (Math.random() - 0.5), nx = H.x + Math.sin(w) * 46, nz = H.z + Math.cos(w) * 46;
         if (boden(nx, nz) > 0.4 && nx > RAND.x0 && nx < RAND.x1 && nz > RAND.z0 && nz < RAND.z1) { H.x = nx; H.z = nz; }
@@ -906,7 +910,7 @@ WELTEN.ausritt = (function () {
     // Schafherde: zieht über den Feldweg, wenn man näher kommt
     if (schafe) {
       var es = Math.hypot(px - (-106), pz - 195);
-      if (es < 42 && !getan.schafe) { getan.schafe = true; schafe.zustand = 'rueber'; schafe.x = -116; schafe.z = 214; sieh('schaf'); for (i = 0; i < 5; i++) KERN.ton(330 + (i % 2) * 60, 0.25, 'sawtooth', 0.05, i * 0.45); }
+      if (es < 42 && !getan.schafe) { getan.schafe = true; schafe.zustand = 'rueber'; schafe.x = -116; schafe.z = 214; sieh('schaf'); for (i = 0; i < 5; i++) { if (!SOUND.spiel('schaf', 0.5, 0.9 + Math.random() * 0.25, i * 0.7)) KERN.ton(330 + (i % 2) * 60, 0.25, 'sawtooth', 0.05, i * 0.45); } }
       schafe.fest = Math.hypot(schafe.tiere[0].x - schafe.x, schafe.tiere[0].z - schafe.z) > 3;
       if (modus === 'ritt') schafe.tiere.forEach(function (T) { var dx = M.x - T.x, dz = M.z - T.z, e = Math.hypot(dx, dz); if (e < 1.5 && e > 0.01) { M.x = T.x + dx / e * 1.5; M.z = T.z + dz / e * 1.5; M.tempo = Math.min(M.tempo, 1.5); } });
     }
@@ -931,17 +935,17 @@ WELTEN.ausritt = (function () {
       T.g.rotation.x = -Math.atan((hoehe(T.x + Math.sin(T.kurs) * 1.5, T.z + Math.cos(T.kurs) * 1.5) - hoehe(T.x - Math.sin(T.kurs) * 1.5, T.z - Math.cos(T.kurs) * 1.5)) / 3);
       var e = Math.hypot(px - T.x, pz - T.z);
       T.gruss -= dt;
-      if (e < 60) { T.ton = (T.ton || 0) - dt; if (T.ton <= 0) { T.ton = 0.16; KERN.ton(52 + Math.random() * 8, 0.12, 'sawtooth', Math.max(0.01, 0.07 * (1 - e / 60))); } }
+      if (e < 70) { SOUND.schleife('traktor', Math.pow(1 - e / 70, 1.6) * 0.8); if (!SOUND.bereit()) { T.ton = (T.ton || 0) - dt; if (T.ton <= 0) { T.ton = 0.16; KERN.ton(52 + Math.random() * 8, 0.12, 'sawtooth', Math.max(0.01, 0.07 * (1 - e / 60))); } } }
       if (e < 13 && T.gruss <= 0) {
         T.gruss = 14;
-        if (modus === 'ritt' && M.tempo > 2.6) { schreck = 1.1; M.eigen = Math.min(M.eigen, 2); KERN.meldung('😳 ' + mein.name + ' erschrickt vor dem Traktor!', 'knapp'); sage('Hoppla! Am Traktor reiten wir besser im Schritt vorbei.', 5); KERN.ton(900, 0.3, 'sawtooth', 0.08); }
+        if (modus === 'ritt' && M.tempo > 2.6) { schreck = 1.1; M.eigen = Math.min(M.eigen, 2); KERN.meldung('😳 ' + mein.name + ' erschrickt vor dem Traktor!', 'knapp'); SOUND.spiel('wiehern', 0.8); sage('Hoppla! Am Traktor reiten wir besser im Schritt vorbei.', 5); KERN.ton(900, 0.3, 'sawtooth', 0.08); }
         else { T.bauer.setzePose('winken'); setTimeout(function () { T.bauer.setzePose('bank'); }, 2500); if (!getan['bauer' + T.nr]) { getan['bauer' + T.nr] = true; lohn(1, '🚜 Der Bauer winkt dir zu'); } else KERN.meldung('🚜 Der Bauer winkt', 'gut'); }
       }
       T.bauer.bewege(dt);
     });
     // der Baum fällt um
     if (fallBaum && fallBaum.t < 0 && modus === 'ritt' && Math.hypot(px - fallBaum.x, pz - fallBaum.z) < 34) {
-      fallBaum.t = 0; KERN.ton(140, 0.5, 'sawtooth', 0.14); KERN.ton(90, 0.6, 'sawtooth', 0.14, 0.3);
+      fallBaum.t = 0; if (!SOUND.spiel('baum', 0.8)) { KERN.ton(140, 0.5, 'sawtooth', 0.14); KERN.ton(90, 0.6, 'sawtooth', 0.14, 0.3); }
       sage('Vorsicht! Der Baum da vorne fällt um!', 4); M.eigen = Math.min(M.eigen, 2.5);
     }
     if (fallBaum && fallBaum.t >= 0 && fallBaum.t < 1) {
@@ -1060,7 +1064,7 @@ WELTEN.ausritt = (function () {
   }
   function fuettereEnten() {
     pose('werfen', 0.7); entenRuf = 9;
-    for (var i = 0; i < 6; i++) KERN.ton(i % 2 ? 560 : 480, 0.09, 'sawtooth', 0.07, 0.5 + i * 0.28 + Math.random() * 0.1);
+    for (var i = 0; i < 6; i++) { var qv = 0.5 + i * 0.28 + Math.random() * 0.1; if (!SOUND.spiel('ente', 0.5, 0.9 + Math.random() * 0.3, qv)) KERN.ton(i % 2 ? 560 : 480, 0.09, 'sawtooth', 0.07, qv); }
     if (!getan.enten) { getan.enten = true; lohn(2, '🦆 Quak! Die Enten freuen sich'); } else KERN.meldung('🦆 Quak, quak!', 'gut');
     sage('Schau, da kommen sie alle angeschwommen!', 4);
   }

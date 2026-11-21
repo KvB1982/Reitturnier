@@ -199,19 +199,19 @@
     parcoursGruppe.add(pfeil);
   }
 
-  // ---------- Ton (einfache Piepser, keine Dateien noetig) ----------
-  var audio = null, tonAn = lade('reitturnier_ton', true);
+  // ---------- Ton: Piepser fuer Melodien, echte Geraeusche kommen aus js/sound.js ----------
+  var audio = null, tonAn = SOUND.an();
   function ton(freq, dauer, art, laut, verz) {
     if (!tonAn) return;
     try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audio) audio = SOUND.kontext();
       var t = audio.currentTime + (verz || 0);
       var o = audio.createOscillator(), g = audio.createGain();
       o.type = art || 'sine';
       o.frequency.setValueAtTime(freq, t);
       g.gain.setValueAtTime(laut || 0.15, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
-      o.connect(g); g.connect(audio.destination);
+      o.connect(g); g.connect(SOUND.ausgang());
       o.start(t); o.stop(t + dauer + 0.02);
     } catch (e) { /* kein Ton moeglich */ }
   }
@@ -230,21 +230,22 @@
   }
   function huf(laut, hoehe) {
     if (!tonAn) return;
+    if (SOUND.huf(laut, hoehe)) return;      // echter Hufschlag, wenn schon geladen
     try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audio) audio = SOUND.kontext();
       var t = audio.currentTime;
       var q = rauschQuelle(), f = audio.createBiquadFilter(), g = audio.createGain();
       f.type = 'bandpass'; f.frequency.value = hoehe; f.Q.value = 1.2;
       g.gain.setValueAtTime(laut, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
-      q.connect(f); f.connect(g); g.connect(audio.destination);
+      q.connect(f); f.connect(g); g.connect(SOUND.ausgang());
       q.start(t, Math.random() * 0.8); q.stop(t + 0.09);
       var o = audio.createOscillator(), g2 = audio.createGain();
       o.frequency.setValueAtTime(hoehe * 0.42, t);
       o.frequency.exponentialRampToValueAtTime(hoehe * 0.2, t + 0.07);
       g2.gain.setValueAtTime(laut * 0.9, t);
       g2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      o.connect(g2); g2.connect(audio.destination);
+      o.connect(g2); g2.connect(SOUND.ausgang());
       o.start(t); o.stop(t + 0.1);
     } catch (e) { /* kein Ton moeglich */ }
   }
@@ -260,8 +261,9 @@
   // Applaus vom Publikum (nur mit Stadion)
   function applaus(dauer, laut) {
     if (!tonAn || !stadionAn) return;
+    if (SOUND.applaus(dauer, laut)) return;
     try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audio) audio = SOUND.kontext();
       var t = audio.currentTime;
       var q = rauschQuelle(), f = audio.createBiquadFilter(), g = audio.createGain();
       f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 0.5;
@@ -271,12 +273,13 @@
         g.gain.linearRampToValueAtTime(laut * huelle * (0.55 + Math.random() * 0.45), t + x);
       }
       g.gain.linearRampToValueAtTime(0.001, t + dauer);
-      q.connect(f); f.connect(g); g.connect(audio.destination);
+      q.connect(f); f.connect(g); g.connect(SOUND.ausgang());
       q.start(t); q.stop(t + dauer + 0.05);
     } catch (e) { /* kein Ton moeglich */ }
   }
 
   function klang(name) {
+    if (tonAn && SOUND.klang(name)) return;
     if (name === 'perfekt') { ton(660, 0.12, 'triangle', 0.2); ton(880, 0.12, 'triangle', 0.2, 0.1); ton(1320, 0.25, 'triangle', 0.2, 0.2); }
     else if (name === 'gut') { ton(660, 0.12, 'triangle', 0.2); ton(880, 0.2, 'triangle', 0.2, 0.1); }
     else if (name === 'knapp') { ton(520, 0.2, 'triangle', 0.2); }
@@ -672,7 +675,7 @@
     var y = 0, neigung = Math.sin(Z.phase) * 0.035 * Math.min(1, Z.tempo / 5), sp = -1;
     if (Z.pferdModus === 'sprung') {
       sp = (Z.s - Z.sprung.s0) / Z.sprung.L;
-      if (sp >= 1) { Z.pferdModus = 'lauf'; sp = -1; ton(80, 0.08, 'square', 0.1); }
+      if (sp >= 1) { Z.pferdModus = 'lauf'; sp = -1; if (!SOUND.spiel('landung', 0.8)) ton(80, 0.08, 'square', 0.1); }
       else {
         y = Z.sprung.H * 4 * sp * (1 - sp);
         neigung = -Math.atan(Z.sprung.H * 4 * (1 - 2 * sp) / Z.sprung.L) * 0.75;
@@ -1292,8 +1295,8 @@
   el('training').addEventListener('click', starteTraining);
   el('zumMenue').addEventListener('click', function () { heim(); });
   el('ueberspringen').addEventListener('click', ueberspringe);
-  function zeigeTon() { el('ton').textContent = el('weltTon').textContent = tonAn ? '🔊' : '🔇'; }
-  el('ton').addEventListener('click', function () { tonAn = !tonAn; speichere('reitturnier_ton', tonAn); zeigeTon(); });
+  function zeigeTon() { el('ton').textContent = el('weltTon').textContent = SOUND.bild(); }
+  el('ton').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); });
   zeigeTon();
 
   // ---------- 3D-Modelle laden (wenn vorhanden), dann starten ----------
@@ -1468,7 +1471,7 @@
   window.addEventListener('wheel', function (e) { if (welt && welt.rad && !foto.an && e.target === renderer.domElement) welt.rad(e.deltaY); }, { passive: true });
   renderer.domElement.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });
-  el('weltTon').addEventListener('click', function () { tonAn = !tonAn; speichere('reitturnier_ton', tonAn); zeigeTon(); });
+  el('weltTon').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); });
 
   // fuer Tests und zum Ausprobieren in der Konsole
   window.SPIEL = {
