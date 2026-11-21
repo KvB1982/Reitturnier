@@ -106,6 +106,7 @@ WELTEN.hof = (function () {
       frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
       inBoxVon: inBoxVon, boxen: boxen, fuettereWagen: fuettereWagen, mistModell: function () { return orte.mistModell; }, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
     HOFLEBEN.baue(ctx);
+    STURM.baueHof(ctx);
     HOFTAG.baue(ctx);
     gebaut = true;
   }
@@ -472,6 +473,7 @@ WELTEN.hof = (function () {
       }
       if (P.ort !== 'box' && WETTER.regnet()) P.st.schmutz = Math.min(1, P.st.schmutz + dt * 0.003);
       var weg = Math.hypot(P.x - alt.x, P.z - alt.z);
+      if (P.ort === 'geritten') { weg = P.reitWeg || 0; P.reitWeg = 0; }      // beim Reiten wurde das Pferd schon vorher bewegt
       P.phase += weg * Math.PI * 2 / (P.gang === 'galopp' ? 4.19 : P.gang === 'trab' ? 2.9 : 1.9);
       t.wurzel.position.set(P.x, 0, P.z);
       t.wurzel.rotation.y = P.kurs;
@@ -625,14 +627,21 @@ WELTEN.hof = (function () {
 
   // ---------- Reiten auf dem Hof: nur im Schritt ----------
   var reitMeldung = 0;
-  function darfAufsteigen() {
-    var P = S.fuehrt;
-    if (!P || modus !== 'frei') return false;
-    return !((S.x > STALL.x0 - 1 && S.x < STALL.x1 + 1 && S.z > STALL.z0 - 1 && S.z < STALL.z1 + 1) || HOFTAG.imHaus(S.x, S.z));
+  // neben einem Pferd kann man immer aufsteigen: das geführte oder eins, das draußen steht (Weide)
+  function aufsteigPferd() {
+    if (modus !== 'frei' || S.reitet) return null;
+    if (S.fuehrt) return S.fuehrt;
+    var best = null, bd = 2.6;
+    pferde.forEach(function (P) { if (P.ort !== 'weide') return; var e = Math.hypot(P.x - S.x, P.z - S.z); if (e < bd) { bd = e; best = P; } });
+    return best;
   }
+  function imStall() { return (S.x > STALL.x0 - 1 && S.x < STALL.x1 + 1 && S.z > STALL.z0 - 1 && S.z < STALL.z1 + 1) || HOFTAG.imHaus(S.x, S.z); }
+  function darfAufsteigen() { return !!aufsteigPferd(); }
   function steigeAuf() {
-    var P = S.fuehrt;
-    if (!darfAufsteigen()) return;
+    var P = aufsteigPferd();
+    if (!P) return;
+    if (imStall()) { KERN.meldung('Im Stall wird nicht aufgestiegen. Führe ' + P.def.name + ' erst nach draußen.', 'knapp'); return; }
+    if (!S.fuehrt) nimm(P);
     if (HOFLEBEN.krank(P)) { KERN.meldung(P.def.name + ' ist krank und kann nicht geritten werden.', 'knapp'); return; }
     S.fuehrt = null; S.reitet = P; P.ort = 'geritten'; P.tempo = 0;
     P.tier.setzeSattel(true, P.st.ausruestung.decke); P.tier.setzeZaum(true, true);
@@ -663,6 +672,7 @@ WELTEN.hof = (function () {
       P.kurs += Math.max(-1, Math.min(1, diff * 2)) * 2.0 * dt;
     }
     P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
+    P.reitWeg = (P.reitWeg || 0) + P.tempo * dt;
     reitMeldung -= dt;
     if ((P.x > STALL.x0 - 1.1 && P.x < STALL.x1 + 1.1 && P.z > STALL.z0 - 1 && P.z < STALL.z1 + 1) || HOFTAG.imHaus(P.x, P.z)) {
       P.x = alt.x; P.z = alt.z; P.tempo = 0;
@@ -677,7 +687,8 @@ WELTEN.hof = (function () {
   function gehInsGruene() {
     var P = S.reitet || S.fuehrt, ritt = !!S.reitet;
     if (HOFTAG.nacht()) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('🌙 Nachts bleibt das Tor zu.', 'knapp'); return; }
-    HOFTAG.loslassen(); trage(null);
+    if (WETTER.gewitter()) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('⛈️ Bei Gewitter bleibt das Tor zu. Ab in den Stall!', 'knapp'); return; }
+    HOFTAG.loslassen(); STURM.loslassen(); trage(null);
     if (P && HOFLEBEN.krank(P)) { S.z = 48.5; KERN.meldung(P.def.name + ' ist krank und bleibt besser auf dem Hof.', 'knapp'); return; }
     if (ritt) steigeAb(true);
     if (P) losreiten('ausritt', 'ausritt', { extra: { vomHof: true, reitet: ritt, zuFuss: !ritt } });
@@ -711,7 +722,7 @@ WELTEN.hof = (function () {
     }
     var f = S.figur;
     f.gehe(S.phase, Math.min(1, S.tempo / 3.5));
-    if (modus === 'frei') f.setzePose(HOFTAG.pose() || (S.traegt ? 'tragen' : S.fuehrt ? 'fuehren' : 'steh'));
+    if (modus === 'frei') f.setzePose(STURM.pose() || HOFTAG.pose() || (S.traegt ? 'tragen' : S.fuehrt ? 'fuehren' : 'steh'));
     f.bewege(dt);
     f.wurzel.position.set(S.x, 0, S.z);
     f.wurzel.rotation.y = S.kurs;
@@ -812,6 +823,7 @@ WELTEN.hof = (function () {
     } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Große Pferde können hier auch grasen.');
     HOFLEBEN.aktionen(vor, S, P);
     HOFTAG.aktionen(vor, S, P, function () { return beste; });
+    STURM.aktionenHof(vor);
     return beste;
   }
 
@@ -819,6 +831,7 @@ WELTEN.hof = (function () {
   function nimm(P) {
     if (S.fuehrt) return;
     HOFTAG.loslassen();
+    STURM.loslassen();
     P.ort = 'hand'; P.tempo = 0;
     P.tier.setzeZaum(true, false);
     P.tier.setzeKopfTief(0); P.blick = 0;
@@ -913,6 +926,10 @@ WELTEN.hof = (function () {
     if (!P) return;
     if (HOFLEBEN.krank(P) && ort !== 'weide') {
       karte('<h2>🤒 ' + P.def.name + ' ist krank</h2><div class="details">' + P.def.name + ' ' + HOFLEBEN.krank(P).zeichen + ' und kann heute nicht arbeiten. Die <b>Tierärztin</b> steht östlich vom Stall.</div>', []);
+      return;
+    }
+    if (WETTER.gewitter() && ort !== 'weide') {
+      karte('<h2>⛈️ Gewitter!</h2><div class="details">Bei Blitz und Donner wird nicht geritten. Bring ' + P.def.name + ' schnell in die Box im Stall, dort ist es sicher.</div>', []);
       return;
     }
     if (HOFTAG.nacht()) {
@@ -1171,6 +1188,7 @@ WELTEN.hof = (function () {
     bewegeMaedchen(dt);
     if (modus === 'pflege') PFLEGE.schritt(dt, zeit);
     HOFLEBEN.schritt(dt, zeit);
+    STURM.schrittHof(dt, zeit);
     HOFTAG.schritt(dt, zeit);
     if (modus === 'longe' && orte.longePferd) {
       var P = orte.longePferd;
@@ -1196,7 +1214,7 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     orte.zeiger.visible = !!(aktion && aktion.text);
     if (orte.zeiger.visible) { orte.zeiger.position.set(aktion.x, 2.9 + Math.sin(zeit * 5) * 0.15, aktion.z); orte.zeiger.rotation.y = zeit * 2; }
@@ -1226,7 +1244,7 @@ WELTEN.hof = (function () {
     name: '🏡 Pferdehof',
     text: 'Das Leben auf dem Pferdehof: Such dir im Stall ein Pferd aus, putze und füttere es und führe es zum Trainingsplatz, zum Turnier, zur Rennbahn oder ins Gelände. Für Siege gibt es Münzen für den Reitladen.',
     knopf: '🏡 Zum Pferdehof',
-    klasse: 'welt-hof',
+    klasse: 'welt-hof', mitSturm: true,
     start: function (opt) {
       opt = opt || {};
       if (!gebaut) baue();
@@ -1242,10 +1260,12 @@ WELTEN.hof = (function () {
         if (opt.zurueckVon === 'ausritt') S.kurs = Math.PI;
         if (S.fuehrt) { S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8; }
       }
-      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten5) {
-        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.speichere();
+      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten6) {
+        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.daten.neuigkeiten6 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>✨ Neu auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
+          '• <b>⛈️ Gewitter:</b> Manchmal zieht ein Unwetter auf, auf dem Hof oder beim Ausritt. Dann schnell nach Hause und die Pferde in den Stall! Schlägt der Blitz in die Strohballen ein, holst du den <b>🚒 Löschschlauch</b> am Putzplatz und löschst das Feuer.<br>' +
+          '• <b>🗺️ Radar und Landkarte:</b> Beim Ausritt zeigt der Radar oben rechts mit dem 🏡, wo es nach Hause geht. Antippen öffnet die Landkarte.<br>' +
           '• <b>⭐ Dein Pferd:</b> Du kümmerst dich jetzt nur noch um <b>' + meinPferd().def.name + '</b>. Die Box hat einen <b>goldenen Rahmen</b> und ein gelbes Schild. Die anderen Pferde versorgen die anderen Kinder vom Hof. Reiten darfst du trotzdem alle. In einer anderen Box kannst du mit dem Knopf ⭐ ein anderes Pferd zu deinem machen. Krank werden Pferde jetzt nur noch selten.<br>' +
           '• <b>Ausritt:</b> Im Süden ist ein neues <b>Tor ins Grüne</b>. Dahinter liegt eine riesige Landschaft mit Wäldern, Bergen, Feldern, einem Bach, einem Dorf und einer Windmühle. Unterwegs: Tiere, Slalom, Ringstechen, Wettreiten mit Lotte.<br>' +
           '• <b>Aufsteigen:</b> Mit einem Pferd an der Hand kannst du draußen aufsteigen (Knopf rechts unten). Auf dem Hof geht es im Schritt, draußen auch im Trab und Galopp. Unterwegs kannst du absteigen, führen und das <b>Pferd wechseln</b>.<br>' +
@@ -1257,7 +1277,7 @@ WELTEN.hof = (function () {
           [{ text: 'Toll!', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
       if (!STAND.daten.begruesst) {
-        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.speichere();
+        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.daten.neuigkeiten6 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>🏡 Willkommen auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
           '• Lauf mit den <b>Pfeiltasten</b> (oder WASD). Auf dem iPad: <b>Finger auflegen und ziehen</b>.<br>' +

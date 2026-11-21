@@ -163,6 +163,7 @@ DAS SPIEL ERWEITERN
     js/wetter.js    Tageszeiten und Wetter
     js/ausritt.js   der Ausritt
     js/natur.js     Himmel, Wolken, Voegel, Berge, Tiere
+    js/sturm.js     Gewitter, Blitz und Donner, Feuer und Loeschschlauch
     js/rennen.js, js/gelaende.js, js/dressur.js, js/voltigieren.js   die Modi
     In js/config.js stehen auch die Hofpferde (HOF_PFERDE), die Artikel im
     Reitladen (LADEN) und die Preisgelder (PREISGELD).
@@ -171,6 +172,11 @@ DAS SPIEL ERWEITERN
     css/style.css Aussehen von Menue und Anzeigen
 
 EIN TAG AUF DEM HOF
+  - Gewitter: dunkler Himmel, Sturm, fliegende Blaetter, Blitz und Donner. Auf dem Hof
+    alle Pferde in den Stall bringen. Schlaegt der Blitz in die Strohballen ein, den
+    Loeschschlauch am Putzplatz holen und das Feuer loeschen. Beim Ausritt schnell
+    nach Hause: Der Radar oben rechts zeigt den Hof, Antippen (oder Taste K) oeffnet
+    die Landkarte.
   - Dein Pferd: Du kuemmerst dich nur um ein Pferd. Seine Box hat einen goldenen
     Rahmen und ein gelbes Schild, draussen schwebt ein Stern ueber ihm. Die anderen
     Pferde versorgen die Hofkinder (reiten darfst du sie trotzdem). In einer anderen

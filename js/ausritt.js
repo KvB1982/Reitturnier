@@ -497,17 +497,17 @@ WELTEN.ausritt = (function () {
     var p = L.p, q = p[nr], a = p[nr - 1], b = p[nr + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]), tx = (b[0] - a[0]) / l, tz = (b[1] - a[1]) / l;
     var g = new THREE.Group(); g.position.set(q[0], hoehe(q[0], q[1]), q[1]); g.rotation.y = Math.atan2(tx, tz) + Math.PI / 2; szene.add(g);
     var w = BAU.walze(0.38, 0.42, lang * 2, 0x6b4a2a, g, 0, 0.4, 0, 9); w.rotation.x = Math.PI / 2;
-    MODELLE3D.setze('baumstamm', g, { y: -0.05, laenge: lang * 2, statt: [w] });
+    MODELLE3D.setze('baumstamm', g, { y: -0.05, masse: [0.85, 0.8, lang * 2], statt: [w] });
     var S = { x: q[0], z: q[1], tx: tx, tz: tz, lang: lang, g: g, da: true, gesprungen: false };
     staemme.push(S);
     return S;
   }
   function baueSpiele(zuf) {
     var i, W = linien.wald.p;
-    [0.3, 0.52, 0.8].forEach(function (t) { stammAuf(linien.wald, Math.round(W.length * t), 3.4); });
-    stammAuf(linien.runde, 22, 3.2); stammAuf(linien.bach, 9, 3.2);
+    [0.3, 0.52, 0.8].forEach(function (t) { stammAuf(linien.wald, Math.round(W.length * t), 2.6); });
+    stammAuf(linien.runde, 22, 2.6); stammAuf(linien.bach, 9, 2.6);
     // der Baum, der vor den Augen umfällt (wird erst dann zum Hindernis)
-    var nr = Math.round(W.length * 0.115), S = stammAuf(linien.wald, nr, 3.6);
+    var nr = Math.round(W.length * 0.115), S = stammAuf(linien.wald, nr, 2.8);
     S.da = false; S.g.visible = false;
     var fb = new THREE.Group(), fx = S.x + S.tz * 4.2, fz = S.z - S.tx * 4.2; fb.position.set(fx, hoehe(fx, fz), fz); szene.add(fb);
     BAU.walze(0.3, 0.42, 7, 0x6b4a2a, fb, 0, 3.5, 0, 8); BAU.netz(new THREE.IcosahedronGeometry(2.3, 1), new THREE.MeshStandardMaterial({ color: 0x3f8f3a, roughness: 1, flatShading: true }), fb, 0, 7.6, 0);
@@ -564,12 +564,13 @@ WELTEN.ausritt = (function () {
       var laengs = dx * S.tx + dz * S.tz, quer = -dx * S.tz + dz * S.tx;
       if (Math.abs(quer) > S.lang + 0.4 || Math.abs(laengs) > 4.4) continue;
       var vor = Math.sin(r.kurs) * S.tx + Math.cos(r.kurs) * S.tz, hin = vor * laengs < 0;
-      if (!r.sprung && hin && Math.abs(vor) > 0.55 && r.tempo >= 3.1 && Math.abs(laengs) < 3.2 + r.tempo * 0.18) {
-        r.springe(5.2 + r.tempo * 0.25, 1.15);
+      var weit = 4.4 + r.tempo * 0.32;
+      if (!r.sprung && hin && Math.abs(vor) > 0.45 && r.tempo >= 1.6 && Math.abs(laengs) < weit / 2 + 0.15) {
+        r.springe(weit, 1.2);
         if (r === M && modus === 'ritt') { KERN.ton(300, 0.1, 'triangle', 0.12); if (!S.gesprungen) { S.gesprungen = true; lohn(2, '🪵 Hopp! Über den Baumstamm'); } }
       } else if (!r.sprung && Math.abs(laengs) < 0.95) {
         var seite = laengs >= 0 ? 1 : -1; r.x = S.x + S.tx * 0.95 * seite - S.tz * quer; r.z = S.z + S.tz * 0.95 * seite + S.tx * quer;
-        if (r === M && modus === 'ritt') { r.tempo = Math.min(r.tempo, 0.6); M.eigen = Math.min(M.eigen, 1.2); tipp('🪵 Ein Baumstamm! Im Trab oder Galopp springt dein Pferd drüber. Oder reite außen herum.'); }
+        if (r === M && modus === 'ritt') { r.tempo = Math.min(r.tempo, 0.6); M.eigen = Math.min(M.eigen, 1.2); tipp('🪵 Ein Baumstamm! Mit etwas Schwung springt dein Pferd von allein drüber. Oder reite außen herum.'); }
       }
     }
   }
@@ -1033,6 +1034,8 @@ WELTEN.ausritt = (function () {
     KERN.setzeHud(REITEN.kachel('Entdeckt', '⭐ ' + Object.keys(gefunden).length + ' / ' + ORTE.length) + REITEN.kachel('Tiere', '🔭 ' + Object.keys(gesehen).length + ' / ' + Object.keys(TIERNAMEN).length) +
       REITEN.kachel(modus === 'fuss' ? 'Unterwegs' : mein ? KERN.esc(mein.name) : 'Gang', modus === 'fuss' ? (fuehrt ? '🐴 führen' : '🥾 zu Fuß') : REITEN.GANG_NAME[M.gang]) +
       (slalom ? REITEN.kachel('Slalom', slalom.t.toFixed(1) + ' s') : REITEN.kachel('Zum Hof', pfeil + ' ' + Math.round(hofWeit / 10) * 10 + ' m')) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()));
+    bewegeSturm(dt);
+    if (radar) { radar.el.style.display = modus === 'ritt' || modus === 'fuss' ? 'block' : 'none'; radarZeit -= dt; if (radarZeit <= 0 && (modus === 'ritt' || modus === 'fuss')) { radarZeit = 0.12; zeichneRadar(); } }
   }
 
   // ---------- Spiele am See ----------
@@ -1216,6 +1219,7 @@ WELTEN.ausritt = (function () {
       if (!aktuell && Math.hypot(I.x + 72, I.z + 48) < 24) aktuell = { text: '🌸 Blume pflücken', tun: pfluecke };
     }
     if (mitPferd && !I.sitzt && !angel) {
+      if (amPferd && !(aktuell && aktuell.tun === steigeAuf)) zweitListe.push({ text: '🐴 Aufsteigen', tun: steigeAuf });      // neben dem Pferd kann man immer aufsteigen
       zweitListe.push(fuehrt ? { text: '🌿 Grasen lassen', tun: function () { fuehre(false); } } : { text: '🐴 Pferd führen', tun: function () { if (Math.hypot(I.x - M.x, I.z - M.z) > 14) { KERN.meldung('Geh erst zu ' + mein.name + ' zurück.', 'knapp'); return; } fuehre(true); } });
       zweitListe.push({ text: '🔄 Pferd wechseln', tun: waehlePferd });
     }
@@ -1229,6 +1233,7 @@ WELTEN.ausritt = (function () {
     modus = 'fertig';
     KERN.setzeAktion(null); REITEN.zweit(null); setzeHinweis(null);
     var n = Object.keys(gefunden).length, tiere = Object.keys(gesehen).length, id = mein && mein.def ? mein.id : startId;
+    if (sturmLauf && WETTER.gewitter()) { STAND.daten.wetterRest = 75; if (sturmLauf.t < 170 && !sturmLauf.lohn) { sturmLauf.lohn = true; lohn(6, '⛈️ Rechtzeitig vor dem Unwetter am Hof!'); } }
     STAND.speichere();
     KERN.klang('ziel');
     KERN.zeigeKarte('mitte', '<div class="klein">' + (mitPferd ? 'Ausritt' + (mitFreundin ? ' mit Lotte' : '') : 'Spaziergang') + '</div><h2>Das war schön!</h2>' +
@@ -1241,14 +1246,132 @@ WELTEN.ausritt = (function () {
   }
   function raeumeAuf() {
     if (modus === 'fuss' || ich.wurzel.parent !== szene) { if (ich.wurzel.parent) ich.wurzel.parent.remove(ich.wurzel); szene.add(ich.wurzel); }
-    modus = 'aus'; setzeHinweis(null); REITEN.zweit(null); rennen = null; slalom = null; if (zielFahne) zielFahne.visible = false;
+    modus = 'aus'; setzeHinweis(null); REITEN.zweit(null); if (radar) radar.el.style.display = 'none';
+    if (WETTER.gewitter() && !opt.hof) WETTER.setze(null, 'regen');          // ohne Hof gibt es keinen Stall zum Unterstellen
+    sturmLauf = null; rennen = null; slalom = null; if (zielFahne) zielFahne.visible = false;
+  }
+
+  // ---------- Radar oben in der Ecke und die große Landkarte ----------
+  var karteBild = null, radar = null, radarZeit = 0, KARTE_PX = 512, HOF_ORT = [0, -128];
+  function kx(x) { return (x - MITTE[0] + HALB) / (HALB * 2) * KARTE_PX; }
+  function kz(z) { return (z - MITTE[1] + HALB) / (HALB * 2) * KARTE_PX; }
+  function maleKarte() {
+    if (karteBild) return karteBild;
+    var N = 128, klein = document.createElement('canvas'); klein.width = klein.height = N;
+    var g = klein.getContext('2d'), bild = g.createImageData(N, N), c = new THREE.Color(), f2 = new THREE.Color(), i = 0;
+    for (var py = 0; py < N; py++) for (var px = 0; px < N; px++) {
+      var x = MITTE[0] - HALB + (px + 0.5) / N * HALB * 2, z = MITTE[1] - HALB + (py + 0.5) / N * HALB * 2, h = boden(x, z), fe = inFeld(x, z, 0), w = wald(x, z);
+      if (h < WASSER) c.setHex(0x5aa9e0);
+      else if (fe) c.setHex(fe[4]);
+      else { c.setHex(0x9bd66f).lerp(f2.setHex(0x6fae4f), Math.max(0, Math.min(1, (h - 1.5) / 14))); if (w) c.lerp(f2.setHex(0x2f7a3a), 0.75 * Math.min(1, w)); if (h > 17) c.lerp(f2.setHex(0xb9b6a8), Math.min(1, (h - 17) / 9)); }
+      c.convertLinearToSRGB();
+      bild.data[i++] = c.r * 255; bild.data[i++] = c.g * 255; bild.data[i++] = c.b * 255; bild.data[i++] = 255;
+    }
+    g.putImageData(bild, 0, 0);
+    karteBild = document.createElement('canvas'); karteBild.width = karteBild.height = KARTE_PX;
+    g = karteBild.getContext('2d');
+    g.imageSmoothingEnabled = true; g.drawImage(klein, 0, 0, KARTE_PX, KARTE_PX);
+    function zug(L, farbe, breit) { g.strokeStyle = farbe; g.lineWidth = breit; g.lineJoin = g.lineCap = 'round'; g.beginPath(); L.p.forEach(function (q, j) { if (j) g.lineTo(kx(q[0]), kz(q[1])); else g.moveTo(kx(q[0]), kz(q[1])); }); g.stroke(); }
+    zug(fluss, '#5aa9e0', 7);
+    zug(strasse, '#ffffff', 8); zug(strasse, '#8d9098', 5.5);
+    for (var k in linien) { zug(linien[k], '#8a6a3a', 4.2); zug(linien[k], '#f1dfae', 2.6); }
+    // der Hof im Norden
+    g.fillStyle = '#b5482f'; g.fillRect(kx(-14), kz(-146), 22, 12); g.fillStyle = '#7a3b12'; g.fillRect(kx(-2.5), kz(-131), 4, 6);
+    return karteBild;
+  }
+  function baueRadar() {
+    if (radar) return;
+    var el = document.createElement('div'); el.id = 'radar';
+    el.innerHTML = '<canvas width="264" height="264"></canvas><span>🗺️ Karte</span>';
+    document.body.appendChild(el);
+    el.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); zeigeLandkarte(); });
+    radar = { el: el, g: el.firstChild.getContext('2d') };
+  }
+  function ichOrt() { return modus === 'fuss' ? [I.x, I.z, kamW + Math.PI] : [M.x, M.z, M.kurs]; }
+  function pfeilAuf(g, x, y, kurs, gr, farbe) {
+    g.save(); g.translate(x, y); g.rotate(-kurs);            // Kurs 0 = nach Süden = auf der Karte nach unten
+    g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, gr * 1.35); g.lineTo(gr * 0.95, -gr); g.lineTo(0, -gr * 0.45); g.lineTo(-gr * 0.95, -gr); g.closePath(); g.fill();
+    g.fillStyle = farbe; g.beginPath(); g.moveTo(0, gr); g.lineTo(gr * 0.65, -gr * 0.7); g.lineTo(0, -gr * 0.3); g.lineTo(-gr * 0.65, -gr * 0.7); g.closePath(); g.fill();
+    g.restore();
+  }
+  function zeichneRadar() {
+    var g = radar.g, G = 264, m = G / 2, WEIT = 125, o = ichOrt(), ma = (m - 6) / WEIT, bild = maleKarte(), jeM = KARTE_PX / (HALB * 2);
+    g.clearRect(0, 0, G, G);
+    g.save(); g.beginPath(); g.arc(m, m, m - 6, 0, 6.2832); g.clip();
+    g.fillStyle = '#9bd66f'; g.fillRect(0, 0, G, G);
+    g.translate(m, m); g.scale(ma / jeM, ma / jeM); g.translate(-kx(o[0]), -kz(o[1]));
+    g.drawImage(bild, 0, 0);
+    g.restore();
+    function punkt(x, z) { return [m + (x - o[0]) * ma, m + (z - o[1]) * ma]; }
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    // goldene Sterne für Orte, die noch fehlen
+    ORTE.forEach(function (O) { var q = punkt(O[2], O[3]); if (Math.hypot(q[0] - m, q[1] - m) > m - 16) return; g.font = '22px sans-serif'; g.fillText(gefunden[O[0]] ? O[1].split(' ')[0] : '⭐', q[0], q[1]); });
+    if (mitFreundin) { var qf = modus === 'fuss' ? punkt(B.x, B.z) : punkt(F.x, F.z); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(qf[0], qf[1], 8, 0, 6.2832); g.fill(); g.fillStyle = '#e84393'; g.beginPath(); g.arc(qf[0], qf[1], 5.5, 0, 6.2832); g.fill(); }
+    // nach Hause: das Haus, am Rand wenn der Hof weiter weg ist
+    var qh = punkt(HOF_ORT[0], HOF_ORT[1]), dh = Math.hypot(qh[0] - m, qh[1] - m), rand = m - 24;
+    if (dh > rand) { qh = [m + (qh[0] - m) / dh * rand, m + (qh[1] - m) / dh * rand]; g.strokeStyle = '#e8413c'; g.lineWidth = 5; g.setLineDash([3, 9]); g.beginPath(); g.moveTo(m, m); g.lineTo(qh[0], qh[1]); g.stroke(); g.setLineDash([]); }
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(qh[0], qh[1], 19, 0, 6.2832); g.fill(); g.strokeStyle = '#e8413c'; g.lineWidth = 3.5; g.stroke();
+    g.font = '24px sans-serif'; g.fillText('🏡', qh[0], qh[1] + 1);
+    pfeilAuf(g, m, m, o[2], 13, '#2a6fd6');
+    var sturm = WETTER.gewitter();
+    g.strokeStyle = sturm && Math.sin(zeit * 7) > 0 ? '#e8413c' : '#fffaf0'; g.lineWidth = 7; g.beginPath(); g.arc(m, m, m - 5, 0, 6.2832); g.stroke();
+    g.fillStyle = '#7a3b12'; g.font = 'bold 22px sans-serif'; g.fillText('N', m, 22);
+  }
+  function zeigeLandkarte() {
+    if (modus !== 'ritt' && modus !== 'fuss') return;
+    var alt = modus; modus = 'karte';
+    M.eigen = 0; M.wunsch = 0;
+    var n = Object.keys(gefunden).length;
+    KERN.zeigeKarte('mitte', '<h2>🗺️ Landkarte</h2><canvas id="landkarte" width="720" height="720" style="width:100%;max-width:min(560px,62vh);border-radius:14px;display:block;margin:0 auto"></canvas>' +
+      '<div class="klein" style="margin-top:6px">🔵 du · 🏡 der Hof, dort geht es nach Hause · ⭐ noch nicht entdeckt (' + n + ' von ' + ORTE.length + ' gefunden) · oben ist Norden</div>',
+      [{ text: 'Weiter', aktion: function () { KERN.schliesseKarte(); modus = alt; } }]);
+    var c = document.getElementById('landkarte'), g = c.getContext('2d'), ma = 720 / KARTE_PX, o = alt === 'fuss' ? [I.x, I.z, kamW + Math.PI] : [M.x, M.z, M.kurs];
+    g.drawImage(maleKarte(), 0, 0, 720, 720);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    function schrift(text, x, y, gr) { g.font = 'bold ' + gr + 'px sans-serif'; g.lineWidth = 4; g.strokeStyle = 'rgba(255,250,240,0.92)'; g.strokeText(text, x, y); g.fillStyle = '#5a2c0c'; g.fillText(text, x, y); }
+    ORTE.forEach(function (O) {
+      var x = kx(O[2]) * ma, y = kz(O[3]) * ma, da = gefunden[O[0]], teile = O[1].split(' ');
+      g.font = '26px sans-serif'; g.fillText(da ? teile[0] : '⭐', x, y);
+      schrift(da ? teile.slice(1).join(' ').replace(/^(Der|Die|Das) /, '') : '?', Math.max(60, Math.min(660, x)), y + 22, da ? 15 : 17);
+    });
+    var hx = kx(HOF_ORT[0]) * ma, hy = kz(HOF_ORT[1]) * ma;
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(hx, hy, 19, 0, 6.2832); g.fill(); g.strokeStyle = '#e8413c'; g.lineWidth = 3; g.stroke();
+    g.font = '26px sans-serif'; g.fillText('🏡', hx, hy + 1); schrift('Pferdehof', hx + 68, hy, 16);
+    if (mitFreundin) { var fx = kx(alt === 'fuss' ? B.x : F.x) * ma, fy = kz(alt === 'fuss' ? B.z : F.z) * ma; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(fx, fy, 8, 0, 6.2832); g.fill(); g.fillStyle = '#e84393'; g.beginPath(); g.arc(fx, fy, 5.5, 0, 6.2832); g.fill(); }
+    var px = kx(o[0]) * ma, py = kz(o[1]) * ma;
+    g.strokeStyle = '#2a6fd6'; g.lineWidth = 3; g.beginPath(); g.arc(px, py, 22, 0, 6.2832); g.stroke();
+    pfeilAuf(g, px, py, o[2], 13, '#2a6fd6'); schrift('Du', px, py - 32, 16);
+    schrift('N', 700, 20, 20); schrift('▲', 700, 40, 14);
+  }
+
+  // ---------- Gewitter unterwegs: schnell nach Hause! ----------
+  var sturmIn = 1e9, sturmLauf = null, blitzHoerer = false;
+  function bewegeSturm(dt) {
+    if (modus !== 'ritt' && modus !== 'fuss') return;
+    if (!sturmLauf) {
+      sturmIn -= dt;
+      if (sturmIn > 0 || rennen || slalom || WETTER.gewitter() || WETTER.istNacht()) return;
+      sturmIn = 1e9; sturmLauf = { t: 0, ruf: 14 };
+      WETTER.setze(null, 'gewitter'); STAND.daten.wetterRest = 400;
+      KERN.meldung('⛈️ Ein Gewitter zieht auf! Schnell nach Hause!', 'rot'); STURM.donner(0.5, 0.8);
+      sage('Oh nein, da kommt ein Gewitter! Schnell nach Hause. Schau auf den Radar oben rechts: Das 🏡 zeigt den Weg.', 9);
+      return;
+    }
+    sturmLauf.t += dt; sturmLauf.ruf -= dt;
+    if (sturmLauf.ruf <= 0 && WETTER.gewitter()) { sturmLauf.ruf = 22; tipp('⛈️ Gewitter! Reite schnell nach Hause. Der Radar oben rechts zeigt dir, wo der Hof 🏡 ist.', 7); }
+    if (sturmLauf.t > 260 && WETTER.gewitter()) { WETTER.setze(null, 'wolken'); sturmLauf = null; KERN.meldung('🌦️ Das Gewitter ist vorbeigezogen.', 'gut'); }
+  }
+  function beiBlitz(x, z) {
+    if (KERN.welt() !== API || modus !== 'ritt' || !mitPferd || M.tempo < 1 || Math.random() < 0.45) return;
+    if (Math.hypot(x - M.x, z - M.z) > 190) return;
+    schreck = 0.8; KERN.meldung('😳 ' + mein.name + ' erschrickt vor dem Donner!', 'knapp'); SOUND.spiel('wiehern', 0.6, 1, 0.5);
   }
 
   var API = {
     name: '🌳 Ausritt',
     text: 'Ein Ausritt ins Grüne: Mit deiner Freundin Lotte reitest du frei durch Wiesen, Wälder und Felder, an den See und hinauf zum Gipfelkreuz. Zwölf Orte warten auf dich, dazu Tiere, Slalom, Ringstechen und Wettrennen. Du kannst überall absteigen, dein Pferd führen und das Pferd wechseln.',
     knopf: '🌳 Zum Ausritt',
-    klasse: 'welt-ausritt',
+    klasse: 'welt-ausritt', mitSturm: true,
     start: function (o) {
       opt = o || {};
       if (!gebaut) baue();
@@ -1271,6 +1394,10 @@ WELTEN.ausritt = (function () {
       aepfel.concat(hufeisen).forEach(function (a) { a.da = true; a.netz.visible = true; });
       pilze.forEach(function (p) { p.da = true; p.g.visible = true; }); ringe.forEach(function (r) { r.da = true; r.netz.visible = true; });
       staemme.forEach(function (s) { s.gesprungen = false; });
+      baueRadar(); radarZeit = 0;
+      if (WETTER.gewitter()) WETTER.setze(null, 'wolken');
+      sturmLauf = null; sturmIn = Math.random() < 0.4 ? 110 + Math.random() * 200 : 1e9;
+      if (!blitzHoerer) { blitzHoerer = true; STURM.beiBlitz(beiBlitz); }
       if (fallBaum) { fallBaum.t = -1; fallBaum.g.rotation.x = 0; fallBaum.stamm.da = false; }
       if (schafe) { schafe.zustand = 'links'; schafe.x = schafe.x0; schafe.z = schafe.z0; schafe.tiere.forEach(function (T) { T.x = schafe.x + T.dx; T.z = schafe.z + T.dz; }); }
       var sz = opt.vomHof ? -121 : START[1];
@@ -1294,13 +1421,15 @@ WELTEN.ausritt = (function () {
         '• Die Landschaft ist groß: See, Wälder mit Bergen, Felder, ein Bach, ein Dorf und eine Windmühle. Über zwölf Orten schwebt ein <b>goldener Stern</b>.<br>' +
         '• Unterwegs: <b>Tiere beobachten</b> (im Schritt kommst du näher), über <b>Baumstämme springen</b>, <b>Slalom</b>, <b>Ringstechen</b> und <b>Wettreiten</b> mit Lotte.<br>' +
         '• Wenn du anhältst, kannst du <b>absteigen</b> (Knopf rechts unten): dein Pferd <b>führen</b> oder grasen lassen, picknicken, angeln, Pilze sammeln, im Dorf ein Eis kaufen. Zu Fuß kannst du auch das <b>Pferd wechseln</b>.<br>' +
-        '• Oben steht immer, in welcher Richtung der Hof liegt. Am Hoftor geht es wieder nach Hause.</div>',
+        '• Oben rechts ist der <b>Radar</b>: Das 🏡 zeigt immer, wo es nach Hause geht. Tippst du darauf, geht die <b>🗺️ Landkarte</b> auf (auch mit Taste K).<br>' +
+        '• Zieht ein <b>⛈️ Gewitter</b> auf, heißt es: schnell nach Hause und die Pferde in den Stall!</div>',
         [{ text: 'Losreiten', aktion: beginne }, { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { var o2 = opt; raeumeAuf(); REITEN.heim(o2, null); } }]);
     },
     schritt: schritt, mitNacht: false,
     aktion: function () { if ((modus === 'ritt' || modus === 'fuss') && aktuell) aktuell.tun(); }, tipp: function () {},
     zurueck: function () { if ((modus === 'ritt' || modus === 'fuss') && dauer > 5) nachHause(); else { var o = opt; raeumeAuf(); REITEN.heim(o, null); } },
     verlaesst: function () { raeumeAuf(); },
+    landkarte: zeigeLandkarte, tasteGedrueckt: function (code) { if (code === 'KeyK') zeigeLandkarte(); }, sturm: function (sek) { sturmIn = sek; return sturmLauf; },
     zustand: function () { return { M: M, F: F, I: I, B: B, FO: FO, aktuell: aktuell, zweit: zweitListe, getan: getan, steg: STEG, gefunden: gefunden, gesehen: gesehen, modus: modus, orte: ORTE, aepfel: aepfel, linien: linien, boden: boden, hoehe: hoehe, herden: herden, traktoren: traktoren, tore: tore, ringe: ringe, staemme: staemme, rennen: rennen, fuehrt: fuehrt, mein: mein, ihr: ihr, stuecke: stuecke, fallBaum: fallBaum, setze: function (m) { for (var k in m) { if (k === 'rennPause') rennPause = m[k]; } } }; },
     steigeAb: steigeAb, steigeAuf: steigeAuf, fuehre: fuehre, tausche: tausche
   };

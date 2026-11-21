@@ -239,3 +239,9 @@ body.foto #kamKnoepfe, .im-welt.welt-hof.mit-werkzeug #kamKnoepfe { display: non
 @media (pointer: fine) { .im-welt.mit-tempo #zweitAktion { bottom: 170px; } }
 #werkzeuge button.blink { animation: blink 0.7s ease-in-out infinite alternate; border-color: #27ae60; }
 @keyframes blink { from { transform: scale(1); background: #fffaf0; } to { transform: scale(1.12); background: #c9f3d2; } }
+
+/* Radar beim Ausritt: oben rechts, zeigt den Weg nach Hause; antippen öffnet die Landkarte */
+#radar { display: none; position: fixed; top: 58px; right: 10px; width: 132px; z-index: 6; cursor: pointer; text-align: center; touch-action: none; -webkit-user-select: none; user-select: none; }
+#radar canvas { width: 132px; height: 132px; display: block; border-radius: 50%; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); }
+#radar span { display: inline-block; margin-top: 3px; padding: 2px 10px; border-radius: 10px; background: rgba(255, 250, 240, 0.9); font-size: 13px; font-weight: bold; color: #7a3b12; }
+@media (max-width: 700px), (max-height: 520px) { #radar { width: 104px; top: 54px; } #radar canvas { width: 104px; height: 104px; } #radar span { font-size: 11px; } }

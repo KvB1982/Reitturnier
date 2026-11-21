@@ -158,7 +158,7 @@ function baueFigur(outfit, opt) {
     }
     for (i = 0; i < frisur.children.length; i++) {
       var h = frisur.children[i];
-      if (h.name === 'wackel') h.rotation.x = Math.sin(gehPhase * 2) * 0.15 * gehStaerke;
+      if (h.name === 'wackel') h.rotation.x = Math.sin(gehPhase * 2) * 0.15 * gehStaerke + (typeof STURM !== 'undefined' ? STURM.wehen() * 0.9 : 0);
     }
     flatter += dt;
     for (i = 0; i < rumpfDeko.children.length; i++) {
