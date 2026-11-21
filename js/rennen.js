@@ -85,7 +85,7 @@ WELTEN.rennen = (function () {
     // Gegner
     for (var g = 0; g < 5; g++) {
       var tier = HERDE.bauePferd({ fell: FELLE[g], saat: 20 + g });
-      var o = KERN.zufallsOutfit();
+      var o = KERN.zufallsOutfit('maedchen');
       REITEN.reiterAuf(tier, o, 'rennsitz');
       tier.setzeSattel(true, o.jacke);
       szene.add(tier.wurzel);

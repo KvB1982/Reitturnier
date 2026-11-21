@@ -82,7 +82,7 @@ WELTEN.dressur = (function () {
     [-2.4, 2.4].forEach(function (x) { BAU.kasten(0.15, 2.4, 0.15, 0xf4f1e8, haus, x, 1.95, 1.4); BAU.kasten(0.15, 2.4, 0.15, 0xf4f1e8, haus, x, 1.95, -1.4); });
     var dach = BAU.netz(new THREE.ConeGeometry(4.2, 1.5, 4), 0xa9432f, haus, 0, 3.9, 0); dach.rotation.y = PI / 4;
     for (var r = 0; r < 3; r++) {
-      var richter = baueFigur(KERN.zufallsOutfit(), { helm: false });
+      var richter = baueFigur(KERN.zufallsOutfit(Math.random() < 0.5 ? 'frau' : 'mann'), { helm: false });
       richter.setzePose({ beinL: [-1.5, 0, 0], beinR: [-1.5, 0, 0], knieL: [1.5, 0, 0], knieR: [1.5, 0, 0], armL: [-0.7, 0, 0], armR: [-0.7, 0, 0], ellL: [-1.0, 0, 0], ellR: [-1.0, 0, 0], hoch: 0.55 }, true);
       richter.wurzel.position.set(-1.5 + r * 1.5, 0.75, 0.4); haus.add(richter.wurzel);
     }

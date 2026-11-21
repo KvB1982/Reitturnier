@@ -15,13 +15,15 @@ var MENSCHEN = { daten: {} };
 var MENSCH = (function () {
   'use strict';
   var AUS = false, fertig = {}, wartend = {};
-  try { AUS = localStorage.getItem('reitturnier_menschen') === 'false' || /[?&]ohnemenschen/.test(location.search); } catch (e) { /* egal */ }
+  try { AUS = localStorage.getItem('reitturnier_menschen') === 'false' || localStorage.getItem('reitturnier_modelle') === 'false' || /[?&]ohnemenschen/.test(location.search); } catch (e) { /* egal */ }
 
   // Welcher Koerper passt zu welcher Person? (outfit.art)
+  // Welche Frisur aus dem Spiel ist welche Datei? (modelle/menschen/haar_<name>.js)
+  var FRISUR = { zopf: 'zopf', hoch: 'zopf', zoepfe: 'zoepfe', kurz: 'kurz', lang: 'lang', dutt: 'dutt', flecht: 'flecht', locken: 'locken' };
   var ARTEN = { maedchen: 'maedchen', junge: 'junge', frau: 'frau', mann: 'mann' };
   var HUEFT_HOEHE = 0.78;      // so hoch sitzen die Hueftgelenke der Kloetzchen-Figur (Meter)
-  var KOPF = { mal: 1, hoch: 0, vor: 0 };      // Helm, Frisur und Schmuck am Kopf: Groesse und Verschiebung zum Nachstellen
-  var GROESSE = { maedchen: 1, junge: 1, frau: 1.1, mann: 1.16 };      // Erwachsene sind groesser als die Kinder
+  var KOPF = { mal: 1.25, hoch: -0.038, vor: 0.004 };      // Helm, Frisur und Schmuck am Kopf: Groesse und Verschiebung zum Nachstellen
+  var GROESSE = { maedchen: 1, junge: 1, frau: 1.12, mann: 1.2 };      // Erwachsene sind groesser als die Kinder
 
   function puffer(text) {
     var roh = atob(text), feld = new Uint8Array(roh.length);
@@ -30,7 +32,7 @@ var MENSCH = (function () {
   }
   function kurz(n) { return n.replace(/^mixamorig:?_?/, ''); }
 
-  // ---------- Vorlage laden (einmal je Koerper) ----------
+  // ---------- Datei laden (einmal je Koerper und je Frisur) ----------
   function lade(name, cb) {
     if (AUS || !THREE.GLTFLoader) return;
     if (fertig[name]) { cb(fertig[name]); return; }
@@ -42,13 +44,27 @@ var MENSCH = (function () {
       if (!MENSCHEN.daten[name]) return;
       new THREE.GLTFLoader().parse(puffer(MENSCHEN.daten[name]), '', function (g) {
         MENSCHEN.daten[name] = null;
-        fertig[name] = vorlage(g.scene, name);
+        fertig[name] = name.indexOf('haar_') === 0 ? haarVorlage(g.scene) : vorlage(g.scene, name);
         wartend[name].forEach(function (f) { f(fertig[name]); });
         wartend[name] = null;
-      }, function () { /* Datei kaputt: Kloetzchen bleiben */ });
+      }, function (f) { if (window.console) console.warn('Mensch ' + name + ' laesst sich nicht laden:', f && f.message || f); });
     };
     s.onerror = function () { /* Datei fehlt: Kloetzchen bleiben */ };
     document.head.appendChild(s);
+  }
+  function ausschneiden(m) {
+    // Haare, Brauen und Wimpern sind Bilder mit Loechern: hart ausschneiden, sonst flimmern sie
+    if (m.transparent || m.alphaTest > 0) { m.transparent = false; m.alphaTest = 0.35; m.depthWrite = true; m.side = THREE.DoubleSide; }
+    m.metalness = 0;
+  }
+  // Frisuren sind eigene Dateien ohne Knochen. Sie sitzen fest am Kopf-Gelenk und passen deshalb auf jeden Koerper.
+  function haarVorlage(szene) {
+    var V = { szene: szene, kopf: new THREE.Vector3(), kopfhoch: 0.2 };
+    szene.traverse(function (o) {
+      if (o.userData && o.userData.kopf) { V.kopf.fromArray(o.userData.kopf); V.kopfhoch = o.userData.kopfhoch || 0.2; }
+      if (o.isMesh) { ausschneiden(o.material); o.material.roughness = 0.9; o.castShadow = true; }
+    });
+    return V;
   }
 
   // Aus der geladenen Datei alles ausrechnen, was fuer jede Kopie gleich ist
@@ -56,7 +72,10 @@ var MENSCH = (function () {
     szene.updateMatrixWorld(true);
     var netze = [], knochen = [], K = {};
     szene.traverse(function (o) {
-      if (o.isSkinnedMesh) netze.push(o);
+      if (o.isSkinnedMesh) {
+        netze.push(o);
+        ausschneiden(o.material); o.material.roughness = 0.88;
+      }
       if (o.isBone) { knochen.push(o); K[kurz(o.name)] = o; }
     });
     var anker = K.Hips.parent;                      // der Knoten, an dem das Geruest haengt
@@ -69,34 +88,41 @@ var MENSCH = (function () {
       ruhe[n] = b.getWorldQuaternion(new THREE.Quaternion());
     });
     // Massstab: Hueftgelenke auf die Hoehe der Kloetzchen-Figur bringen
-    var boden = Infinity;
-    netze.forEach(function (m) { m.geometry.computeBoundingBox(); boden = Math.min(boden, m.geometry.boundingBox.min.clone().applyMatrix4(m.matrixWorld).y, m.geometry.boundingBox.max.clone().applyMatrix4(m.matrixWorld).y); });
+    // Wie hoch ist der Mensch? (mit den Knochen gerechnet: In der Datei stehen die Punkte verkleinert, erst die Knochen bringen sie auf ihre Groesse)
+    var boden = Infinity, kopfHoch = -Infinity;
+    netze.forEach(function (m) {
+      m.computeBoundingBox();
+      var k = m.boundingBox.clone().applyMatrix4(m.matrixWorld);
+      boden = Math.min(boden, k.min.y); kopfHoch = Math.max(kopfHoch, k.max.y);
+    });
     var hueftY = (ort.LeftUpLeg.y + ort.RightUpLeg.y) / 2 - boden;
-    var mass = HUEFT_HOEHE * (GROESSE[name] || 1) / hueftY;
+    var mass = HUEFT_HOEHE / hueftY;
     // Die Arme der Kloetzchen-Figur haengen in Ruhe gerade herunter, die von MakeHuman stehen schraeg ab.
     // "aus" dreht jeden Arm-Knochen so, dass er in Ruhe ebenfalls herunterhaengt.
     var UNTEN = new THREE.Vector3(0, -1, 0), aus = {};
     ['Left', 'Right'].forEach(function (S) {
       aus[S + 'Arm'] = new THREE.Quaternion().setFromUnitVectors(ort[S + 'ForeArm'].clone().sub(ort[S + 'Arm']).normalize(), UNTEN);
       aus[S + 'ForeArm'] = new THREE.Quaternion().setFromUnitVectors(ort[S + 'Hand'].clone().sub(ort[S + 'ForeArm']).normalize(), UNTEN);
+      // auch die Beine stehen bei MakeHuman etwas breit: gerade nach unten drehen
+      aus[S + 'UpLeg'] = new THREE.Quaternion().setFromUnitVectors(ort[S + 'Leg'].clone().sub(ort[S + 'UpLeg']).normalize(), UNTEN);
+      aus[S + 'Leg'] = new THREE.Quaternion().setFromUnitVectors(ort[S + 'Foot'].clone().sub(ort[S + 'Leg']).normalize(), UNTEN);
     });
     function p(n) { return ort[n].clone().multiplyScalar(mass); }
     var mitte = p('LeftUpLeg').add(p('RightUpLeg')).multiplyScalar(0.5);      // hier sitzt das Gelenk "huefte" der Kloetzchen-Figur
     function rel(a, b) { return p(a).sub(b ? p(b) : mitte); }
     function lang(a, b) { return ort[a].distanceTo(ort[b]) * mass; }
-    var kopfHoch = -Infinity;
-    netze.forEach(function (m) { kopfHoch = Math.max(kopfHoch, m.geometry.boundingBox.max.clone().applyMatrix4(m.matrixWorld).y, m.geometry.boundingBox.min.clone().applyMatrix4(m.matrixWorld).y); });
     return {
       name: name, szene: szene, mass: mass, ankerInv: ankerInv, ankerQ: ankerQ, ruhe: ruhe, aus: aus,
       hueftOrt: rel('Hips'),                      // Knochen "Hips" gegenueber dem Gelenk "huefte"
       // wohin die Gelenke der Kloetzchen-Figur rutschen, damit Haende, Kopf und Fuesse genau auf dem Menschen sitzen
       gelenk: {
-        kopf: rel('Head'),
-        armL: rel('LeftArm'), armR: rel('RightArm'),
+        rumpf: rel('Spine'),      // um diesen Punkt beugt sich der Oberkoerper
+        kopf: rel('Head', 'Spine'),
+        armL: rel('LeftArm', 'Spine'), armR: rel('RightArm', 'Spine'),
         ellL: lang('LeftArm', 'LeftForeArm'), ellR: lang('RightArm', 'RightForeArm'),
         handL: lang('LeftForeArm', 'LeftHand') + 0.06, handR: lang('RightForeArm', 'RightHand') + 0.06,
         beinL: rel('LeftUpLeg'), beinR: rel('RightUpLeg'),
-        knieL: rel('LeftLeg', 'LeftUpLeg'), knieR: rel('RightLeg', 'RightUpLeg')
+        knieL: lang('LeftUpLeg', 'LeftLeg'), knieR: lang('RightUpLeg', 'RightLeg')
       },
       kopfHoehe: (kopfHoch - ort.Head.y) * mass,      // vom Kopf-Gelenk bis zum Scheitel
       gross: (kopfHoch - boden) * mass
@@ -127,33 +153,39 @@ var MENSCH = (function () {
   // ---------- an eine Figur haengen ----------
   // F = { wurzel, huefte, G (Gelenke), teile (Netze aus Kloetzen), frisur, helm, opt }
   function haenge(F, outfit) {
-    var zustand = { da: false, folge: function () {}, farben: function () {}, art: null };
+    var zustand = { da: false, folge: function () {}, farben: function () {}, weg: function () { zustand.fort = true; }, art: null };
     if (AUS) return zustand;
     var art = ARTEN[(outfit && outfit.art) || (F.opt && F.opt.art)] || 'maedchen';
     zustand.art = art;
     lade(art, function (V) {
+      if (zustand.fort) return;
       var k = kopie(V), halter = new THREE.Group();
-      halter.scale.setScalar(V.mass);
+      var gs = GROESSE[art] || 1;      // Erwachsene: die ganze Figur waechst mit
+      halter.scale.setScalar(V.mass * gs);
+      F.G.ganz.scale.setScalar(gs);
       halter.add(k.wurzel);
       F.wurzel.add(halter);
       F.teile.forEach(function (t) { t.visible = false; });
       var G = F.G, gl = V.gelenk;
       // Gelenke der Kloetzchen-Figur auf den Menschen schieben
+      G.rumpf.position.copy(gl.rumpf);
       G.kopf.position.copy(gl.kopf);
       G.armL.position.copy(gl.armL); G.armR.position.copy(gl.armR);
       G.ellL.position.set(0, -gl.ellL, 0); G.ellR.position.set(0, -gl.ellR, 0);
       G.handL.position.set(0, -gl.handL, 0); G.handR.position.set(0, -gl.handR, 0);
       G.beinL.position.copy(gl.beinL); G.beinR.position.copy(gl.beinR);
-      G.knieL.position.copy(gl.knieL); G.knieR.position.copy(gl.knieR);
+      G.knieL.position.set(0, -gl.knieL, 0); G.knieR.position.set(0, -gl.knieR, 0);
       if (F.passe) F.passe(V);
 
       // Knochen heraussuchen: wer macht welches Gelenk nach?
       var B = {}, liste = [];
       k.wurzel.traverse(function (o) { if (o.isBone) B[kurz(o.name)] = o; });
-      var FOLGT = { Hips: 'huefte', Spine: 'rumpfH', Spine1: 'rumpf', Neck: 'kopfH', Head: 'kopf', LeftArm: 'armL', RightArm: 'armR', LeftForeArm: 'ellL', RightForeArm: 'ellR', LeftUpLeg: 'beinL', RightUpLeg: 'beinR', LeftLeg: 'knieL', RightLeg: 'knieR' };
+      // Der Ruecken beugt sich nur an einer Stelle (Spine) und der Kopf nur am Kopf-Gelenk - genau wie bei der Kloetzchen-Figur.
+      // So sitzen Helm, Haare und alles, was die Haende halten, immer genau richtig.
+      var FOLGT = { Hips: 'huefte', Spine: 'rumpf', Head: 'kopf', LeftArm: 'armL', RightArm: 'armR', LeftForeArm: 'ellL', RightForeArm: 'ellR', LeftUpLeg: 'beinL', RightUpLeg: 'beinR', LeftLeg: 'knieL', RightLeg: 'knieR' };
       // Reihenfolge von der Huefte nach aussen; dazwischen liegende Knochen (Schulter, Spine2) laufen einfach mit
       (function sammle(b, elter) {
-        var n = kurz(b.name), braucht = !!FOLGT[n] || n === 'Spine2' || n === 'LeftShoulder' || n === 'RightShoulder';
+        var n = kurz(b.name), braucht = !!FOLGT[n] || n === 'Spine1' || n === 'Spine2' || n === 'Neck' || n === 'LeftShoulder' || n === 'RightShoulder';
         var e = braucht ? { b: b, n: n, elter: elter, folgt: FOLGT[n] || null, ref: new THREE.Quaternion(), lokal: b.quaternion.clone(), w: new THREE.Quaternion() } : null;
         if (e) {
           // ref = Ruhe-Drehung im Rahmen des Ankers, bei den Armen vorher heruntergedreht
@@ -164,15 +196,13 @@ var MENSCH = (function () {
       })(B.Hips, null);
 
       var Q = {}, aq = V.ankerQ, aqi = aq.clone().invert(), t = new THREE.Quaternion(), v = new THREE.Vector3(), EINS = new THREE.Quaternion();
-      ['ganz', 'huefte', 'rumpf', 'rumpfH', 'kopf', 'kopfH', 'armL', 'armR', 'ellL', 'ellR', 'beinL', 'beinR', 'knieL', 'knieR'].forEach(function (n) { Q[n] = new THREE.Quaternion(); });
+      ['ganz', 'huefte', 'rumpf', 'kopf', 'armL', 'armR', 'ellL', 'ellR', 'beinL', 'beinR', 'knieL', 'knieR'].forEach(function (n) { Q[n] = new THREE.Quaternion(); });
       zustand.folge = function () {
         // Drehung jedes Gelenks, gesehen von der Wurzel der Figur
         Q.ganz.copy(G.ganz.quaternion);
         Q.huefte.copy(Q.ganz).multiply(F.huefte.quaternion);
         Q.rumpf.copy(Q.huefte).multiply(G.rumpf.quaternion);
-        Q['rumpfH'].copy(Q.huefte).slerp(Q.rumpf, 0.5);
         Q.kopf.copy(Q.rumpf).multiply(G.kopf.quaternion);
-        Q['kopfH'].copy(Q.rumpf).slerp(Q.kopf, 0.5);
         Q.armL.copy(Q.rumpf).multiply(G.armL.quaternion); Q.ellL.copy(Q.armL).multiply(G.ellL.quaternion);
         Q.armR.copy(Q.rumpf).multiply(G.armR.quaternion); Q.ellR.copy(Q.armR).multiply(G.ellR.quaternion);
         Q.beinL.copy(Q.huefte).multiply(G.beinL.quaternion); Q.knieL.copy(Q.beinL).multiply(G.knieL.quaternion);
@@ -185,20 +215,41 @@ var MENSCH = (function () {
         }
         // Ort der Huefte
         v.copy(V.hueftOrt).applyQuaternion(Q.huefte);
-        v.add(t3.copy(F.huefte.position).applyQuaternion(Q.ganz)).add(G.ganz.position);
+        v.add(t3.copy(F.huefte.position).applyQuaternion(Q.ganz)).add(t3.copy(G.ganz.position).divideScalar(gs));
         B.Hips.position.copy(v.divideScalar(V.mass).applyMatrix4(V.ankerInv));
       };
       var t3 = new THREE.Vector3();
 
       // Farben: Jacke, Hose, Stiefel und Haare bekommen die Farbe aus dem Outfit
       var FARBE = { oberteil: 'jacke', hose: 'hose', schuhe: 'stiefel', haare: 'haare', brauen: 'haare' };
+      var haar = new THREE.Group(), haarName = null, haarMat = null;
+      G.kopf.add(haar);
+      F.frisur.visible = false;      // die Frisur aus Kloetzen bleibt weg, der Mensch hat echte Haare
+      function setzeHaar(name, farbe) {
+        if (name !== haarName) {
+          haarName = name;
+          lade('haar_' + name, function (H) {
+            if (haarName !== name) return;
+            while (haar.children.length) haar.remove(haar.children[0]);
+            var kopie = H.szene.clone(true);
+            kopie.position.copy(H.kopf).negate();
+            haar.add(kopie);
+            haar.scale.setScalar(V.kopfHoehe / H.kopfhoch);      // auf die Groesse dieses Kopfes bringen
+            kopie.traverse(function (o) { if (o.isMesh) { o.material = haarMat = o.material.clone(); } });
+            if (zustand.haarFarbe) haarMat.color.set(zustand.haarFarbe);
+          });
+        }
+        zustand.haarFarbe = farbe;
+        if (haarMat && farbe) haarMat.color.set(farbe);
+      }
       zustand.farben = function (o) {
         k.netze.forEach(function (m) {
           var teil = (m.material.name || '').split('_')[0], schluessel = FARBE[teil];
-          if (schluessel && o[schluessel]) { m.material.color.set(o[schluessel]); if (teil === 'brauen') m.material.color.multiplyScalar(0.6); }
-          if (teil === 'haare') m.visible = !(F.eigeneFrisur && F.eigeneFrisur());
+          if (schluessel && o[schluessel]) { m.material.color.set(o[schluessel]); if (teil === 'brauen') m.material.color.multiplyScalar(0.55); }
         });
+        setzeHaar(art === 'junge' || art === 'mann' ? 'kurzj' : FRISUR[o.frisur] || 'kurz', o.haare);
       };
+      zustand.weg = function () { zustand.fort = true; F.wurzel.remove(halter); G.kopf.remove(haar); zustand.folge = zustand.farben = function () {}; };
       zustand.netze = k.netze; zustand.halter = halter; zustand.V = V;
       zustand.da = true;
       if (F.outfit()) zustand.farben(F.outfit());

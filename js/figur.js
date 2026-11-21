@@ -161,6 +161,8 @@ function baueFigur(outfit, opt) {
     MODE.koerper(rumpfDeko, o, { y: 0.27, b: 0.144, t: 0.098, hals: 0.5 });
     if (opt.helm === false) helm.visible = !!o.kappeAuf;
     aktOutfit = o;
+    // Maedchen oder Junge gewechselt: den anderen Koerper holen
+    if (mensch && o.art && o.art !== menschArt) { menschArt = o.art; mensch.weg(); mensch = menschHolen(o); }
     if (mensch) mensch.farben(o);
   }
   // Der echte Mensch (js/mensch.js) ersetzt die Kloetze, sobald er geladen ist. Die Gelenke bleiben und bewegen ihn.
@@ -170,17 +172,18 @@ function baueFigur(outfit, opt) {
     if (o.isMesh) teile.push(o);
     o.children.forEach(sammle);
   })(ganz);
-  var mensch = MENSCH.haenge({
-    wurzel: wurzel, huefte: huefte, G: G, teile: teile, opt: opt,
+  var menschArt = (outfit && outfit.art) || opt.art || 'maedchen';
+  function menschHolen(o) { return MENSCH.haenge({
+    wurzel: wurzel, huefte: huefte, G: G, teile: teile, opt: opt, frisur: frisur,
     outfit: function () { return aktOutfit; },
     // Helm, Frisur und Schmuck sitzen am Kopf-Gelenk: auf die Groesse des echten Kopfes bringen
     passe: function (V) {
       var k = V.kopfHoehe / 0.215;
-      [frisur, helm, kopfDeko].forEach(function (g) { g.scale.setScalar(k * MENSCH.KOPF.mal); g.position.set(0, MENSCH.KOPF.hoch * k, MENSCH.KOPF.vor * k); });
+      [helm, kopfDeko].forEach(function (g) { g.scale.setScalar(k * MENSCH.KOPF.mal); g.position.set(0, MENSCH.KOPF.hoch * k, MENSCH.KOPF.vor * k); });
       rumpfDeko.position.y = G.armL.position.y - 0.43;
-    },
-    eigeneFrisur: function () { return frisur.visible; }
-  }, outfit);
+    }
+  }, o); }
+  var mensch = menschHolen(outfit);
   if (outfit) setzeOutfit(outfit);
 
   // ---------- Bewegung ----------
@@ -297,7 +300,7 @@ function baueFigur(outfit, opt) {
   }
   return {
     wurzel: wurzel, huefte: huefte, gelenke: G, material: M,
-    setzeOutfit: setzeOutfit, setzePose: setzePose, gehe: gehe, bewege: bewege, spiele: spiele, mensch: mensch,
+    setzeOutfit: setzeOutfit, setzePose: setzePose, gehe: gehe, bewege: bewege, spiele: spiele, mensch: function () { return mensch; },
     spielt: function () { return !!mcClip; },
     setzeHelm: function (an) { helm.visible = !!an; },
     setzeHoehe: function (y, sofort) { hoeheZiel = y; if (sofort) { hoeheIst = y; huefte.position.y = y; } }

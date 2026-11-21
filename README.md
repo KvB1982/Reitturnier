@@ -95,4 +95,6 @@ Die Gebäude, Bäume, Möbel, Tiere und Fahrzeuge in `modelle/umwelt/` (Stall, W
 
 Die Bewegungen der Figuren (Gehen, Laufen, Stehen, Umschauen, Aufstehen, Gymnastik) in `js/bewegungen.js` stammen aus Motion-Capture-Aufnahmen von [Mixamo](https://www.mixamo.com) und wurden auf die Gelenke der Spielfigur umgerechnet.
 
+Die Menschen in `modelle/menschen/` (Mädchen, Junge, Frau, Mann und acht Frisuren) sind mit [MakeHuman / MPFB](http://www.makehumancommunity.org) gebaut: Körper, Haut, Augen, Haare und Kleidung aus den CC0-Paketen (makehuman_system_assets, hair01, shirts01, pants01, shoes01). Wie sie entstehen und ins Spiel kommen, steht in `tools/figur/LIESMICH.md`.
+
 Die 3D-Bibliothek [three.js](https://threejs.org) steht unter der MIT-Lizenz, siehe `js/three-LICENSE.txt`.

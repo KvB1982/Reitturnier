@@ -311,7 +311,7 @@ WELTEN.ausritt = (function () {
     M = REITEN.neu(meins, { hoehe: hoehe, grenze: grenze, herde: true, drehung: 1.7, beschleunigung: 3.5 });
     F = REITEN.neu(freund, { hoehe: hoehe, grenze: grenze, herde: true, drehung: 2.2, laut: 0.4, beschleunigung: 4.5 });
     ich = baueFigur(KERN.spieler().outfit, { helm: true }); szene.add(ich.wurzel);
-    freundin = baueFigur({ jacke: '#c0392b', hose: '#f4f1e8', stiefel: '#2a1c12', haare: '#5a3a1e', helm: '#1c1c1c', frisur: 'zoepfe' }, { helm: true }); szene.add(freundin.wurzel);
+    freundin = baueFigur({ jacke: '#c0392b', hose: '#f4f1e8', stiefel: '#2a1c12', haare: '#5a3a1e', helm: '#1c1c1c', frisur: 'zoepfe', art: 'maedchen' }, { helm: true }); szene.add(freundin.wurzel);
     I = { x: 0, z: 0, kurs: 0, phase: 0, tempo: 0, sitzt: null, pose: null, poseZeit: 0 };
     B = { x: 0, z: 0, kurs: 0, phase: 0 };
     FO = { x: 0, z: 0, kurs: 0, tempo: 0, phase: 0, ziel: [0, 0], warte: 0, sprung: -1 };
@@ -418,7 +418,7 @@ WELTEN.ausritt = (function () {
     var schirm = BAU.netz(new THREE.ConeGeometry(1.9, 0.7, 8), 0xff6fae, eis, 0, 2.6, 0);
     [0xff8fc0, 0xfff3c4, 0x8a5a33].forEach(function (f, n) { BAU.netz(new THREE.SphereGeometry(0.14, 8, 6), f, eis, -0.5 + n * 0.5, 1.2, 0.1); });
     var et = BAU.tafel('🍦 Eis', 0.5, { farbe: '#c2185b' }); et.position.set(0, 3.3, 0); eis.add(et); var et2 = et.clone(); et2.rotation.y = Math.PI; eis.add(et2);
-    var eisfrau = baueFigur({ jacke: '#ffffff', hose: '#ff8fc0', stiefel: '#2a1c12', haare: '#d9a55a', frisur: 'dutt' }, { helm: false });
+    var eisfrau = baueFigur({ jacke: '#ffffff', hose: '#ff8fc0', stiefel: '#2a1c12', haare: '#d9a55a', frisur: 'dutt', art: 'frau' }, { helm: false });
     eisfrau.wurzel.position.set(0, 0, -0.9); eis.add(eisfrau.wurzel); eisfrau.setzePose('winken', true);
     sperre(-200, 384, 1.6);
     // der Pferdehof im Norden: Tor, Zaun und dahinter Stall und Wohnhaus
@@ -485,7 +485,7 @@ WELTEN.ausritt = (function () {
       [[-0.95, -0.8, 0.95], [0.95, -0.8, 0.95], [-0.85, 1.4, 0.55], [0.85, 1.4, 0.55]].forEach(function (r) { var rad = BAU.walze(r[2], r[2], 0.45, 0x222222, g, r[0], r[2], r[1], 14); rad.rotation.z = Math.PI / 2; });
       BAU.walze(0.08, 0.08, 1.1, 0x3a3a3a, g, 0.5, 2.3, 1.1, 6);
       MODELLE3D.setze('traktor', g, { dreh: Math.PI / 2, laenge: 5.2, statt: g.children.slice() });
-      var bauer = baueFigur({ jacke: nr ? '#d4a017' : '#2f6fb5', hose: '#3d4046', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'kurz', helm: '#5a7a2a' }, { helm: true });
+      var bauer = baueFigur({ jacke: nr ? '#d4a017' : '#2f6fb5', hose: '#3d4046', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'kurz', helm: '#5a7a2a', art: 'mann' }, { helm: true });
       bauer.setzePose('bank', true); bauer.wurzel.position.set(0, 1.55, -0.55); bauer.wurzel.scale.setScalar(0.95); g.add(bauer.wurzel);
       if (!nr) { for (var j = 0; j < 5; j++) BAU.kasten(0.1, 0.7, 0.5, 0x6b6f76, g, -1.2 + j * 0.6, 0.3, -2.6); BAU.kasten(2.8, 0.12, 0.12, 0x6b6f76, g, 0, 0.75, -2.5); }
       traktoren.push({ g: g, bauer: bauer, nr: nr, s: nr ? 30 : 0, x: 0, z: 0, kurs: 0, hin: 1, spur: 0, gruss: 0 });

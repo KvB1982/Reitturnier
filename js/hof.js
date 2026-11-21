@@ -495,7 +495,7 @@ WELTEN.hof = (function () {
       null
     ];
     namen.forEach(function (name, i) {
-      var o = KERN.zufallsOutfit();
+      var o = KERN.zufallsOutfit('maedchen');
       var f = baueFigur(o, { helm: i === 2 });
       var M = { name: name, figur: f, weg: wege[i], schritt: 0, warte: 0, x: i === 0 ? 6 : -8, z: i === 0 ? 0 : 0.6, kurs: 0, phase: 0, gruss: 0, tempo: 0 };
       M.last = new THREE.Group(); f.gelenke.rumpf.add(M.last); M.last.position.set(0, 0.2, 0.3);

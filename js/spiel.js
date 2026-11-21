@@ -768,12 +768,14 @@
   // ============================================================
   //  TURNIER  (mehrere Spieler + Computergegner, Stechen, Siegerehrung)
   // ============================================================
-  function zufallsOutfit() {
+  // art = 'maedchen', 'junge', 'frau' oder 'mann'; ohne Angabe ein Kind (meist ein Maedchen)
+  function zufallsOutfit(art) {
     var o = {};
     AUSWAHL.forEach(function (a) {
       var liste = a.farben || a.werte.map(function (w) { return w[0]; });
       o[a.key] = liste[Math.floor(Math.random() * liste.length)];
     });
+    o.art = art || (Math.random() < 0.35 ? 'junge' : 'maedchen');
     return o;
   }
 
@@ -786,7 +788,7 @@
     var anzahl = gegnerAnzahl;
     if (teilnehmer.length + anzahl < 2) anzahl = 1;      // allein kann man kein Turnier reiten
     for (var i = 0; i < anzahl; i++) {
-      teilnehmer.push({ name: namen[i], outfit: zufallsOutfit(), ki: stufe, erg: null, stech: null });
+      teilnehmer.push({ name: namen[i], outfit: zufallsOutfit('maedchen'), ki: stufe, erg: null, stech: null });
     }
     T = { teilnehmer: teilnehmer, liste: teilnehmer.map(function (t, k) { return k; }), pos: 0, stechen: false };
     naechsterReiter();
@@ -990,7 +992,7 @@
       var plus = document.createElement('button');
       plus.type = 'button'; plus.className = 'wahl'; plus.textContent = '+ Mitspieler';
       plus.addEventListener('click', function () {
-        spieler.push({ name: 'Spieler ' + (spieler.length + 1), outfit: zufallsOutfit(), siege: 0 });
+        spieler.push({ name: 'Spieler ' + (spieler.length + 1), outfit: zufallsOutfit('maedchen'), siege: 0 });
         aktiv = spieler.length - 1;
         speichereSpieler(); baueMenue();
       });

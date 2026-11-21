@@ -74,7 +74,7 @@ var HOFLEBEN = (function () {
     MODELLE3D.setze('tierarztauto', wagen, { z: 0.3, dreh: -Math.PI / 2, breite: 5.2, statt: wagen.children.slice() });
     H.waende.push([ARZT[0] + 2.1, ARZT[1] - 3.4, ARZT[0] + 4.3, ARZT[1] + 2.2]);
     var t1 = BAU.wegweiser('🩺 Tierärztin', { hoehe: 0.7, fuss: 1.9 }); t1.position.set(ARZT[0] - 3.2, 0, ARZT[1] - 2.6); s.add(t1);
-    arzt = baueFigur({ jacke: '#ffffff', hose: '#3a7bd5', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'kurz' }, { helm: false });
+    arzt = baueFigur({ jacke: '#ffffff', hose: '#3a7bd5', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'dutt', art: 'frau' }, { helm: false });
     arzt.wurzel.position.set(ARZT[0] + 1.2, 0, ARZT[1] - 0.6); arzt.wurzel.rotation.y = -0.6; s.add(arzt.wurzel);
     var n1 = BAU.schwebeText('Dr. Sommer', 0.3, { schrift: 40 }); n1.position.y = 1.95; arzt.wurzel.add(n1);
     BAU.kasten(0.5, 0.35, 0.3, 0x8a5a33, s, ARZT[0] + 1.3, 0.18, ARZT[1] + 0.6);
@@ -89,7 +89,7 @@ var HOFLEBEN = (function () {
     MODELLE3D.setze('schmiede', sm, { x: -0.7, z: 0.2, dreh: Math.PI / 2, laenge: 2.0, statt: amboss });
     H.waende.push([SCHMIED[0] + 0.6, SCHMIED[1] - 3.1, SCHMIED[0] + 4.6, SCHMIED[1] + 0.1]);
     var t2 = BAU.wegweiser('🔨 Hufschmied', { hoehe: 0.7, fuss: 1.9 }); t2.position.set(SCHMIED[0] - 3.2, 0, SCHMIED[1] - 3); s.add(t2);
-    schmied = baueFigur({ jacke: '#5a3a1e', hose: '#3d4046', stiefel: '#2a1c12', haare: '#2a1c12', frisur: 'kurz' }, { helm: false });
+    schmied = baueFigur({ jacke: '#5a3a1e', hose: '#3d4046', stiefel: '#2a1c12', haare: '#2a1c12', frisur: 'kurz', art: 'mann' }, { helm: false });
     schmied.wurzel.position.set(SCHMIED[0] + 0.9, 0, SCHMIED[1] + 0.9); schmied.wurzel.rotation.y = -0.8; s.add(schmied.wurzel);
     var n2 = BAU.schwebeText('Meister Eisen', 0.3, { schrift: 40 }); n2.position.y = 1.95; schmied.wurzel.add(n2);
 

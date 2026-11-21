@@ -8,6 +8,7 @@
 
 // ---------- Ankleiden: was man auswaehlen kann ----------
 var AUSWAHL = [
+  { key: 'art', name: 'Ich bin', werte: [['maedchen', 'Mädchen'], ['junge', 'Junge']] },
   { key: 'jacke', name: 'Jacke', farben: ['#1f3a93', '#c0392b', '#111111', '#e84393', '#27ae60', '#8e44ad', '#f5f5f5'] },
   { key: 'hose', name: 'Reithose', farben: ['#f5f0e1', '#d9c7a0', '#3d3d3d', '#5d7ea8', '#f8c9dc'] },
   { key: 'helm', name: 'Helm', farben: ['#111111', '#1f3a93', '#6c3483', '#e84393', '#7b4a2a'] },
@@ -22,7 +23,7 @@ var AUSWAHL = [
 // Das ist am Anfang angezogen
 var START_OUTFIT = {
   jacke: '#1f3a93', hose: '#f5f0e1', helm: '#111111', stiefel: '#151515',
-  haare: '#e6c35c', frisur: 'zopf', fell: '#8b5a2b', gesicht: 'blesse', decke: '#e84393'
+  haare: '#e6c35c', frisur: 'zopf', art: 'maedchen', fell: '#8b5a2b', gesicht: 'blesse', decke: '#e84393'
 };
 
 // ---------- Sprung-Timing ----------
