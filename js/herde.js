@@ -319,14 +319,20 @@ var HERDE = (function () {
       for (var i = 0; i < n; i++) {
         if (schmutz[i] <= grenze) continue;
         var dx = ruhe[i * 3] - px, dy = ruhe[i * 3 + 1] - py, dz = ruhe[i * 3 + 2] - pz, d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 > r2) continue;
+        if (d2 > r2 || ruhe[i * 3] * px < -0.0009) continue;     // nur die Seite, auf der man gerade putzt
         var ab = Math.min(schmutz[i] - grenze, staerke * (1 - d2 / r2));
         schmutz[i] -= ab; weg += ab;
       }
       if (weg > 0) male();
       return weg;
     }
-    return { netz: netz, setzeFell: setzeFell, setzeSchmutz: setzeSchmutz, schmutzGrad: schmutzGrad, putze: putze };
+    // Schmutz nur auf einer Seite: seite > 0 oder < 0 (x im Ruhezustand)
+    function schmutzSeite(seite) {
+      var summe = 0, zahl = 0;
+      for (var i = 0; i < n; i += 3) if (ruhe[i * 3] * seite > 0.03) { summe += schmutz[i]; zahl++; }
+      return zahl ? Math.min(1, summe / zahl / 0.76) : 0;
+    }
+    return { netz: netz, setzeFell: setzeFell, setzeSchmutz: setzeSchmutz, schmutzGrad: schmutzGrad, schmutzSeite: schmutzSeite, putze: putze };
   }
 
   // ---------- Ausruestung, die an Knochen haengt ----------

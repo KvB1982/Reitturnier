@@ -142,7 +142,9 @@ var BAU = (function () {
   }
 
   // Baeume als InstancedMesh: liste = [[x, y, z, groesse, art], ...]  art: 0 Laubbaum, 1 Tanne
-  function wald(liste) {
+  // opt: { fern: true (immer die ganz einfachen Baeume), schatten: false }
+  function wald(liste, opt) {
+    opt = opt || {};
     var g = new THREE.Group();
     var laub = liste.filter(function (b) { return !b[4]; }), tanne = liste.filter(function (b) { return b[4]; });
     var d = new THREE.Object3D();
@@ -168,7 +170,7 @@ var BAU = (function () {
     });
     // schoenere Baeume als 3D-Modelle; die einfachen bleiben stehen, bis alles geladen ist
     if (typeof MODELLE3D !== 'undefined' && !MODELLE3D.aus()) {
-      var alt = g.children.slice(), offen = 0, fern = liste.length > 120 ? '_xl' : '_l', sorten = {};   // grosse Waelder bekommen die ganz einfachen Baeume
+      var alt = g.children.slice(), offen = 0, fern = liste.length > 120 || opt.fern ? '_xl' : '_l', sorten = {};   // grosse Waelder bekommen die ganz einfachen Baeume
       sorten['eiche' + fern] = [[], 5.8]; sorten['birke' + fern] = [[], 6.4]; sorten['tanne' + fern] = [[], 6.8];
       laub.forEach(function (b, i) { sorten[(i % 4 === 3 ? 'birke' : 'eiche') + fern][0].push(b); });
       tanne.forEach(function (b) { sorten['tanne' + fern][0].push(b); });
@@ -176,7 +178,7 @@ var BAU = (function () {
         if (!sorten[n][0].length) return;
         offen++;
         MODELLE3D.streue(n, g, sorten[n][0], sorten[n][1], function (neu) {
-          if (liste.length > 450) neu.children.forEach(function (t) { t.castShadow = false; });     // ferne Landschaft: Schatten sparen
+          if (liste.length > 450 || opt.schatten === false) neu.children.forEach(function (t) { t.castShadow = false; });     // ferne Landschaft: Schatten sparen
           if (--offen === 0) alt.forEach(function (a) { a.visible = false; });
         });
       });
@@ -351,5 +353,30 @@ var REITEN = (function () {
   }
   function pferdName(opt) { return opt && opt.pferd ? opt.pferd.name : 'dein Pferd'; }
 
-  return { heim: heim, heimText: heimText, reiterAuf: reiterAuf, tabelle: tabelle, pferdName: pferdName, neu: neu, neueKamera: neueKamera, folge: folge, lenkung: lenkung, gas: gas, outfitMit: outfitMit, countdown: countdown, GANG_NAME: GANG_NAME, messer: messer, kachel: kachel };
+  // Weitere Knöpfe neben dem großen Aktionsknopf (Absteigen, Aufsteigen, Mistgabel weglegen ...).
+  // liste = [{ text, tun }] oder null. Tasten: F, V, B. Jede Welt ruft das in jedem Bild auf.
+  var zweitKasten = null, zweitListe = [], zweitText = '';
+  function zweit(liste) {
+    liste = (liste || []).filter(function (e) { return e && e.text; }).slice(0, 3);
+    var text = liste.map(function (e) { return e.text; }).join('|');
+    zweitListe = liste;
+    if (text === zweitText) return;
+    zweitText = text;
+    if (!zweitKasten) { zweitKasten = document.createElement('div'); zweitKasten.id = 'zweitAktion'; document.body.appendChild(zweitKasten); }
+    zweitKasten.innerHTML = '';
+    document.body.classList.toggle('mit-zweit', liste.length > 0);
+    liste.forEach(function (e, i) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.innerHTML = KERN.esc(e.text) + '<small>' + 'FVB'.charAt(i) + '</small>';
+      b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); if (zweitListe[i]) zweitListe[i].tun(); });
+      zweitKasten.appendChild(b);
+    });
+  }
+  window.addEventListener('keydown', function (e) {
+    if (e.repeat || (e.target && e.target.tagName === 'INPUT') || !zweitListe.length || !KERN.welt()) return;
+    var i = ['KeyF', 'KeyV', 'KeyB'].indexOf(e.code);
+    if (i >= 0 && zweitListe[i] && document.getElementById('karte').className.indexOf('offen') < 0) zweitListe[i].tun();
+  });
+
+  return { zweit: zweit, heim: heim, heimText: heimText, reiterAuf: reiterAuf, tabelle: tabelle, pferdName: pferdName, neu: neu, neueKamera: neueKamera, folge: folge, lenkung: lenkung, gas: gas, outfitMit: outfitMit, countdown: countdown, GANG_NAME: GANG_NAME, messer: messer, kachel: kachel };
 })();

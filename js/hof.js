@@ -25,7 +25,8 @@ WELTEN.hof = (function () {
     gelaende: { tor: [36, 44] },
     weide: { tor: [-17, -2], platz: [-48, -14, -18, 6] },
     futter: { hafer: [1.2, -5.6], heu: [4, -5.6], moehre: [6.8, -5.6] },
-    laden: [4, 5.2], mist: [-16, -9]
+    laden: [4, 5.2], mist: [-16, -9],
+    putzplatz: { mitte: [-9, 14.3] }, ausritt: { tor: [0, 46.5] }
   };
 
   // ---------- Bauen ----------
@@ -76,7 +77,7 @@ WELTEN.hof = (function () {
       return f;
     }
     flaeche(-16, -9, 18, 11, 0xd9c9a3);                       // Hofplatz rund um den Stall
-    flaeche(-3, 11, 3, 46, 0xd9c9a3);                         // Weg nach Sueden
+    flaeche(-3, 11, 3, 78, 0xd9c9a3);                         // Weg nach Sueden, durch das Tor hinaus ins Gruene
     flaeche(-22, 20, 22, 24, 0xd9c9a3);                       // Querweg zu den Plaetzen
     flaeche(-36, 42, 38, 46, 0xd9c9a3);                       // Weg zu Rennbahn und Gelaende
     flaeche(STALL.x0, STALL.z0, STALL.x1, STALL.z1, 0xb9a98a, 0.03);   // Stallboden
@@ -102,7 +103,7 @@ WELTEN.hof = (function () {
     baueMaedchen();
     var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
       frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
-      inBoxVon: inBoxVon, mistModell: function () { return orte.mistModell; }, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
+      inBoxVon: inBoxVon, boxen: boxen, fuettereWagen: fuettereWagen, mistModell: function () { return orte.mistModell; }, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
     HOFLEBEN.baue(ctx);
     HOFTAG.baue(ctx);
     gebaut = true;
@@ -264,8 +265,11 @@ WELTEN.hof = (function () {
     }
     torbogen(ORT.rennbahn.tor[0], ORT.rennbahn.tor[1] + 2.5, '🏁 Galopprennbahn', 0x2f6fb5);
     torbogen(ORT.gelaende.tor[0], ORT.gelaende.tor[1] + 2.5, '🌲 Geländestrecke', 0x2f7d3a);
-    szene.add(BAU.zaun([[-60, 47], [-37, 47]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[-31, 47], [33, 47]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[39, 47], [62, 47]], { farbe: 0x8a5a33 }));
-    waende.push([-60, 46.8, -36.8, 47.2], [-31.2, 46.8, 33.2, 47.2], [38.8, 46.8, 62, 47.2]);
+    szene.add(BAU.zaun([[-60, 47], [-37, 47]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[-31, 47], [-3.4, 47]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[3.4, 47], [33, 47]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[39, 47], [62, 47]], { farbe: 0x8a5a33 }));
+    waende.push([-60, 46.8, -36.8, 47.2], [-31.2, 46.8, -3.2, 47.2], [3.2, 46.8, 33.2, 47.2], [38.8, 46.8, 62, 47.2]);
+    torbogen(0, 47, '🌳 Ausritt ins Grüne', 0x6a9a2a);
+    szene.add(BAU.zaun([[-3.4, 47], [-3.4, 56]], { farbe: 0x8a5a33 })); szene.add(BAU.zaun([[3.4, 47], [3.4, 56]], { farbe: 0x8a5a33 }));
+    bauePutzplatz();
 
     // Baeume rundherum, Blumen, Baenke, Heuballen
     var baeume = [], zf = 3;
@@ -277,7 +281,7 @@ WELTEN.hof = (function () {
       if ((bz < -27 && bz > -40) || (bx > 6 && bx < 24 && bz < -12) || (bz > 47 && (Math.abs(bx + 34) < 5 || Math.abs(bx - 36) < 5)) || (bz > 62 && bx < 2)) continue;
       baeume.push([bx, 0, bz, 0.9 + zuf() * 0.9, zuf() < 0.35 ? 1 : 0]);
     }
-    [[15, -7], [0, -12], [-6, -12], [5, -13], [-2, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [25.5, -16]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
+    [[15, -7], [0, -12], [-6, -12], [5, -13], [-7, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [25.5, -16]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
     szene.add(BAU.wald(baeume));
     var blumenFarben = [0xff6fae, 0xffe36b, 0xffffff, 0xb07cff];
     var blGeo = new THREE.SphereGeometry(0.09, 6, 4), blumen = new THREE.InstancedMesh(blGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), 160), d = new THREE.Object3D();
@@ -301,6 +305,35 @@ WELTEN.hof = (function () {
     MODELLE3D.setze('sattelbock', szene, { x: 9.3, z: 4.2, hoehe: 1.25 }); MODELLE3D.setze('putzkiste', szene, { x: 9.2, z: 5.6, dreh: -Math.PI / 2, hoehe: 0.75 });
     waende.push([8.6, 3.4, 9.9, 6.2]);
     [[19.6, -19.5, 4.6], [6.6, -18.6, 4.2], [23.4, -13.6, 3.9]].forEach(function (a, i) { MODELLE3D.setze('apfelbaum', szene, { x: a[0], z: a[1], dreh: i * 2.1, hoehe: a[2] }); kreise.push([a[0], a[1], 0.45, 0, 0]); });
+  }
+
+  // Putzplatz draussen: Anbindebalken, Wasserschlauch, Putzkiste
+  function bauePutzplatz() {
+    var m = ORT.putzplatz.mitte, x = m[0], z = m[1], HOLZ = 0x7a4a2a;
+    var f = BAU.netz(new THREE.PlaneGeometry(8, 6), 0xb9b2a4, szene, x, 0.022, z + 0.4); f.rotation.x = -Math.PI / 2; f.castShadow = false;
+    for (var i = 0; i < 5; i++) { var fu = BAU.netz(new THREE.PlaneGeometry(8, 0.05), 0x9a9488, szene, x, 0.026, z - 2.2 + i * 1.3); fu.rotation.x = -Math.PI / 2; fu.castShadow = false; }
+    [-2.6, 2.6].forEach(function (dx) { BAU.walze(0.09, 0.1, 1.3, HOLZ, szene, x + dx, 0.65, z - 2.1, 8); });
+    var balken = BAU.walze(0.07, 0.07, 5.6, HOLZ, szene, x, 1.2, z - 2.1, 8); balken.rotation.z = Math.PI / 2;
+    waende.push([x - 2.8, z - 2.25, x + 2.8, z - 1.95]);
+    // Schlauch an einem Pfosten, Eimer, Putzkiste
+    BAU.walze(0.07, 0.08, 1.5, 0x6b6f76, szene, x - 3.5, 0.75, z - 2.1, 8);
+    var rolle = BAU.netz(new THREE.TorusGeometry(0.26, 0.07, 8, 16), 0x2e9e5b, szene, x - 3.5, 1.05, z - 1.98);
+    BAU.kasten(0.12, 0.1, 0.1, 0xd4a017, szene, x - 3.5, 1.42, z - 2.0);
+    BAU.walze(0.2, 0.16, 0.34, 0x2f6fb5, szene, x + 3.4, 0.17, z - 1.6, 10);
+    var kisteAlt = BAU.kasten(0.7, 0.4, 0.45, 0xc0392b, szene, x + 3.3, 0.2, z - 0.4);
+    MODELLE3D.setze('putzkiste', szene, { x: x + 3.3, z: z - 0.4, dreh: -Math.PI / 2, hoehe: 0.7, statt: [kisteAlt] });
+    kreise.push([x - 3.5, z - 2.1, 0.3, 0, 0], [x + 3.35, z - 1.0, 0.75, 0, 0]);
+    var w = BAU.wegweiser('🚿 Putzplatz', { hoehe: 0.7, fuss: 1.9 }); w.position.set(x - 5.4, 0, z - 2.4); szene.add(w);
+  }
+  var PUTZ = null;
+  function putzeDraussen(P) {
+    var m = ORT.putzplatz.mitte;
+    if (S.reitet) steigeAb(true);
+    S.fuehrt = null;
+    P.ort = 'putzplatz'; P.x = m[0]; P.z = m[1] - 0.6; P.kurs = Math.PI / 2; P.tempo = 0; P.gang = 'steh';
+    P.tier.setzeSattel(false); P.tier.setzeZaum(true, false);
+    PUTZ = { xc: m[0], v: -1, zVorn: P.z + 3.4, zHinten: P.z - 1.4, mist: [], aussen: true, fertig: function (pf) { P.ort = 'hand'; S.fuehrt = P; P.tempo = 0; } };
+    PFLEGE.start(API, P, PUTZ);
   }
 
   // ---------- Pferde ----------
@@ -373,6 +406,10 @@ WELTEN.hof = (function () {
         P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
         P.gang = P.tempo < 0.15 ? 'steh' : P.tempo < 2.7 ? 'schritt' : 'trab';
         t.setzeKopfTief(0);
+      } else if (P.ort === 'putzplatz') {
+        P.gang = 'steh'; t.setzeKopfTief(0);
+      } else if (P.ort === 'geritten') {
+        P.gang = P.tempo < 0.15 ? 'steh' : 'schritt'; t.setzeKopfTief(0);
       } else if (P.ort === 'maschine' || P.ort === 'longe') {
         var O = P.ort === 'maschine' ? ORT.maschine : ORT.longe, r = P.ort === 'maschine' ? O.r - 1.6 : O.r - 1.8;
         var v = P.ort === 'maschine' ? 1.5 : P.longeTempo || 1.5;
@@ -554,7 +591,68 @@ WELTEN.hof = (function () {
         if (Math.abs(e - k[2]) < r) { var soll = e < k[2] ? k[2] - r : k[2] + r; o.x = k[0] + ex / e * soll; o.z = k[1] + ez / e * soll; }
       } else if (e < k[2] + r && e > 0.001) { o.x = k[0] + ex / e * (k[2] + r); o.z = k[1] + ez / e * (k[2] + r); }
     }
-    o.x = Math.max(-62, Math.min(62, o.x)); o.z = Math.max(-26, Math.min(46.5, o.z));
+    o.x = Math.max(-62, Math.min(62, o.x)); o.z = Math.max(-26, Math.min(Math.abs(o.x) < 2.7 ? 60 : 46.5, o.z));
+  }
+
+  // ---------- Reiten auf dem Hof: nur im Schritt ----------
+  var reitMeldung = 0;
+  function darfAufsteigen() {
+    var P = S.fuehrt;
+    if (!P || modus !== 'frei') return false;
+    return !((S.x > STALL.x0 - 1 && S.x < STALL.x1 + 1 && S.z > STALL.z0 - 1 && S.z < STALL.z1 + 1) || HOFTAG.imHaus(S.x, S.z));
+  }
+  function steigeAuf() {
+    var P = S.fuehrt;
+    if (!darfAufsteigen()) return;
+    if (HOFLEBEN.krank(P)) { KERN.meldung(P.def.name + ' ist krank und kann nicht geritten werden.', 'knapp'); return; }
+    S.fuehrt = null; S.reitet = P; P.ort = 'geritten'; P.tempo = 0;
+    P.tier.setzeSattel(true, P.st.ausruestung.decke); P.tier.setzeZaum(true, true);
+    var f = S.figur;
+    szene.remove(f.wurzel); P.tier.koerper.add(f.wurzel);
+    f.wurzel.position.set(0, 1.66, 0.02); f.wurzel.rotation.set(0, 0, 0);
+    f.gehe(0, 0); f.setzeHoehe(0, true); f.setzePose('reiten', true); f.setzeHelm(true);
+    S.x = P.x; S.z = P.z; S.kurs = P.kurs;
+    KERN.ton(660, 0.1, 'triangle', 0.14); KERN.meldung('Hü! Auf dem Hof nur im Schritt.', 'gut');
+  }
+  function steigeAb(still) {
+    var P = S.reitet;
+    if (!P) return;
+    S.reitet = null; P.ort = 'hand'; P.tempo = 0; S.fuehrt = P;
+    P.tier.setzeZaum(true, false);
+    var f = S.figur;
+    P.tier.koerper.remove(f.wurzel); szene.add(f.wurzel);
+    f.setzeHoehe(0.8, true); f.setzePose('steh', true); f.setzeOutfit(KERN.spieler().outfit);
+    S.x = P.x + Math.cos(P.kurs) * 1.25; S.z = P.z - Math.sin(P.kurs) * 1.25; S.kurs = P.kurs; S.tempo = 0;
+    stoss(S, 0.35);
+    if (!still) KERN.ton(520, 0.1, 'triangle', 0.14);
+  }
+  function reiteAufHof(dt, ex, ez, st) {
+    var P = S.reitet, alt = { x: P.x, z: P.z };
+    P.tempo += (st * 1.8 - P.tempo) * Math.min(1, dt * 3);
+    if (st > 0.05) {
+      var ziel = Math.atan2(ex, ez), diff = Math.atan2(Math.sin(ziel - P.kurs), Math.cos(ziel - P.kurs));
+      P.kurs += Math.max(-1, Math.min(1, diff * 2)) * 2.0 * dt;
+    }
+    P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
+    reitMeldung -= dt;
+    if ((P.x > STALL.x0 - 1.1 && P.x < STALL.x1 + 1.1 && P.z > STALL.z0 - 1 && P.z < STALL.z1 + 1) || HOFTAG.imHaus(P.x, P.z)) {
+      P.x = alt.x; P.z = alt.z; P.tempo = 0;
+      if (reitMeldung <= 0) { reitMeldung = 4; KERN.meldung('Im Stall wird nicht geritten. Steig vorher ab.', 'knapp'); }
+    }
+    stoss(P, 0.8);
+    S.x = P.x; S.z = P.z; S.kurs = P.kurs; S.tempo = P.tempo;
+    S.figur.bewege(dt);
+    S.strick.visible = false;
+  }
+  // durch das Tor im Sueden hinaus ins Gruene: dort geht es im Ausritt weiter
+  function gehInsGruene() {
+    var P = S.reitet || S.fuehrt, ritt = !!S.reitet;
+    if (HOFTAG.nacht()) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('🌙 Nachts bleibt das Tor zu.', 'knapp'); return; }
+    HOFTAG.loslassen(); trage(null);
+    if (P && HOFLEBEN.krank(P)) { S.z = 48.5; KERN.meldung(P.def.name + ' ist krank und bleibt besser auf dem Hof.', 'knapp'); return; }
+    if (ritt) steigeAb(true);
+    if (P) losreiten('ausritt', 'ausritt', { extra: { vomHof: true, reitet: ritt, zuFuss: !ritt } });
+    else WELTEN.ausritt.start({ ohnePferd: true, vomHof: true, hof: true, zurueck: function () { HOFTAG.vergeht(0.5); API.start({ zurueckVon: 'ausritt' }); } });
   }
   function bewegeSpielerin(dt) {
     var t = KERN.taste, w = KERN.wisch;
@@ -564,6 +662,7 @@ WELTEN.hof = (function () {
     var ex = sx * kc + sz * ks, ez = -sx * ks + sz * kc;
     var st = Math.min(1, Math.hypot(ex, ez));
     if (modus !== 'frei') st = 0;
+    if (S.reitet) { reiteAufHof(dt, st > 0.05 ? ex / st : 0, st > 0.05 ? ez / st : 0, st); if (S.z > 51 && modus === 'frei') gehInsGruene(); return; }
     var tempo = st * (S.fuehrt ? 3.0 : HOFTAG.schiebt() ? 3.1 : 4.2);
     S.tempo += (tempo - S.tempo) * Math.min(1, dt * 10);
     if (st > 0.05) {
@@ -587,6 +686,7 @@ WELTEN.hof = (function () {
     f.bewege(dt);
     f.wurzel.position.set(S.x, 0, S.z);
     f.wurzel.rotation.y = S.kurs;
+    if (S.z > 51 && modus === 'frei') { gehInsGruene(); return; }
     // Strick zum gefuehrten Pferd
     if (S.fuehrt && S.fuehrt.ort === 'hand') {
       var P2 = S.fuehrt, pos = S.strick.geometry.attributes.position;
@@ -623,6 +723,22 @@ WELTEN.hof = (function () {
       if (d < r && d < bd) { bd = d; beste = { x: x, z: z, text: text, tun: tun, hinweis: hinweis }; }
     }
     var b = inBoxVon(S.x, S.z), F = ORT.futter, P = S.fuehrt;
+    function tor(o, r, text, tun) {
+      if (P || S.reitet) vor(o[0], o[1], r, text, tun);
+      else vor(o[0], o[1], r, null, null, 'Hol zuerst ein Pferd aus dem Stall und führe es hierher.');
+    }
+    if (S.reitet) {                    // im Sattel: nur die Plaetze und der Putzplatz
+      tor(ORT.training.tor, 3, '🏇 Auf den Trainingsplatz', function () { waehlePlatz('training'); });
+      tor(ORT.turnier.tor, 3, '🏆 Auf den Turnierplatz', function () { waehlePlatz('turnier'); });
+      tor(ORT.rennbahn.tor, 3.5, '🏁 Zur Galopprennbahn', function () { waehlePlatz('rennbahn'); });
+      tor(ORT.gelaende.tor, 3.5, '🌲 Ins Gelände reiten', function () { waehlePlatz('gelaende'); });
+      tor(ORT.longe.tor, 3, '⭕ In den Longierzirkel', function () { waehlePlatz('longe'); });
+      vor(ORT.putzplatz.mitte[0], ORT.putzplatz.mitte[1], 3.4, '🚿 ' + S.reitet.def.name + ' am Putzplatz putzen', function () { putzeDraussen(S.reitet); });
+      return beste;
+    }
+    if (P) vor(ORT.putzplatz.mitte[0], ORT.putzplatz.mitte[1], 3.4, '🚿 ' + P.def.name + ' am Putzplatz putzen', function () { putzeDraussen(P); });
+    else vor(ORT.putzplatz.mitte[0], ORT.putzplatz.mitte[1], 2.6, null, null, 'Am Putzplatz kannst du ein Pferd draußen abspritzen und putzen, zum Beispiel nach dem Ausritt. Führe ein Pferd hierher.');
+    if (Math.abs(S.x) < 5 && S.z > 42) vor(S.x, S.z, 9, null, null, P ? 'Durch dieses Tor geht es ins Grüne. Draußen darfst du traben und galoppieren. Steig ruhig schon auf!' : 'Durch dieses Tor geht es ins Grüne. Mit einem Pferd macht es am meisten Spaß.');
     if (b) {
       var B = b.pferd;
       if (P && P.box === b) vor(S.x, S.z, 9, '🏠 ' + P.def.name + ' in die Box stellen', function () { stelleAb(P, 'box'); });
@@ -630,13 +746,13 @@ WELTEN.hof = (function () {
         if (S.traegt === 'hafer') vor(b.trog[0], b.trog[1], 9, '🌾 Hafer in den Trog füllen', function () { fuettere(B, 'hafer'); });
         else if (S.traegt === 'heu') vor(b.raufe[0], b.raufe[1], 9, 'Heu in die Raufe legen', function () { fuettere(B, 'heu'); });
         else if (S.traegt === 'moehre') vor(B.x, B.z, 9, '🥕 ' + B.def.name + ' eine Möhre geben', function () { fuettere(B, 'moehre'); });
-        else if (!P && !HOFTAG.schiebt()) vor(B.x, B.z, 9, '🧽 ' + B.def.name + ' pflegen', function () { PFLEGE.start(API, B); });
+        else if (!P && !HOFTAG.schiebt() && !HOFTAG.hatGabel()) vor(B.x, B.z, 9, '🧽 ' + B.def.name + ' pflegen', function () { PFLEGE.start(API, B); });
       }
     } else if (P && Math.abs(S.z) < STALL.gang && S.x > STALL.x0 && S.x < 0) {
       vor(P.box.xc, P.box.zVorn, 2.2, null, null, P.def.name + ' wohnt in dieser Box. Geh hinein, um ' + P.def.name + ' abzustellen.');
     }
     // Vorratsraum
-    if (S.z < -STALL.gang && S.z > STALL.z0 && S.x > 0 && S.x < STALL.x1 && !HOFTAG.schiebt()) {
+    if (S.z < -STALL.gang && S.z > STALL.z0 && S.x > 0 && S.x < STALL.x1 && !HOFTAG.schiebt() && !HOFTAG.hatGabel()) {
       if (S.traegt) vor(S.x, S.z, 9, 'Zurücklegen', function () { trage(null); });
       else {
         vor(F.hafer[0], F.hafer[1] + 1, 1.6, '🌾 Eimer Hafer holen', function () { trage('hafer'); KERN.ton(500, 0.08, 'triangle', 0.12); });
@@ -646,10 +762,6 @@ WELTEN.hof = (function () {
     }
     vor(ORT.laden[0], ORT.laden[1] - 1.2, 2.6, '🛍️ Reitladen', zeigeLaden);
     // Plaetze: nur mit Pferd
-    function tor(o, r, text, tun) {
-      if (P) vor(o[0], o[1], r, text, tun);
-      else vor(o[0], o[1], r, null, null, 'Hol zuerst ein Pferd aus dem Stall und führe es hierher.');
-    }
     tor(ORT.training.tor, 3, '🏇 Auf den Trainingsplatz', function () { waehlePlatz('training'); });
     tor(ORT.turnier.tor, 3, '🏆 Auf den Turnierplatz', function () { waehlePlatz('turnier'); });
     tor(ORT.rennbahn.tor, 3.5, '🏁 Zur Galopprennbahn', function () { waehlePlatz('rennbahn'); });
@@ -716,6 +828,20 @@ WELTEN.hof = (function () {
     setTimeout(function () { st.hafer = 0; st.heu = 0; zeigeZustand(P); STAND.speichere(); }, 60000);
   }
 
+  // Futter aus dem Futterwagen: Hafer und Heu auf einmal
+  function fuettereWagen(P) {
+    var st = P.st, hungrig = st.hunger > 0.25;
+    STAND.merke('gefuettert', 1);
+    HOFTAG.zaehle('fuettern', 1);
+    st.hunger = Math.max(0, st.hunger - 0.75); st.hafer = 1; st.heu = 1;
+    P.frisst = 10;
+    if (hungrig) STAND.daten.muenzen += 2;
+    KERN.meldung(P.def.name + ' frisst' + (hungrig ? '  +2 🪙' : ''), 'gut'); KERN.klang('gut');
+    STAND.speichere();
+    zeigeZustand(P);
+    setTimeout(function () { st.hafer = 0; st.heu = 0; zeigeZustand(P); STAND.speichere(); }, 60000);
+  }
+
   // ---------- Karten: Plaetze und Laden ----------
   function karte(html, knoepfe, ohneNein) {
     modus = 'karte';
@@ -729,10 +855,14 @@ WELTEN.hof = (function () {
       '<br>Laune ' + REITEN.messer(STAND.laune(d.id)) + (STAND.laune(d.id) < 0.5 ? '<br><small>' + d.name + ' ist nicht gut gelaunt. Putzen und Füttern hilft!</small>' : '') + '</div>';
   }
   function losreiten(welt, ort, opt) {
+    if (S.reitet) steigeAb(true);
     var P = S.fuehrt;
     KERN.schliesseKarte(); modus = 'frei';
     var daten = pferdDaten(P);
     function zurueck(erg) {
+      // unterwegs das Pferd gewechselt? Dann kommt das andere mit nach Hause.
+      var Q = erg && erg.pferdId ? pferde.filter(function (p) { return p.def.id === erg.pferdId; })[0] : null;
+      if (Q && Q !== P) { inBox(P); P = Q; P.ort = 'hand'; P.tempo = 0; P.tier.setzeZaum(true, false); S.fuehrt = P; }
       // nach dem Reiten: Pferd ist etwas schmutziger, hungriger und fitter
       P.st.schmutz = Math.min(1, P.st.schmutz + 0.22); P.st.hunger = Math.min(1, P.st.hunger + 0.18); P.st.hufe = Math.min(1, P.st.hufe + 0.3);
       P.st.fit = Math.min(1, (P.st.fit || 0) + 0.05);
@@ -743,10 +873,14 @@ WELTEN.hof = (function () {
       zeigeZustand(P, true);
     }
     if (welt === 'springen') KERN.springen({ turnier: !!opt.turnier, pferd: daten, zurueck: zurueck });
-    else WELTEN[welt].start({ pferd: daten, zurueck: zurueck, turnier: !!opt.turnier, hof: true });
+    else {
+      var o = { pferd: daten, zurueck: zurueck, turnier: !!opt.turnier, hof: true, pferde: pferde.map(pferdDaten) };
+      for (var k in (opt.extra || {})) o[k] = opt.extra[k];
+      WELTEN[welt].start(o);
+    }
   }
   function waehlePlatz(ort) {
-    var P = S.fuehrt;
+    var P = S.fuehrt || S.reitet;
     if (!P) return;
     if (HOFLEBEN.krank(P) && ort !== 'weide') {
       karte('<h2>🤒 ' + P.def.name + ' ist krank</h2><div class="details">' + P.def.name + ' ' + HOFLEBEN.krank(P).zeichen + ' und kann heute nicht arbeiten. Die <b>Tierärztin</b> steht östlich vom Stall.</div>', []);
@@ -774,6 +908,7 @@ WELTEN.hof = (function () {
   // nachts kommen alle Pferde in ihre Boxen; gibt die Namen zurueck
   function bringeHeim() {
     var namen = [];
+    if (S.reitet) steigeAb(true);
     pferde.forEach(function (P) { if (P.ort !== 'box') { namen.push(P.def.name); inBox(P); } });
     S.fuehrt = null; orte.longePferd = null;
     return namen;
@@ -1016,7 +1151,14 @@ WELTEN.hof = (function () {
     // Aktion in der Naehe
     aktion = modus === 'frei' ? findeAktion() : null;
     KERN.setzeAktion(aktion && aktion.text ? aktion.text : null);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? HOFTAG.hinweis() : null);
+    var zw = [];
+    if (modus === 'frei') {
+      if (S.reitet) zw.push({ text: '🥾 Absteigen', tun: function () { steigeAb(); } });
+      else if (darfAufsteigen()) zw.push({ text: '🐴 Aufsteigen', tun: steigeAuf });
+      zw = zw.concat(HOFTAG.zweit());
+    }
+    REITEN.zweit(zw);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     orte.zeiger.visible = !!(aktion && aktion.text);
     if (orte.zeiger.visible) { orte.zeiger.position.set(aktion.x, 2.9 + Math.sin(zeit * 5) * 0.15, aktion.z); orte.zeiger.rotation.y = zeit * 2; }
@@ -1024,7 +1166,7 @@ WELTEN.hof = (function () {
     hudZeit -= dt;
     if (hudZeit <= 0 && modus !== 'pflege') {
       hudZeit = 0.4;
-      var P2 = S.fuehrt || orte.longePferd || (modus === 'pflege' ? PFLEGE.pferd() : null);
+      var P2 = S.fuehrt || S.reitet || orte.longePferd || (modus === 'pflege' ? PFLEGE.pferd() : null);
       var b = !P2 && inBoxVon(S.x, S.z);
       if (b && b.pferd && b.pferd.ort === 'box') P2 = b.pferd;
       var html = REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()) + HOFTAG.kachel();
@@ -1056,10 +1198,11 @@ WELTEN.hof = (function () {
       modus = 'frei'; kamFest = null; kamSprung = true;
       kamKnoepfe(); kam.zeiger = {}; kam.rechts = null; kam.taste = null; API.ohneKnueppel = false;
       zeigeWerkzeug(null);
-      if (opt.zurueckVon && ORT[opt.zurueckVon] && S.fuehrt) {
+      if (opt.zurueckVon && ORT[opt.zurueckVon] && (S.fuehrt || opt.zurueckVon === 'ausritt')) {
         var t = ORT[opt.zurueckVon].tor;
-        S.x = t[0]; S.z = t[1] - (opt.zurueckVon === 'rennbahn' || opt.zurueckVon === 'gelaende' ? 1.5 : 0);
-        S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8;
+        S.x = t[0]; S.z = t[1] - (opt.zurueckVon === 'rennbahn' || opt.zurueckVon === 'gelaende' || opt.zurueckVon === 'ausritt' ? 1.5 : 0);
+        if (opt.zurueckVon === 'ausritt') S.kurs = Math.PI;
+        if (S.fuehrt) { S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8; }
       }
       if (STAND.daten.begruesst && !STAND.daten.neuigkeiten3) {
         STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.speichere();
@@ -1106,12 +1249,13 @@ WELTEN.hof = (function () {
       if (modus === 'pflege') { PFLEGE.ende(); return; }
       STAND.speichere(); KERN.insMenue();
     },
-    verlaesst: function () { zeigeWerkzeug(null); setzeHinweis(null); if (modus === 'pflege') PFLEGE.ende(true); STAND.speichere(); },
+    verlaesst: function () { zeigeWerkzeug(null); setzeHinweis(null); if (modus === 'pflege') PFLEGE.ende(true); if (S.reitet) steigeAb(true); STAND.speichere(); },
     // fuer die Pflege
     setzeModus: function (m) { modus = m; API.ohneKnueppel = m === 'pflege'; },
     setzeKamera: function (k) { kamFest = k; },
     zeigeWerkzeug: zeigeWerkzeug, setzeHinweis: setzeHinweis, zeigeZustand: zeigeZustand, zeigeSchmuck: zeigeSchmuck, nimm: nimm,
-    fotoZiel: function () { var P = S.fuehrt || (modus === 'pflege' ? PFLEGE.pferd() : null); return fotoPunkt.set(P ? (P.x + S.x) / 2 : S.x, 1.3, P ? (P.z + S.z) / 2 : S.z); },
+    steigeAuf: steigeAuf, steigeAb: steigeAb,
+    fotoZiel: function () { var P = S.fuehrt || S.reitet || (modus === 'pflege' ? PFLEGE.pferd() : null); return fotoPunkt.set(P ? (P.x + S.x) / 2 : S.x, 1.3, P ? (P.z + S.z) / 2 : S.z); },
     spielerin: function () { return S; }, kam: function () { return kam; }, pferde: function () { return pferde; }, boxen: function () { return boxen; }, orte: ORT
   };
   return API;

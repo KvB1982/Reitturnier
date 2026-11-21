@@ -9,10 +9,10 @@ var PFLEGE = (function () {
   var strahlTon = 0;
   var zeigerUnten = false, zx = 0, zy = 0, altX = 0, altY = 0;
   var wurf = new THREE.Raycaster(), maus = new THREE.Vector2(), v = new THREE.Vector3(), v2 = new THREE.Vector3();
-  var warSchmutzig = false, warMistig = false, warHufe = false, warStroh = false, hudZeit = 0;
+  var warSchmutzig = false, warMistig = false, warHufe = false, warStroh = false, hudZeit = 0, aussen = false, drehZiel = null, seiteGesagt = false;
   var HINWEIS = {
-    schlauch: '🚿 Halte den Finger (oder die Maus) auf das Pferd und spritze den Schlamm ab.',
-    striegel: '🧽 Reibe mit dem Striegel über das Fell, bis es glänzt.',
+    schlauch: '🚿 Halte den Finger (oder die Maus) auf das Pferd und spritze den Schlamm ab. Mit 🔄 dreht sich das Pferd um: Die andere Seite muss auch sauber werden!',
+    striegel: '🧽 Reibe mit dem Striegel über das Fell, bis es glänzt. Mit 🔄 kommt die andere Seite dran.',
     hufe: '🦶 Kratze jeden Huf aus: Reibe über die roten Kreise an den Hufen.',
     mist: '🧹 Tippe die Mistäpfel an, um sie in die Schubkarre zu werfen.',
     stroh: '🌾 Tippe auf den Boxenboden, um frisches Stroh zu verteilen.'
@@ -37,12 +37,13 @@ var PFLEGE = (function () {
     return v2.copy(r.direction).multiplyScalar(t).add(r.origin);
   }
 
-  function start(h, pferd) {
-    hof = h; P = pferd; box = P.box;
+  function sichtSeite() { return box.v * Math.sin(P.kurs) >= 0 ? 1 : -1; }      // welche Seite des Pferdes schaut zur Kamera?
+  function start(h, pferd, platz) {
+    hof = h; P = pferd; box = platz || P.box; aussen = !!platz; drehZiel = null; seiteGesagt = false;
     hof.setzeModus('pflege');
     var S = hof.spielerin();
     S.x = box.xc + 1.55; S.z = P.z + box.v * 0.75; S.kurs = box.v > 0 ? Math.PI : 0; S.tempo = 0;
-    box.front.visible = false;
+    if (box.front) box.front.visible = false;
     P.versteckt = true; if (P.schild) P.schild.visible = false;
     stelleKamera();
     warSchmutzig = P.st.schmutz > 0.12; warMistig = P.st.mist > 0.1; warHufe = P.st.hufe > 0.2; warStroh = P.st.stroh < 0.7;
@@ -68,7 +69,7 @@ var PFLEGE = (function () {
     werkzeug = null;
     baueLeiste();
     waehle('schlauch');
-    if (P.st.schmutz < 0.1) waehle(P.st.hufe > 0.2 ? 'hufe' : P.st.mist > 0.1 ? 'mist' : P.st.stroh < 0.7 ? 'stroh' : 'striegel');
+    if (P.st.schmutz < 0.1) waehle(P.st.hufe > 0.2 ? 'hufe' : aussen ? 'striegel' : P.st.mist > 0.1 ? 'mist' : P.st.stroh < 0.7 ? 'stroh' : 'striegel');
   }
   function stelleKamera() {
     var hochkant = window.innerWidth < window.innerHeight;
@@ -82,14 +83,16 @@ var PFLEGE = (function () {
   function baueLeiste() {
     knoepfe = {};
     var liste = [
-      { id: 'schlauch', bild: '🚿', text: 'Abspritzen' }, { id: 'striegel', bild: '🧽', text: 'Striegeln' }, { id: 'hufe', bild: '🦶', text: 'Hufe' },
+      { id: 'schlauch', bild: '🚿', text: 'Abspritzen' }, { id: 'striegel', bild: '🧽', text: 'Striegeln' }, { id: 'wenden', bild: '🔄', text: 'Andere Seite' }, { id: 'hufe', bild: '🦶', text: 'Hufe' },
       { id: 'mist', bild: '🧹', text: 'Ausmisten' }, { id: 'stroh', bild: '🌾', text: 'Einstreuen' },
       { id: 'schmuck', bild: '🎀', text: 'Schmücken' }, { id: 'halfter', bild: '🐴', text: 'Mitnehmen', klasse: 'los' }, { id: 'ende', bild: '✔️', text: 'Fertig' }
     ];
+    if (aussen) liste = liste.filter(function (w) { return w.id !== 'mist' && w.id !== 'stroh' && w.id !== 'ende'; });
     liste.forEach(function (w) {
       w.tun = function () {
         if (w.id === 'ende') ende();
-        else if (w.id === 'halfter') { var pferd = P; ende(); hof.nimm(pferd); }
+        else if (w.id === 'wenden') wende();
+        else if (w.id === 'halfter') { var pferd = P, drau = aussen; ende(); if (!drau) hof.nimm(pferd); }
         else if (w.id === 'schmuck') hof.zeigeSchmuck(P);
         else waehle(w.id);
       };
@@ -97,6 +100,14 @@ var PFLEGE = (function () {
     hof.zeigeWerkzeug(liste);
     liste.forEach(function (w) { knoepfe[w.id] = w.knopf; });
     zeigeFertig();
+  }
+  // das Pferd dreht sich um, damit man die andere Seite putzen kann
+  function wende() {
+    if (drehZiel !== null) return;
+    drehZiel = P.kurs + Math.PI;
+    if (knoepfe.wenden) knoepfe.wenden.classList.remove('blink');
+    KERN.huf(0.1, 220); KERN.huf(0.1, 240, 0.25); KERN.huf(0.1, 220, 0.5);
+    KERN.meldung('Komm, dreh dich um!', 'gut');
   }
   function waehle(id) {
     werkzeug = id;
@@ -129,7 +140,12 @@ var PFLEGE = (function () {
       P.st.schmutz = P.tier.farbe.schmutzGrad();
       if (P.st.schmutz < 0.035) {
         P.st.schmutz = 0; P.tier.setzeSchmutz(0);
-        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank!'); HOFTAG.zaehle('putzen', 1); STAND.merke('sauber', 1); }
+        if (warSchmutzig) { warSchmutzig = false; lohn(3, 'Blitzblank von beiden Seiten!'); HOFTAG.zaehle('putzen', 1); STAND.merke('sauber', 1); }
+        if (knoepfe.wenden) knoepfe.wenden.classList.remove('blink');
+      } else if (!seiteGesagt && P.tier.farbe.schmutzSeite(sichtSeite()) < 0.03 && P.tier.farbe.schmutzSeite(-sichtSeite()) > 0.05) {
+        seiteGesagt = true;
+        KERN.meldung('Diese Seite glänzt! Jetzt die andere: 🔄', 'gut'); KERN.klang('gut');
+        if (knoepfe.wenden) knoepfe.wenden.classList.add('blink');
       }
     }
     return t;
@@ -200,6 +216,11 @@ var PFLEGE = (function () {
 
   function schritt(dt, zeit) {
     if (!P) return;
+    if (drehZiel !== null) {
+      P.kurs = Math.min(drehZiel, P.kurs + dt * 2.6);
+      P.tier.wurzel.rotation.y = P.kurs;
+      if (P.kurs >= drehZiel) { P.kurs = Math.atan2(Math.sin(drehZiel), Math.cos(drehZiel)); drehZiel = null; seiteGesagt = false; }
+    }
     // Wasserstrahl, solange der Finger auf dem Pferd liegt
     if (werkzeug === 'schlauch' && zeigerUnten) {
       var t = putze(zx, zy, 2.4 * dt, 0.36, 0.28);
@@ -231,7 +252,7 @@ var PFLEGE = (function () {
     if (hudZeit <= 0) {
       hudZeit = 0.3;
       KERN.setzeHud(REITEN.kachel('Münzen', '🪙 ' + STAND.daten.muenzen) +
-        REITEN.kachel(P.def.name, 'Sauber ' + REITEN.messer(1 - P.st.schmutz) + ' &nbsp;Hufe ' + REITEN.messer(1 - P.st.hufe) + ' &nbsp;Box ' + REITEN.messer((1 - P.st.mist) * 0.5 + P.st.stroh * 0.5)));
+        REITEN.kachel(P.def.name, 'Sauber ' + REITEN.messer(1 - P.st.schmutz) + ' &nbsp;Hufe ' + REITEN.messer(1 - P.st.hufe) + (aussen ? '' : ' &nbsp;Box ' + REITEN.messer((1 - P.st.mist) * 0.5 + P.st.stroh * 0.5))));
     }
   }
 
@@ -240,7 +261,8 @@ var PFLEGE = (function () {
     var pferd = P;
     P = null;
     pferd.versteckt = false;
-    box.front.visible = true;
+    if (drehZiel !== null) { pferd.kurs = Math.atan2(Math.sin(drehZiel), Math.cos(drehZiel)); drehZiel = null; }
+    if (box.front) box.front.visible = true;
     hof.szene.remove(strahl); hof.szene.remove(spritzer);
     hufRinge.forEach(function (r) { hof.szene.remove(r.netz); });
     hufRinge = [];
@@ -253,6 +275,7 @@ var PFLEGE = (function () {
     hof.setzeModus('frei');
     var S = hof.spielerin();
     S.x = box.xc; S.z = box.zVorn + box.v * 0.8;
+    if (box.fertig) box.fertig(pferd);
     STAND.speichere();
     hof.zeigeZustand(pferd);
   }

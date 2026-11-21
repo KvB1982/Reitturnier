@@ -1096,6 +1096,7 @@
     Z.modus = 'welt';
     document.body.className = 'im-welt ' + (w.klasse || '');
     setzeAktion(null);
+    if (typeof REITEN !== 'undefined') REITEN.zweit(null);
     setzeHud('');
     groesse();
   }
@@ -1108,6 +1109,7 @@
     pferd.setzeGang('galopp');
     pferd.setzeReiterin(true);
     setzeAktion(null);
+    if (typeof REITEN !== 'undefined') REITEN.zweit(null);
     setzeHud('');
   }
   // Springreiten von einer Welt aus starten (danach geht es mit zurueck() wieder dorthin)
@@ -1472,6 +1474,7 @@
   window.SPIEL = {
     zustand: Z, wisch: wisch, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
     foto: foto, fotoStart: fotoStart, fotoEnde: fotoEnde, fotoAufnahme: fotoAufnahme,
+    info: function () { return renderer.info; },
     turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd,
     // Zeit vorspulen (fuer Tests): rechnet sek Sekunden in kleinen Schritten
     vor: function (sek) { for (var t = 0; t < sek; t += 0.04) { Z.zeit += welt ? 0.04 : 0; if (welt) welt.schritt(0.04, Z.zeit); else { schritt(0.04); bewegeFallTeile(0.04); } } }

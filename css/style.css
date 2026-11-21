@@ -226,3 +226,16 @@ body.foto #kamKnoepfe, .im-welt.welt-hof.mit-werkzeug #kamKnoepfe { display: non
 .tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 8px 0 4px; }
 #schrank .zeile { margin-bottom: 10px; }
 #karte { z-index: 8; }
+
+/* Weitere Aktionsknöpfe (Absteigen, Aufsteigen, Werkzeug weglegen ...) */
+#zweitAktion { display: none; position: fixed; right: 12px; bottom: 16px; flex-direction: column-reverse; gap: 8px; z-index: 4; align-items: flex-end; }
+.im-welt.mit-zweit #zweitAktion { display: flex; }
+#zweitAktion button { height: 50px; padding: 0 18px; border-radius: 25px; border: none; background: #fffaf0; color: #7a3b12; font-size: 17px; font-weight: bold; box-shadow: 0 5px 0 rgba(122, 59, 18, 0.35); white-space: nowrap; touch-action: none; cursor: pointer; }
+#zweitAktion button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(122, 59, 18, 0.35); }
+#zweitAktion button small { margin-left: 8px; font-weight: normal; opacity: 0.45; font-size: 12px; border: 1px solid currentColor; border-radius: 5px; padding: 0 4px; }
+@media (pointer: coarse) { #zweitAktion button small { display: none; } }
+@media (max-width: 760px) { #zweitAktion { bottom: 92px; right: 8px; } #zweitAktion button { height: 44px; font-size: 15px; padding: 0 14px; } .im-welt.mit-zweit #weltHinweis { bottom: 150px; max-width: 60vw; left: 8px; transform: none; text-align: left; } }
+.im-welt.mit-werkzeug #zweitAktion, body.foto #zweitAktion { display: none; }
+@media (pointer: fine) { .im-welt.mit-tempo #zweitAktion { bottom: 170px; } }
+#werkzeuge button.blink { animation: blink 0.7s ease-in-out infinite alternate; border-color: #27ae60; }
+@keyframes blink { from { transform: scale(1); background: #fffaf0; } to { transform: scale(1.12); background: #c9f3d2; } }

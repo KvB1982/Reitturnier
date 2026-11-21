@@ -8,9 +8,9 @@ var HOFTAG = (function () {
   'use strict';
   var d = STAND.daten, C = null, szene = null, S = null;
   var HAUS = { x0: 9, x1: 17, z0: -21, z1: -14, tuer: 13 };
-  var BETT = [10.6, -20.1], SCHRANK = [15.9, -20.4], TISCH = [16.35, -17], REGAL = [9.45, -16.6], RAD = [20.5, -11.5], KARRE_PLATZ = [-13.3, -3.4];
+  var BETT = [10.6, -20.1], SCHRANK = [15.9, -20.4], TISCH = [16.35, -17], REGAL = [9.45, -16.6], RAD = [20.5, -11.5], KARRE_PLATZ = [-13.3, -3.4], FUTTER_PLATZ = [7.2, 0.95];
   var KARRE_MAX = 10;
-  var hausDach, fenster = [], lampen = [], zimmerTeile = {}, muehle, ballon, katze, karre, misthaufen;
+  var hausDach, fenster = [], lampen = [], zimmerTeile = {}, muehle, ballon, katze, misthaufen;
   var schlaeft = false, schaufelZeit = 0, letzteStunde = null, zeit = 0;
 
   if (typeof d.stunde !== 'number' || isNaN(d.stunde) || d.stunde < 6.5) d.stunde = 7;
@@ -90,7 +90,7 @@ var HOFTAG = (function () {
         st.schmutz = Math.min(1, st.schmutz + 0.12); st.hufe = Math.min(1, st.hufe + 0.2); st.hafer = 0; st.heu = 0;
         C.zeigeZustand(P, true);
       });
-      d.tag++; d.stunde = 7;
+      d.tag++; d.stunde = 7; d.hofMist = Math.min(HOFMIST_ORTE.length, (d.hofMist || 0) + 2); zeigeHofMist();
       var w = Math.random();
       WETTER.setze(7, w < 0.5 ? 'sonne' : w < 0.72 ? 'wolken' : w < 0.88 ? 'nebel' : 'regen');
       if (frueh) d.muenzen += 3;
@@ -176,50 +176,151 @@ var HOFTAG = (function () {
       '📅 Du bist seit <b>' + d.tag + '</b> ' + (d.tag === 1 ? 'Tag' : 'Tagen') + ' auf dem Hof.</div>', []);
   }
 
-  // ---------- Schubkarre ----------
-  function baueKarre() {
-    var g = new THREE.Group(), gruen = 0x3e8f4a;
-    BAU.kasten(0.72, 0.36, 0.98, gruen, g, 0, 0.5, 0.85);
-    BAU.kasten(0.6, 0.02, 0.86, 0x2c6b36, g, 0, 0.69, 0.85);
-    var rad = BAU.walze(0.21, 0.21, 0.09, 0x222222, g, 0, 0.21, 1.42, 14); rad.rotation.z = Math.PI / 2;
-    for (var i = -1; i <= 1; i += 2) { BAU.kasten(0.04, 0.04, 0.9, 0x8a8f96, g, i * 0.3, 0.6, 0.2); BAU.kasten(0.04, 0.42, 0.04, 0x8a8f96, g, i * 0.3, 0.21, 0.5); }
-    var haufen = BAU.netz(new THREE.SphereGeometry(0.36, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0x4a3320, g, 0, 0.67, 0.85);
-    haufen.visible = false;
-    MODELLE3D.setze('schubkarre', g, { z: 0.72, dreh: -Math.PI / 2, breite: 1.9, statt: g.children.filter(function (t) { return t !== haufen; }), fertig: function () { haufen.position.y = 0.62; } });
-    szene.add(g);
-    karre = { g: g, haufen: haufen, x: KARRE_PLATZ[0], z: KARRE_PLATZ[1], kurs: 0, ladung: 0, geschoben: false };
-    g.position.set(karre.x, 0, karre.z);
-  }
-  function zeigeLadung() {
-    karre.haufen.visible = karre.ladung > 0;
-    var s = 0.35 + 0.65 * karre.ladung / KARRE_MAX;
-    karre.haufen.scale.set(0.9, s * 1.1, 1.2);
-  }
-  function nimmKarre() { karre.geschoben = true; KERN.ton(420, 0.08, 'triangle', 0.14); KERN.meldung('Schubkarre!', 'gut'); }
-  function stelleKarreAb(heim) {
-    if (!karre) return;
-    if (heim) { karre.x = KARRE_PLATZ[0]; karre.z = KARRE_PLATZ[1]; karre.kurs = 0; karre.g.position.set(karre.x, 0, karre.z); karre.g.rotation.y = 0; }
-    else if (karre.geschoben) KERN.ton(360, 0.08, 'triangle', 0.12);
-    karre.geschoben = false;
-  }
-  function schaufle(b) {
-    var n = Math.min(b.mist.length, KARRE_MAX - karre.ladung, 4);
-    for (var i = 0; i < n; i++) szene.remove(b.mist.pop());
-    karre.ladung += n; zeigeLadung(); schaufelZeit = 0.55;
-    KERN.ton(240, 0.07, 'triangle', 0.16); KERN.ton(180, 0.09, 'triangle', 0.14, 0.12);
-    if (b.pferd) {
-      b.pferd.st.mist = b.mist.length / 8;
-      if (!b.mist.length) { b.pferd.st.mist = 0; d.muenzen += 2; KERN.meldung('Box ausgemistet!  +2 🪙', 'perfekt'); KERN.klang('gut'); zaehle('box', 1); }
-      C.zeigeZustand(b.pferd);
+  // ---------- Schubkarren und Mistgabel ----------
+  // Zwei Karren: die Mistkarre (grün, westlich am Stall) und der Futterwagen (blau, in der Stallgasse).
+  // Mist wird mit der Mistgabel aufgegabelt und in die Mistkarre geworfen, die man dann am Misthaufen auskippt.
+  var karren = {}, gabel = null, flieger = [], hofMist = [];
+  var HOFMIST_ORTE = [[6, 9.6], [-6.5, 10], [14.6, 1.6], [0.8, 16.5], [-9, -8], [15.5, -8.2]];
+  function baueKarre(art, platz, kurs, farbe, dunkel) {
+    var g = new THREE.Group(), kipp = new THREE.Group(), in2 = new THREE.Group();
+    kipp.position.set(0, 0.21, 1.42); in2.position.set(0, -0.21, -1.42); g.add(kipp); kipp.add(in2);
+    BAU.kasten(0.72, 0.36, 0.98, farbe, in2, 0, 0.5, 0.85);
+    BAU.kasten(0.6, 0.02, 0.86, dunkel, in2, 0, 0.69, 0.85);
+    var rad = BAU.walze(0.21, 0.21, 0.09, 0x222222, in2, 0, 0.21, 1.42, 14); rad.rotation.z = Math.PI / 2;
+    for (var i = -1; i <= 1; i += 2) { BAU.kasten(0.04, 0.04, 0.9, 0x8a8f96, in2, i * 0.3, 0.6, 0.2); BAU.kasten(0.04, 0.42, 0.04, 0x8a8f96, in2, i * 0.3, 0.21, 0.5); }
+    var statt = in2.children.slice(), last = new THREE.Group(); last.position.set(0, 0.62, 0.85); in2.add(last);
+    var K = { art: art, g: g, kipp: kipp, last: last, platz: platz, kurs0: kurs, x: platz[0], z: platz[1], kurs: kurs, ladung: 0, geschoben: false, kippZeit: 0 };
+    if (art === 'mist') {
+      K.haufen = BAU.netz(new THREE.SphereGeometry(0.36, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0x4a3320, last, 0, 0.02, 0);
+      MODELLE3D.setze('schubkarre', in2, { z: 0.72, dreh: -Math.PI / 2, breite: 1.9, statt: statt });
+    } else {
+      // Futterwagen: blauer Kasten mit Hafersäcken, Heu und Möhren
+      K.teile = [];
+      for (i = 0; i < 6; i++) {
+        var t = new THREE.Group(); last.add(t); K.teile.push(t);
+        t.position.set(-0.17 + (i % 2) * 0.34, 0.1 + Math.floor(i / 2) * 0.17, -0.26 + Math.floor(i / 2) * 0.24);
+        if (i % 2) BAU.kasten(0.3, 0.2, 0.26, i === 3 ? 0xc9b24e : 0xd3bb55, t, 0, 0, 0).rotation.y = i * 0.4;
+        else { BAU.netz(new THREE.CapsuleGeometry(0.11, 0.14, 3, 8), 0xd8c08a, t, 0, 0, 0).rotation.z = Math.PI / 2; BAU.kasten(0.12, 0.02, 0.12, 0x2f6fb5, t, 0, 0.115, 0); }
+      }
+      for (i = 0; i < 3; i++) BAU.netz(new THREE.ConeGeometry(0.035, 0.2, 6), 0xf08a24, K.teile[0], -0.02 + i * 0.05, 0.12, 0.2).rotation.x = Math.PI / 2 + i * 0.3;
+      var sch = BAU.kasten(0.5, 0.2, 0.02, 0xfff3c4, in2, 0, 0.5, 1.345); sch.castShadow = false;
+      var tx = BAU.tafel('🌾 Futter', 0.16, { grund: null, farbe: '#7a3b12', schrift: 50 }); tx.position.set(0, 0.5, 1.36); in2.add(tx);
     }
-    if (karre.ladung >= KARRE_MAX) KERN.meldung('Die Schubkarre ist voll!', 'knapp');
+    K.schild = BAU.schwebeText(art === 'mist' ? '🛒 Mistkarre' : '🌾 Futterwagen', 0.26, { schrift: 38 }); K.schild.position.set(0, 1.5, 0.8); g.add(K.schild);
+    szene.add(g);
+    g.position.set(K.x, 0, K.z); g.rotation.y = kurs;
+    karren[art] = K;
+    zeigeLadung(K);
+    return K;
+  }
+  function baueGabel() {
+    var g = new THREE.Group(), holz = 0xb98a55, eisen = 0x6b6f76;
+    BAU.walze(0.018, 0.018, 1.25, holz, g, 0, 0.1, 0, 6);
+    BAU.kasten(0.24, 0.02, 0.02, eisen, g, 0, -0.53, 0);
+    for (var i = -1; i <= 1; i++) BAU.kasten(0.016, 0.3, 0.016, eisen, g, i * 0.11, -0.68, 0).rotation.x = 0.12;
+    var klump = BAU.netz(new THREE.DodecahedronGeometry(0.15, 0), 0x4a3320, g, 0, -0.74, 0.05); klump.scale.set(1.3, 0.7, 1); klump.visible = false;
+    szene.add(g);
+    gabel = { g: g, klump: klump, platz: [STALL_W - 0.42, -2.5], inHand: false, aufKarre: false, voll: 0 };
+    legeGabel();
+    // Flugbahn für geworfenen Mist und Futter
+    for (i = 0; i < 5; i++) { var f = BAU.netz(new THREE.DodecahedronGeometry(0.13, 0), 0x4a3320, szene); f.visible = false; flieger.push({ m: f, t: 9 }); }
+    // Pferdeäpfel auf dem Hof
+    HOFMIST_ORTE.forEach(function (o) { var m = BAU.netz(new THREE.DodecahedronGeometry(0.17, 0), 0x4a3320, szene, o[0], 0.12, o[1]); m.scale.y = 0.6; m.visible = false; hofMist.push(m); });
+    if (typeof d.hofMist !== 'number') d.hofMist = 2;
+    zeigeHofMist();
+  }
+  var STALL_W = -12;
+  function zeigeHofMist() { hofMist.forEach(function (m, i) { m.visible = i < d.hofMist; }); }
+  function legeGabel() {             // die Gabel dorthin, wo sie gerade hingehört
+    var G = gabel, g = G.g, hand = S.figur.gelenke.handR;
+    if (g.parent) g.parent.remove(g);
+    if (G.inHand) { hand.add(g); g.position.set(0, 0, 0.02); g.rotation.set(1.25, 0, 0); }
+    else if (G.aufKarre) { karren.mist.last.parent.add(g); g.position.set(0.33, 0.78, 0.55); g.rotation.set(1.62, 0, 0.1); }
+    else { szene.add(g); g.position.set(G.platz[0], 0.78, G.platz[1]); g.rotation.set(0, 0, -0.28); }
+    G.klump.visible = G.voll > 0;
+  }
+  function nimmGabel() { loslassen(); gabel.inHand = true; gabel.aufKarre = false; legeGabel(); KERN.ton(480, 0.07, 'triangle', 0.14); KERN.meldung('🔱 Mistgabel!', 'gut'); }
+  function stelleGabelWeg(still) {
+    if (!gabel || (!gabel.inHand && !gabel.aufKarre)) return;
+    gabel.inHand = false; gabel.aufKarre = false; gabel.voll = 0; legeGabel();
+    if (!still) { KERN.ton(360, 0.07, 'triangle', 0.12); KERN.meldung('Die Mistgabel lehnt wieder an der Stallwand.', 'gut'); }
+  }
+  function zeigeLadung(K) {
+    if (K.art === 'mist') {
+      K.haufen.visible = K.ladung > 0;
+      var s = 0.35 + 0.65 * K.ladung / KARRE_MAX;
+      K.haufen.scale.set(0.9, s * 1.1, 1.2);
+    } else K.teile.forEach(function (t, i) { t.visible = i < K.ladung; });
+  }
+  function schiebt() { return karren.mist && karren.mist.geschoben ? karren.mist : karren.futter && karren.futter.geschoben ? karren.futter : null; }
+  function nimmKarre(K) {
+    loslassen();
+    if (K.art === 'futter') stelleGabelWeg(true);
+    else if (gabel.inHand && !gabel.voll) { gabel.inHand = false; gabel.aufKarre = true; legeGabel(); }
+    K.geschoben = true; K.schild.visible = false;
+    KERN.ton(420, 0.08, 'triangle', 0.14); KERN.meldung(K.art === 'mist' ? '🛒 Mistkarre!' : '🌾 Futterwagen!', 'gut');
+  }
+  function stelleKarreAb(heim) {
+    ['mist', 'futter'].forEach(function (art) {
+      var K = karren[art];
+      if (!K) return;
+      if (heim) { K.x = K.platz[0]; K.z = K.platz[1]; K.kurs = K.kurs0; K.g.position.set(K.x, 0, K.z); K.g.rotation.y = K.kurs; }
+      else if (K.geschoben) KERN.ton(360, 0.08, 'triangle', 0.12);
+      if (K.geschoben && art === 'mist' && gabel.aufKarre && !heim) { gabel.aufKarre = false; gabel.inHand = true; legeGabel(); }
+      K.geschoben = false; K.schild.visible = true;
+    });
+    if (heim) stelleGabelWeg(true);
+  }
+  function loslassen() { stelleKarreAb(); }
+  function wirf(von, nach, farbe, gross, fertig) {
+    var f = flieger.sort(function (a, b) { return b.t - a.t; })[0];
+    f.t = 0; f.von = von; f.nach = nach; f.fertig = fertig; f.m.material = BAU.mat(farbe); f.m.scale.setScalar(gross || 1); f.m.visible = true;
+  }
+  function handPunkt() { return [S.x + Math.sin(S.kurs) * 0.6, 0.5, S.z + Math.cos(S.kurs) * 0.6]; }
+  function karrenPunkt(K) { return [K.x + Math.sin(K.kurs) * 0.85, 0.75, K.z + Math.cos(K.kurs) * 0.85]; }
+  // Mist in der Nähe: [Abstand, Box oder null, Netz, Nummer]
+  function naherMist() {
+    var beste = null;
+    function pruefe(m, box, nr) { var e = Math.hypot(S.x - m.position.x, S.z - m.position.z); if (e < 1.45 && (!beste || e < beste.e)) beste = { e: e, box: box, m: m, nr: nr }; }
+    C.boxen.forEach(function (b) { b.mist.forEach(function (m, i) { pruefe(m, b, i); }); });
+    hofMist.forEach(function (m, i) { if (i < d.hofMist) pruefe(m, null, i); });
+    return beste;
+  }
+  function gabelAuf(ziel) {
+    var n = 0, K = karren.mist, mx = ziel.m.position.x, mz = ziel.m.position.z;
+    S.kurs = Math.atan2(mx - S.x, mz - S.z);
+    if (ziel.box) {
+      var b = ziel.box, rest = [];
+      b.mist.forEach(function (m) { if (n < 2 && Math.hypot(m.position.x - mx, m.position.z - mz) < 0.75) { szene.remove(m); n++; } else rest.push(m); });
+      b.mist.length = 0; rest.forEach(function (m) { b.mist.push(m); });
+      if (b.pferd) {
+        b.pferd.st.mist = b.mist.length / 8;
+        if (!b.mist.length) { d.muenzen += 2; setTimeout(function () { KERN.meldung('Box ausgemistet!  +2 🪙', 'perfekt'); KERN.klang('gut'); }, 500); zaehle('box', 1); }
+      }
+    } else { n = 1; d.hofMist = Math.max(0, d.hofMist - 1); var letzter = hofMist[d.hofMist]; ziel.m.position.x = letzter.position.x; ziel.m.position.z = letzter.position.z; letzter.position.set(mx, 0.12, mz); zeigeHofMist(); }
+    gabel.voll = n; gabel.klump.visible = true; schaufelZeit = 0.5;
+    KERN.ton(240, 0.07, 'triangle', 0.16); KERN.ton(180, 0.09, 'triangle', 0.14, 0.12);
+    // steht die Mistkarre gleich daneben, fliegt der Mist sofort hinein
+    if (!K.geschoben && K.ladung < KARRE_MAX && Math.hypot(S.x - K.x, S.z - K.z) < 4.6) setTimeout(function () { if (gabel.voll) wirfInKarre(); }, 380);
     STAND.speichere();
   }
-  function ladeAb() {
-    var n = karre.ladung, lohn = Math.ceil(n / 2);
-    karre.ladung = 0; zeigeLadung(); schaufelZeit = 0.7;
+  function wirfInKarre() {
+    var K = karren.mist, n = Math.min(gabel.voll, KARRE_MAX - K.ladung);
+    if (n <= 0) { KERN.meldung('Die Schubkarre ist voll! Kipp sie am Misthaufen aus.', 'knapp'); return; }
+    gabel.voll -= n; gabel.klump.visible = gabel.voll > 0; schaufelZeit = 0.45;
+    S.kurs = Math.atan2(K.x - S.x, K.z - S.z);
+    wirf(handPunkt(), karrenPunkt(K), 0x4a3320, 1, function () { K.ladung += n; zeigeLadung(K); KERN.ton(150, 0.08, 'square', 0.1); if (K.ladung >= KARRE_MAX) KERN.meldung('Die Schubkarre ist voll!', 'knapp'); });
+  }
+  function wirfAufHaufen() {
+    var n = gabel.voll, M = C.ORT.mist;
+    gabel.voll = 0; gabel.klump.visible = false; schaufelZeit = 0.45;
+    S.kurs = Math.atan2(M[0] - S.x, M[1] - S.z);
+    wirf(handPunkt(), [M[0], 0.9, M[1]], 0x4a3320, 1, function () { bucheMist(n, true); });
+  }
+  function bucheMist(n, still) {
+    var lohn = Math.ceil(n / 2);
     d.muenzen += lohn; d.misthaufen = (d.misthaufen || 0) + n;
-    KERN.meldung('Mist abgeladen!  +' + lohn + ' 🪙', 'perfekt'); KERN.klang('gut');
+    if (!still) { KERN.meldung('Mist abgeladen!  +' + lohn + ' 🪙', 'perfekt'); KERN.klang('gut'); } else KERN.ton(150, 0.08, 'square', 0.1);
     zaehle('mist', n);
     if (d.misthaufen >= 60) {
       d.misthaufen = 0; d.muenzen += 12;
@@ -227,6 +328,31 @@ var HOFTAG = (function () {
     }
     zeigeHaufen();
     STAND.speichere();
+  }
+  function ladeAb() {
+    var K = karren.mist, n = K.ladung;
+    K.kippZeit = 1.1; schaufelZeit = 0.9;
+    setTimeout(function () { K.ladung = 0; zeigeLadung(K); bucheMist(n); }, 450);
+  }
+  function beladeFutter() {
+    var K = karren.futter;
+    K.ladung = 6; zeigeLadung(K); schaufelZeit = 0.6;
+    KERN.ton(420, 0.08, 'triangle', 0.12); KERN.ton(520, 0.08, 'triangle', 0.12, 0.12);
+    KERN.meldung('🌾 Hafer, Heu und Möhren für sechs Pferde aufgeladen!', 'gut');
+  }
+  function fuettereAusWagen(P) {
+    var K = karren.futter, b = P.box;
+    K.ladung--; zeigeLadung(K); schaufelZeit = 0.5;
+    wirf(karrenPunkt(K), [b.raufe[0], 1.5, b.raufe[1]], 0xd3bb55, 1.5, null);
+    setTimeout(function () { wirf(karrenPunkt(K), [b.trog[0], 0.9, b.trog[1]], 0xd9b96a, 1, function () { C.fuettereWagen(P); }); }, 200);
+    if (!K.ladung) setTimeout(function () { KERN.meldung('Der Futterwagen ist leer.', 'knapp'); }, 1600);
+  }
+  // Box, vor deren Tür (oder in der) man gerade steht
+  function boxInDerNaehe() {
+    var b = C.inBoxVon(S.x, S.z), bd = 2.7;
+    if (b) return b;
+    C.boxen.forEach(function (k) { var e = Math.hypot(S.x - k.xc, S.z - k.zVorn); if (e < bd) { bd = e; b = k; } });
+    return b;
   }
   function zeigeHaufen() {
     if (!misthaufen) return;
@@ -543,7 +669,7 @@ var HOFTAG = (function () {
 
   function baue(ctx) {
     C = ctx; szene = ctx.szene; S = ctx.S;
-    baueHaus(); baueRad(); baueKatze(); baueKarre(); baueTiere(); baueUmland();
+    baueHaus(); baueRad(); baueKatze(); baueKarre('mist', KARRE_PLATZ, 0, 0x3e8f4a, 0x2c6b36); baueKarre('futter', FUTTER_PLATZ, -Math.PI / 2, 0x2f6fb5, 0x1f4f85); baueGabel(); baueTiere(); baueUmland();
     misthaufen = BAU.netz(new THREE.SphereGeometry(2.4, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x5a3d22, szene, ctx.ORT.mist[0] + 0.3, 0, ctx.ORT.mist[1] - 0.2);
     zeigeHaufen(); MODELLE3D.lade('misthaufen', zeigeHaufen);
     letzteStunde = d.stunde;
@@ -551,17 +677,34 @@ var HOFTAG = (function () {
 
   // ---------- Was kann man tun? ----------
   function aktionen(vor, S, P, beste) {
-    if (karre.geschoben) {
-      var b = C.inBoxVon(S.x, S.z), M = C.ORT.mist;
-      if (b && b.mist.length) {
-        if (karre.ladung >= KARRE_MAX) vor(S.x, S.z, 9, null, null, 'Die Schubkarre ist voll. Bring den Mist zum Misthaufen westlich vom Stall.');
-        else vor(S.x, S.z, 9, '🧹 Mist in die Schubkarre schaufeln', function () { schaufle(b); });
-      } else if (b) vor(S.x, S.z, 9, null, null, 'Diese Box ist sauber. ' + (karre.ladung ? 'Bring den Mist zum Misthaufen westlich vom Stall.' : 'Fahr in eine andere Box.'));
-      else if (karre.ladung > 0 && Math.hypot(S.x - M[0], S.z - M[1]) < 4.8) vor(S.x, S.z, 9, '💩 Mist auf den Misthaufen kippen', ladeAb);
+    var K = schiebt(), M = C.ORT.mist, amHaufen = Math.hypot(S.x - M[0], S.z - M[1]) < 4.8, b, B;
+    if (K && K.art === 'mist') {
+      b = C.inBoxVon(S.x, S.z);
+      if (K.ladung > 0 && amHaufen) vor(S.x, S.z, 9, '💩 Mist auf den Misthaufen kippen', ladeAb);
+      else if (b && b.mist.length && K.ladung < KARRE_MAX) vor(S.x, S.z, 9, gabel.aufKarre ? '🛒 Schubkarre hier abstellen' : null, gabel.aufKarre ? function () { stelleKarreAb(); } : null, gabel.aufKarre ? null : 'Stell die Schubkarre hier ab und hol die Mistgabel. Sie lehnt westlich an der Stallwand.');
       else if (!beste()) vor(S.x, S.z, 9, '🛒 Schubkarre abstellen', function () { stelleKarreAb(); });
       return;
     }
-    if (!P && !S.traegt) vor(karre.x + Math.sin(karre.kurs) * 0.5, karre.z + Math.cos(karre.kurs) * 0.5, 1.7, '🛒 Schubkarre nehmen', nimmKarre);
+    if (K) {             // Futterwagen
+      b = boxInDerNaehe(); B = b && b.pferd && b.pferd.ort === 'box' ? b.pferd : null;
+      var imVorrat = S.x > 0 && S.x < 8 && S.z < -1.2 && S.z > -6.5 && Math.hypot(S.x - 4, S.z + 2.6) < 4.2;
+      if (imVorrat && K.ladung < 6) vor(S.x, S.z, 9, '🌾 Futterwagen beladen', beladeFutter);
+      else if (B && K.ladung > 0 && !(B.st.hafer && B.st.heu)) vor(b.xc, b.zVorn, 9, '🌾 ' + B.def.name + ' füttern', function () { fuettereAusWagen(B); });
+      else if (B && K.ladung > 0) vor(b.xc, b.zVorn, 9, null, null, B.def.name + ' hat schon Futter. Fahr zur nächsten Box.');
+      else if (!K.ladung && !imVorrat) vor(S.x, S.z, 9, '🛒 Futterwagen abstellen', function () { stelleKarreAb(); }, null);
+      else if (!beste()) vor(S.x, S.z, 9, '🛒 Futterwagen abstellen', function () { stelleKarreAb(); });
+      return;
+    }
+    var mist = gabel.inHand ? naherMist() : null, KM = karren.mist, anKarre = Math.hypot(S.x - KM.x - Math.sin(KM.kurs) * 0.6, S.z - KM.z - Math.cos(KM.kurs) * 0.6) < 2.3;
+    if (gabel.inHand) {
+      if (gabel.voll && anKarre) vor(S.x, S.z, 9, '💩 Mist in die Schubkarre werfen', wirfInKarre);
+      else if (gabel.voll && amHaufen) vor(S.x, S.z, 9, '💩 Mist auf den Misthaufen werfen', wirfAufHaufen);
+      else if (gabel.voll) vor(S.x, S.z, 9, null, null, 'Die Gabel ist voll. Wirf den Mist in die Schubkarre oder auf den Misthaufen.');
+      else if (mist) vor(mist.m.position.x, mist.m.position.z, 9, '🔱 Mist aufgabeln', function () { gabelAuf(mist); });
+    } else if (!P && !S.traegt) vor(gabel.platz[0] - 0.5, gabel.platz[1], 1.5, '🔱 Mistgabel nehmen', nimmGabel);
+    if (!P && !S.traegt && !(gabel.inHand && (mist || gabel.voll))) {
+      ['mist', 'futter'].forEach(function (art) { var k = karren[art]; vor(k.x + Math.sin(k.kurs) * 0.3, k.z + Math.cos(k.kurs) * 0.3, 1.7, art === 'mist' ? '🛒 Mistkarre nehmen' : '🌾 Futterwagen nehmen', function () { nimmKarre(k); }); });
+    }
     vor(BETT[0] + 0.2, BETT[1] + 1.0, 1.5, d.stunde >= 18 ? '🛏️ Schlafen gehen' : '🛏️ Dein Bett', function () { fragSchlafen('bett'); });
     vor(SCHRANK[0], SCHRANK[1] + 1.0, 1.4, '👗 Kleiderschrank', zeigeSchrank);
     vor(TISCH[0] - 0.9, TISCH[1], 1.3, '📋 Aufgabenbuch', zeigeAufgaben);
@@ -575,10 +718,22 @@ var HOFTAG = (function () {
     zeit = z;
     schaufelZeit = Math.max(0, schaufelZeit - dt);
     bewegeKatze(dt); bewegeHuehner(dt);
-    if (karre.geschoben) {
-      karre.kurs = S.kurs; karre.x = S.x + Math.sin(S.kurs) * 0.28; karre.z = S.z + Math.cos(S.kurs) * 0.28;
-      karre.g.position.set(karre.x, 0, karre.z); karre.g.rotation.y = karre.kurs;
+    var K = schiebt();
+    if (K) {
+      K.kurs = S.kurs; K.x = S.x + Math.sin(S.kurs) * 0.28; K.z = S.z + Math.cos(S.kurs) * 0.28;
+      K.g.position.set(K.x, 0, K.z); K.g.rotation.y = K.kurs;
     }
+    var km = karren.mist;
+    if (km.kippZeit > 0) km.kippZeit = Math.max(0, km.kippZeit - dt);
+    km.kipp.rotation.x = Math.sin(Math.min(1, km.kippZeit / 1.1) * Math.PI) * 0.75;
+    flieger.forEach(function (f) {
+      if (f.t > 1) return;
+      f.t += dt / 0.5;
+      var q = Math.min(1, f.t);
+      f.m.position.set(f.von[0] + (f.nach[0] - f.von[0]) * q, f.von[1] + (f.nach[1] - f.von[1]) * q + Math.sin(q * Math.PI) * 0.9, f.von[2] + (f.nach[2] - f.von[2]) * q);
+      f.m.rotation.x += dt * 9;
+      if (f.t >= 1) { f.m.visible = false; f.t = 9; if (f.fertig) f.fertig(); }
+    });
     if (muehle) muehle.rad.rotation.z += dt * 0.5;
     if (ballon) { var bw = z * 0.012; ballon.position.set(Math.sin(bw) * 190, 78 + Math.sin(z * 0.2) * 3, Math.cos(bw) * 150 - 40); }
     // Abendlicht: Fenster und Laternen
@@ -598,17 +753,28 @@ var HOFTAG = (function () {
   return {
     baue: baue, imHaus: imHaus, zeigeDach: function (v) { if (hausDach) hausDach.visible = v; }, aktionen: aktionen, schritt: schritt,
     zaehle: zaehle, nacht: nacht, zeigeAufgaben: zeigeAufgaben, zeigeZimmer: zeigeZimmer,
-    schiebt: function () { return !!(karre && karre.geschoben); }, loslassen: function () { stelleKarreAb(); },
-    pose: function () { return schaufelZeit > 0 ? 'schaufeln' : karre && karre.geschoben ? 'tragen' : null; },
+    schiebt: function () { return !!schiebt(); }, loslassen: function () { stelleKarreAb(); stelleGabelWeg(true); },
+    pose: function () { return schaufelZeit > 0 ? 'schaufeln' : schiebt() ? 'schieben' : gabel && gabel.inHand ? 'gabel' : null; },
+    // weitere Knöpfe neben dem Aktionsknopf
+    zweit: function () {
+      var K = schiebt();
+      if (K) return [{ text: K.art === 'mist' ? '🛒 Abstellen' : '🛒 Abstellen', tun: function () { stelleKarreAb(); } }];
+      if (gabel && gabel.inHand) return [{ text: '🔱 Wegstellen', tun: function () { stelleGabelWeg(); } }];
+      return [];
+    },
+    hatGabel: function () { return !!(gabel && gabel.inHand); },
     hinweis: function () {
       if (schlaeft) return null;
       if (nacht()) return '🌙 Es ist Nacht. Bring die Pferde in den Stall und geh ins Bett (dein Zimmer ist im Haus nördlich vom Stall) oder fahr mit dem 🚲 nach Hause.';
-      if (karre && karre.geschoben) return '🛒 Schubkarre: Fahr in eine Box und schaufle den Mist hinein. Mist ' + karre.ladung + ' von ' + KARRE_MAX + '. Abladen am Misthaufen westlich vom Stall.';
+      var K = schiebt();
+      if (K && K.art === 'mist') return '🛒 Mistkarre: ' + K.ladung + ' von ' + KARRE_MAX + '. ' + (K.ladung >= KARRE_MAX ? 'Voll! Auskippen am Misthaufen westlich vom Stall.' : gabel.aufKarre ? 'Stell sie in einer Box ab, dann gabelst du den Mist hinein.' : 'Auskippen am Misthaufen westlich vom Stall.');
+      if (K) return '🌾 Futterwagen: noch ' + K.ladung + ' von 6 Portionen. ' + (K.ladung ? 'Fahr durch die Stallgasse von Box zu Box.' : 'Im Vorratsraum gibt es Nachschub.');
+      if (gabel && gabel.inHand && !gabel.voll && !naherMist()) return '🔱 Mistgabel: Geh zu den Pferdeäpfeln in den Boxen und auf dem Hof. Am besten stellst du vorher die Mistkarre daneben.';
       return null;
     },
     tipp: function () { return nacht() ? 'Gute Nacht! Ab ins Bett mit dir.' : d.stunde >= 20 ? 'Es wird dunkel. Sind alle Pferde im Stall?' : null; },
     kachel: function () { return REITEN.kachel('Tag ' + d.tag, '📋 ' + geschafft() + ' / ' + d.aufgaben.liste.length); },
     vergeht: function (stunden) { d.stunde = Math.min(23.5, d.stunde + stunden); },
-    zustand: function () { return { karre: karre, katze: katze, aufgaben: d.aufgaben, schlaeft: schlaeft }; }
+    zustand: function () { return { karre: karren.mist, karren: karren, gabel: gabel, katze: katze, aufgaben: d.aufgaben, schlaeft: schlaeft }; }
   };
 })();
