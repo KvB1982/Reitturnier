@@ -1204,21 +1204,21 @@ WELTEN.hof = (function () {
         if (opt.zurueckVon === 'ausritt') S.kurs = Math.PI;
         if (S.fuehrt) { S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8; }
       }
-      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten3) {
-        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.speichere();
+      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten4) {
+        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>✨ Neu auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
-          '• <b>Kamera:</b> Mit den Knöpfen rechts (⟲ ⟳ ＋ －) drehst und zoomst du. 🗺️ zeigt den ganzen Hof von oben. Auf dem iPad: mit <b>zwei Fingern</b> drehen und zoomen. Maus: rechte Taste ziehen und Mausrad.<br>' +
-          '• <b>📋 Aufgaben:</b> Jeden Morgen gibt es neue Aufgaben für den Tag.<br>' +
-          '• <b>Dein Zimmer</b> ist im Haus nördlich vom Stall: Bett, Kleiderschrank, Pokalregal. Wenn es <b>Nacht</b> wird, musst du ins Bett oder mit dem 🚲 nach Hause.<br>' +
-          '• Die <b>🛒 Schubkarre</b> steht westlich am Stall: Mist aus den Boxen schaufeln und zum Misthaufen fahren.<br>' +
-          '• Im <b>Reitladen</b> gibt es Reitkappen, Frisuren, Kleidung und Sachen fürs Zimmer.<br>' +
-          '• Die Hofkatze <b>Minka</b> lässt sich streicheln.<br>' +
-          '• Beim <b>Ausritt</b> kannst du absteigen, picknicken und am See spielen.</div>',
+          '• <b>Ausritt:</b> Im Süden ist ein neues <b>Tor ins Grüne</b>. Dahinter liegt eine riesige Landschaft mit Wäldern, Bergen, Feldern, einem Bach, einem Dorf und einer Windmühle. Unterwegs: Tiere, Slalom, Ringstechen, Wettreiten mit Lotte.<br>' +
+          '• <b>Aufsteigen:</b> Mit einem Pferd an der Hand kannst du draußen aufsteigen (Knopf rechts unten). Auf dem Hof geht es im Schritt, draußen auch im Trab und Galopp. Unterwegs kannst du absteigen, führen und das <b>Pferd wechseln</b>.<br>' +
+          '• <b>Mistgabel:</b> Sie lehnt westlich am Stall. Damit gabelst du Pferdeäpfel auf, wirfst sie in die Schubkarre und kippst sie am Misthaufen aus.<br>' +
+          '• <b>Futterwagen:</b> Er steht in der Stallgasse. Im Vorratsraum beladen, dann alle Pferde nacheinander füttern.<br>' +
+          '• <b>Putzen:</b> Pferde müssen jetzt von <b>beiden Seiten</b> sauber werden (🔄). Draußen gibt es einen <b>Putzplatz</b>, zum Beispiel für nach dem Ausritt.<br>' +
+          '• <b>Dein Zimmer</b> ist viel gemütlicher: Bücher, Spieluhr und neue Sachen im Reitladen.<br>' +
+          '• Das <b>Fohlen</b> siehst du beim Versorgen jetzt ganz nah. Und es tobt über die Weide!</div>',
           [{ text: 'Toll!', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
       if (!STAND.daten.begruesst) {
-        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.speichere();
+        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>🏡 Willkommen auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
           '• Lauf mit den <b>Pfeiltasten</b> (oder WASD). Auf dem iPad: <b>Finger auflegen und ziehen</b>.<br>' +
@@ -1228,7 +1228,8 @@ WELTEN.hof = (function () {
           '• Für Siege und gute Pflege gibt es <b>Münzen</b> 🪙 für den <b>Reitladen</b>.<br>' +
           '• Auf der <b>Weide</b> wohnt ein <b>Fohlen</b>, östlich vom Stall sind <b>Tierärztin</b> und <b>Hufschmied</b>, am <b>Schwarzen Brett</b> gibt es Reitabzeichen.<br>' +
           '• Rechts sind die Knöpfe für die <b>Kamera</b> (drehen, zoomen, 🗺️ Übersicht) und die <b>📋 Aufgaben</b> für heute.<br>' +
-          '• <b>Dein Zimmer</b> ist im Haus nördlich vom Stall. Wenn es Nacht wird, gehst du dort ins <b>Bett</b>.</div>',
+          '• <b>Dein Zimmer</b> ist im Haus nördlich vom Stall. Wenn es Nacht wird, gehst du dort ins <b>Bett</b>.<br>' +
+          '• Durch das <b>Tor im Süden</b> geht es ins Grüne: Mit einem Pferd an der Hand kannst du draußen <b>aufsteigen</b> (Knopf rechts unten) und losreiten.</div>',
           [{ text: 'Los geht\'s', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
     },

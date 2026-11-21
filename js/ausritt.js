@@ -146,7 +146,7 @@ WELTEN.ausritt = (function () {
     for (i = 0; i < p.length; i++) {
       var a = p[Math.max(0, i - 1)], b = p[Math.min(p.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, nx = -dz / l, nz = dx / l;
       for (var k = 0; k <= q; k++) { var s = (k / q - 0.5) * breit, x = p[i][0] + nx * s, z = p[i][1] + nz * s; pos.push(x, o.fest !== undefined ? o.fest : hoehe(x, z) + hoch, z); }
-      if (i < p.length - 1 && !(o.striche && i % 2)) for (k = 0; k < q; k++) { var v = i * (q + 1) + k; idx.push(v, v + q + 1, v + 1, v + 1, v + q + 1, v + q + 2); }
+      if (i < p.length - 1 && !(o.striche && i % 2)) for (k = 0; k < q; k++) { var v = i * (q + 1) + k; idx.push(v, v + 1, v + q + 1, v + 1, v + q + 2, v + q + 1); }
     }
     var geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
@@ -165,7 +165,7 @@ WELTEN.ausritt = (function () {
     var i, k, zf = 11;
     function zuf() { zf = (zf * 16807) % 2147483647; return zf / 2147483647; }
     szene = new THREE.Scene();
-    sonne = BAU.licht(szene, { schatten: 42, nebelNah: 130, nebelFern: 560, himmel: 0xa9d8f2 });
+    sonne = BAU.licht(szene, { schatten: 42, nebelNah: 120, nebelFern: 430, himmel: 0xa9d8f2 });
     kamera = REITEN.neueKamera(); kamera.far = 3400; kamera.updateProjectionMatrix();
     fluss = linie(FLUSS); strasse = linie(STRASSE);
     for (k in WEGE) linien[k] = linie(WEGE[k], k === 'runde');
@@ -967,7 +967,7 @@ WELTEN.ausritt = (function () {
     });
     // nur die Waldstücke in der Nähe zeichnen
     stuecke.forEach(function (s) {
-      s.g.visible = Math.hypot(s.x - kamera.position.x, s.z - kamera.position.z) < szene.fog.far + 90;
+      s.g.visible = Math.hypot(s.x - kamera.position.x, s.z - kamera.position.z) < szene.fog.far + 20;
       if (s.fertig || !s.g.visible) return;
       s.zahl = 0; s.g.traverse(function (t) { if (t.isInstancedMesh) { s.zahl++; if (!t.userData.knapp) { t.userData.knapp = true; t.computeBoundingSphere(); t.frustumCulled = true; } } });
       if (s.zahl > 6 || MODELLE3D.aus() || zeit - (s.t0 = s.t0 || zeit) > 30) s.fertig = true;

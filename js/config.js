@@ -182,7 +182,12 @@ var LADEN = [
   { id: 'z_kuschel', kat: 'zimmer', art: 'zimmer', name: 'Kuschelpferd fürs Bett', preis: 25 },
   { id: 'z_sitzsack', kat: 'zimmer', art: 'zimmer', name: 'Sitzsack', preis: 30 },
   { id: 'z_bett', kat: 'zimmer', art: 'zimmer', name: 'Himmelbett-Vorhang', preis: 60 },
-  { id: 'z_korb', kat: 'zimmer', art: 'zimmer', name: 'Katzenkörbchen (Minka schläft dann bei dir)', preis: 35 }
+  { id: 'z_korb', kat: 'zimmer', art: 'zimmer', name: 'Katzenkörbchen (Minka schläft dann bei dir)', preis: 35 },
+  { id: 'z_sessel', kat: 'zimmer', art: 'zimmer', name: 'Kuschelsessel', preis: 40 },
+  { id: 'z_lampe', kat: 'zimmer', art: 'zimmer', name: 'Stehlampe', preis: 25 },
+  { id: 'z_aquarium', kat: 'zimmer', art: 'zimmer', name: 'Aquarium mit Goldfischen', preis: 50 },
+  { id: 'z_schaukel', kat: 'zimmer', art: 'zimmer', name: 'Schaukelpferd', preis: 45 },
+  { id: 'z_sterne', kat: 'zimmer', art: 'zimmer', name: 'Leuchtsterne für die Wand', preis: 20 }
 ];
 
 // Farben aus den Farbpaketen im Reitladen

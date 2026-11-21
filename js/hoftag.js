@@ -475,7 +475,139 @@ var HOFTAG = (function () {
     var vs = BAU.netz(new THREE.PlaneGeometry(1.05, 1.4), vh, g, bx - 1.0, 1.3, bz); vs.rotation.y = Math.PI / 2; vs.castShadow = false;
     g = teil('z_korb');
     BAU.walze(0.4, 0.32, 0.2, 0xb9843c, g, 12, 0.1, -14.9, 12); BAU.walze(0.33, 0.33, 0.06, 0xff8fc0, g, 12, 0.2, -14.9, 12);
+    baueGemuetlich();
     zeigeZimmer();
+  }
+  // ---------- gemütliche Einrichtung: steht von Anfang an im Zimmer ----------
+  var FAKTEN = [
+    'Pferde können im Stehen schlafen. Zum Träumen legen sie sich aber hin.',
+    'Ein Pferd sieht fast rundherum, nur direkt hinter sich nicht. Darum spricht man es von hinten immer an.',
+    'An den Ohren erkennst du die Laune: nach vorn heißt neugierig, flach nach hinten heißt „Lass mich!“.',
+    'Fohlen stehen schon in der ersten Stunde nach der Geburt auf eigenen Beinen.',
+    'Pferde trinken an einem Tag 30 bis 60 Liter Wasser. Das sind drei bis sechs Putzeimer!',
+    'Ein Hufeisen bringt Glück, sagt man. Aber nur, wenn die Öffnung nach oben zeigt.',
+    'Die Größe von Pferden misst man am Widerrist, dem höchsten Punkt des Rückens.',
+    'Ponys sind nicht einfach kleine Pferde: Sie sind oft besonders stark und ganz schön schlau.',
+    'Pferde begrüßen ihre Freunde mit einem leisen Brummeln. Das heißt „Schön, dass du da bist!“.',
+    'Beim Galopp gibt es einen Moment, in dem alle vier Hufe in der Luft sind.',
+    'Pferde können nicht durch den Mund atmen, nur durch die Nüstern.',
+    'Vor dem Reiten immer die Hufe auskratzen: Ein Steinchen im Huf drückt wie ein Stein im Schuh.'
+  ];
+  var gemuetlich = { fische: [], schaukel: null, schubs: 0, uhr: null, buch: 0, futter: 0, musik: 0 };
+  function baueGemuetlich() {
+    var H = HAUS, i, HOLZ = 0x9a6b3f, HELL = 0xc79a63, bx = BETT[0], bz = BETT[1];
+    function tk(b, h, t, f, x, y, z, e) { var m = BAU.kasten(b, h, t, f, e || szene, x, y, z); m.castShadow = false; return m; }
+    // Wandsockel in warmem Ton mit weißer Leiste
+    tk(H.x1 - H.x0 - 0.2, 1.0, 0.02, 0xf6d7c0, (H.x0 + H.x1) / 2, 0.5, H.z0 + 0.115); tk(H.x1 - H.x0 - 0.2, 0.05, 0.035, 0xffffff, (H.x0 + H.x1) / 2, 1.02, H.z0 + 0.12);
+    [H.x0 + 0.115, H.x1 - 0.115].forEach(function (x) { tk(0.02, 1.0, H.z1 - H.z0 - 0.2, 0xf6d7c0, x, 0.5, (H.z0 + H.z1) / 2); tk(0.035, 0.05, H.z1 - H.z0 - 0.2, 0xffffff, x, 1.02, (H.z0 + H.z1) / 2); });
+    // Vorhänge am Nordfenster und am Ostfenster
+    var stoff = new THREE.MeshStandardMaterial({ color: 0xe9607f, roughness: 1 });
+    tk(2.3, 0.04, 0.04, 0x7a4a2a, 13, 2.32, H.z0 + 0.17);
+    [-1, 1].forEach(function (v) { for (i = 0; i < 3; i++) tk(0.13, 1.25, 0.05 + (i % 2) * 0.03, i % 2 ? 0xf7a3b5 : stoff, 13 + v * (0.86 + i * 0.12), 1.68, H.z0 + 0.17); });
+    tk(0.04, 0.04, 2.1, 0x7a4a2a, H.x1 - 0.17, 2.32, -17.5);
+    [-1, 1].forEach(function (v) { for (i = 0; i < 3; i++) tk(0.05 + (i % 2) * 0.03, 1.25, 0.13, i % 2 ? 0xf7a3b5 : stoff, H.x1 - 0.17, 1.68, -17.5 + v * (0.76 + i * 0.12)); });
+    // Blumentopf auf der Fensterbank
+    tk(1.5, 0.05, 0.22, 0xffffff, 13, 1.17, H.z0 + 0.22);
+    BAU.walze(0.09, 0.07, 0.14, 0xc0623a, szene, 13.4, 1.27, H.z0 + 0.24, 8).castShadow = false;
+    [0xff6fae, 0xffd23f, 0xff6fae].forEach(function (f, k) { BAU.netz(new THREE.SphereGeometry(0.06, 6, 5), f, szene, 13.34 + k * 0.06, 1.42 + (k % 2) * 0.05, H.z0 + 0.24).castShadow = false; });
+    // Nachttisch mit Lampe (leuchtet abends)
+    BAU.kasten(0.5, 0.5, 0.45, HOLZ, szene, 12.05, 0.25, -20.6); tk(0.42, 0.02, 0.02, 0x6b4a2a, 12.05, 0.32, -20.37);
+    BAU.walze(0.03, 0.08, 0.22, 0xffffff, szene, 12.05, 0.61, -20.6, 8).castShadow = false;
+    var schirm = leucht(0xffd98a); schirm.emissiveIntensity = 0.25;
+    BAU.netz(new THREE.CylinderGeometry(0.1, 0.17, 0.2, 10), schirm, szene, 12.05, 0.8, -20.6).castShadow = false;
+    var nl = new THREE.PointLight(0xffc977, 0, 9, 1.8); nl.position.set(12.05, 1.2, -20.2); szene.add(nl);
+    lampen.push({ m: schirm, l: nl });
+    C.waende.push([11.8, -20.85, 12.3, -20.35]);
+    // Bücherregal unter dem Fenster
+    BAU.kasten(1.4, 1.0, 0.36, HOLZ, szene, 13.6, 0.5, -20.72);
+    tk(1.3, 0.38, 0.02, 0x5a3a20, 13.6, 0.27, -20.53); tk(1.3, 0.38, 0.02, 0x5a3a20, 13.6, 0.73, -20.53);
+    var bunt = [0xe84393, 0x3f8fd6, 0xf2c230, 0x45b36b, 0x8e6fd8, 0xe8603c, 0x37b5b0];
+    [0.25, 0.71].forEach(function (y, r) { for (i = 0; i < 11; i++) tk(0.085, 0.24 + ((i * 7 + r * 3) % 5) * 0.022, 0.04, bunt[(i + r * 3) % 7], 13.05 + i * 0.105, y + ((i * 7 + r * 3) % 5) * 0.011, -20.52); });
+    BAU.netz(new THREE.SphereGeometry(0.14, 12, 9), 0x4aa3df, szene, 14.05, 1.22, -20.72).castShadow = false;                      // Globus
+    BAU.walze(0.07, 0.1, 0.08, 0x7a4a2a, szene, 14.05, 1.04, -20.72, 8).castShadow = false;
+    tk(0.26, 0.2, 0.03, 0xffffff, 13.1, 1.11, -20.74).rotation.x = -0.2; tk(0.2, 0.14, 0.035, 0x9bd0f5, 13.1, 1.11, -20.735).rotation.x = -0.2;   // Fotorahmen
+    C.waende.push([12.9, -20.9, 14.3, -20.5]);
+    // Kommode an der Westwand mit Spieluhr
+    BAU.kasten(0.5, 0.8, 0.9, HELL, szene, 9.42, 0.4, -18.6);
+    [0.2, 0.45, 0.68].forEach(function (y) { tk(0.02, 0.2, 0.8, 0xdcb98a, 9.68, y, -18.6); BAU.netz(new THREE.SphereGeometry(0.03, 6, 5), 0xf2c230, szene, 9.7, y, -18.6).castShadow = false; });
+    var su = new THREE.Group(); su.position.set(9.4, 0.8, -18.3); szene.add(su); gemuetlich.uhr = su;
+    tk(0.2, 0.1, 0.2, 0xff8fc0, 0, 0.05, 0, su); var tz = BAU.netz(new THREE.ConeGeometry(0.05, 0.14, 6), 0xffffff, su, 0, 0.17, 0); tz.castShadow = false; gemuetlich.taenzer = tz;
+    C.waende.push([9.15, -19.07, 9.7, -18.13]);
+    // Bilder und Siegerschleifen an den Wänden
+    [['🐴', '#fde7c7', -19.0], ['🌅', '#cfe9ff', -18.2]].forEach(function (e, k) { var b = BAU.tafel(e[0], 0.5, { grund: e[1], schrift: 110 }); b.position.set(H.x0 + 0.13, 1.9 - k * 0.25, e[2]); b.rotation.y = Math.PI / 2; szene.add(b); });
+    [0xe8413c, 0x3f8fd6, 0xf2c230].forEach(function (f, k) {
+      var x = 14.75 + k * 0.0, y = 2.3 - k * 0.0; x = 12.15 + k * 0.28; y = 2.25;
+      var r = BAU.netz(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 12), f, szene, x, y, H.z0 + 0.14); r.rotation.x = Math.PI / 2; r.castShadow = false;
+      tk(0.035, 0.2, 0.012, f, x - 0.03, y - 0.15, H.z0 + 0.135).rotation.z = -0.15; tk(0.035, 0.2, 0.012, f, x + 0.03, y - 0.15, H.z0 + 0.135).rotation.z = 0.15;
+    });
+    // Wimpelkette an der Ostwand
+    for (i = 0; i < 11; i++) { var wi = BAU.netz(new THREE.ConeGeometry(0.11, 0.24, 3), bunt[i % 7], szene, H.x1 - 0.14, 2.52 - Math.sin(i / 10 * Math.PI) * 0.16, -20.3 + i * 0.56); wi.rotation.set(Math.PI, 0, 0); wi.scale.x = 0.15; wi.castShadow = false; }
+    // Wanduhr
+    var uhr = BAU.netz(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 20), 0xffffff, szene, 14.6, 2.3, H.z0 + 0.14); uhr.rotation.x = Math.PI / 2; uhr.castShadow = false;
+    var ur = BAU.netz(new THREE.TorusGeometry(0.2, 0.025, 6, 20), 0xe84393, szene, 14.6, 2.3, H.z0 + 0.15); ur.castShadow = false;
+    gemuetlich.zeiger = [tk(0.02, 0.13, 0.01, 0x333333, 0, 0.065, 0, new THREE.Group()), tk(0.014, 0.17, 0.01, 0x333333, 0, 0.085, 0, new THREE.Group())].map(function (m) { var g2 = m.parent; g2.position.set(14.6, 2.3, H.z0 + 0.17); szene.add(g2); return g2; });
+    // Bettvorleger, Kissen und Kuscheldecke
+    var vl = BAU.netz(new THREE.CircleGeometry(0.75, 20), 0xf6e3b4, szene, 10.9, 0.045, -19.1); vl.rotation.x = -Math.PI / 2; vl.scale.set(1.5, 0.75, 1); vl.castShadow = false;
+    var vl2 = BAU.netz(new THREE.RingGeometry(0.5, 0.6, 20), 0xe9607f, szene, 10.9, 0.05, -19.1); vl2.rotation.x = -Math.PI / 2; vl2.scale.set(1.5, 0.75, 1); vl2.castShadow = false;
+    tk(0.5, 0.09, 1.0, 0x8fd1c9, bx + 0.72, 0.66, bz).rotation.z = 0.03;
+    [[0xffd23f, 0.2, -0.28], [0x8e6fd8, 0.24, 0.22]].forEach(function (e) { var ki = BAU.netz(new THREE.SphereGeometry(0.17, 8, 6), e[0], szene, bx - 0.62, 0.72, bz + e[2]); ki.scale.set(1, 0.55, 1); ki.castShadow = false; });
+    // Hausschuhe, Reitstiefel, Rucksack, Steckenpferd
+    [[10.35, -19.25], [10.55, -19.2]].forEach(function (q) { tk(0.11, 0.07, 0.24, 0xff8fc0, q[0], 0.08, q[1]).rotation.y = 0.3; });
+    [14.72, 14.92].forEach(function (x) { BAU.walze(0.07, 0.08, 0.45, 0x3a2a20, szene, x, 0.23, -20.6, 8).castShadow = false; tk(0.13, 0.08, 0.26, 0x3a2a20, x, 0.04, -20.52); });
+    BAU.netz(new THREE.SphereGeometry(0.2, 8, 6), 0x3f8fd6, szene, 15.55, 0.2, -16.05).scale.set(1, 1, 0.7);
+    var sp = new THREE.Group(); sp.position.set(9.3, 0, -15.6); sp.rotation.z = -0.12; szene.add(sp);
+    BAU.walze(0.025, 0.025, 1.3, 0xd9b27a, sp, 0, 0.65, 0, 6).castShadow = false; tk(0.12, 0.2, 0.34, 0xb5773c, 0, 1.36, 0.08, sp).rotation.x = 0.5; tk(0.03, 0.24, 0.2, 0x3a2a20, 0, 1.44, -0.04, sp);
+    // kleiner Flickenteppich vor der Tür
+    var ft = BAU.netz(new THREE.PlaneGeometry(1.3, 0.7), 0x7cc0a8, szene, H.tuer, 0.045, H.z1 - 0.55); ft.rotation.x = -Math.PI / 2; ft.castShadow = false;
+    for (i = 0; i < 4; i++) { var fs = BAU.netz(new THREE.PlaneGeometry(0.1, 0.7), i % 2 ? 0xffe9a8 : 0xe9607f, szene, H.tuer - 0.45 + i * 0.3, 0.05, H.z1 - 0.55); fs.rotation.x = -Math.PI / 2; fs.castShadow = false; }
+
+    // --- neue Sachen aus dem Reitladen ---
+    function teil(id) { var g = new THREE.Group(); szene.add(g); zimmerTeile[id] = g; return g; }
+    var g = teil('z_sessel'), sx = 16.2, sz = -15.75;
+    BAU.kasten(0.75, 0.4, 0.8, 0x6fae8f, g, sx, 0.22, sz); BAU.kasten(0.2, 0.75, 0.8, 0x6fae8f, g, sx + 0.33, 0.62, sz);
+    BAU.kasten(0.7, 0.24, 0.16, 0x5a9a7c, g, sx, 0.52, sz - 0.4); BAU.kasten(0.7, 0.24, 0.16, 0x5a9a7c, g, sx, 0.52, sz + 0.4);
+    tk(0.5, 0.06, 0.5, 0xffe9a8, sx - 0.02, 0.46, sz, g); tk(0.04, 0.5, 0.5, 0xe9607f, sx + 0.2, 0.75, sz - 0.1, g).rotation.x = 0.15;
+    g = teil('z_lampe');
+    BAU.walze(0.16, 0.18, 0.04, 0x4a4a4a, g, 16.55, 0.02, -19.0, 12); BAU.walze(0.025, 0.025, 1.5, 0x4a4a4a, g, 16.55, 0.77, -19.0, 6);
+    var ls = leucht(0xffcf8a); ls.emissiveIntensity = 0.5; zimmerTeile.lampeMat = ls;
+    BAU.netz(new THREE.CylinderGeometry(0.15, 0.26, 0.32, 12), ls, g, 16.55, 1.62, -19.0).castShadow = false;
+    var sl = new THREE.PointLight(0xffc977, 0, 8, 1.8); sl.position.set(16.3, 1.7, -19.0); g.add(sl); zimmerTeile.lampeLicht = sl;
+    g = teil('z_aquarium');
+    var gl = new THREE.MeshStandardMaterial({ color: 0x6fd0f0, transparent: true, opacity: 0.45, roughness: 0.1 });
+    BAU.netz(new THREE.BoxGeometry(0.34, 0.3, 0.5), gl, g, 9.42, 0.96, -18.75).castShadow = false;
+    tk(0.36, 0.03, 0.52, 0x333333, 9.42, 1.12, -18.75, g); tk(0.3, 0.03, 0.46, 0xe8d9a8, 9.42, 0.83, -18.75, g);
+    tk(0.02, 0.14, 0.02, 0x3f9a46, 9.38, 0.91, -18.9, g); tk(0.02, 0.1, 0.02, 0x3f9a46, 9.46, 0.89, -18.62, g);
+    [0xff8a2a, 0xffd23f, 0xe8413c].forEach(function (f, k) { var fi = BAU.netz(new THREE.SphereGeometry(0.03, 6, 5), f, g, 9.42, 0.95, -18.75); fi.scale.set(0.6, 1, 1.7); fi.castShadow = false; gemuetlich.fische.push({ m: fi, p: k * 2.1, y: 0.9 + k * 0.05 }); });
+    g = teil('z_schaukel');
+    var sch = new THREE.Group(); sch.position.set(14.7, 0, -15.3); sch.rotation.y = -0.6; g.add(sch); gemuetlich.schaukel = sch;
+    [-0.16, 0.16].forEach(function (x) { var ku = BAU.netz(new THREE.TorusGeometry(0.7, 0.03, 6, 14, 1.3), 0xb5773c, sch, x, 0.72, 0); ku.rotation.set(0, Math.PI / 2, 0); ku.rotation.z = Math.PI + (Math.PI - 1.3) / 2 - Math.PI / 2; });
+    BAU.kasten(0.24, 0.26, 0.7, 0xf3e3c8, sch, 0, 0.55, 0); BAU.kasten(0.16, 0.34, 0.2, 0xf3e3c8, sch, 0, 0.82, 0.32).rotation.x = 0.5; BAU.kasten(0.15, 0.17, 0.3, 0xf3e3c8, sch, 0, 0.98, 0.5).rotation.x = 0.3;
+    [[-0.1, -0.26], [0.1, -0.26], [-0.1, 0.26], [0.1, 0.26]].forEach(function (q) { BAU.kasten(0.06, 0.4, 0.06, 0xf3e3c8, sch, q[0], 0.24, q[1]); });
+    tk(0.26, 0.05, 0.26, 0xe84393, 0, 0.7, -0.02, sch); tk(0.04, 0.24, 0.3, 0x7a4a2a, 0, 0.9, 0.2, sch); tk(0.05, 0.3, 0.06, 0x7a4a2a, 0, 0.5, -0.38, sch).rotation.x = -0.6;
+    C.kreise.push([14.7, -15.3, 0.01, 0, 0]);
+    g = teil('z_sterne');
+    zimmerTeile.sterneMat = leucht(0xfff39a); zimmerTeile.sterneMat.emissiveIntensity = 0.3;
+    for (i = 0; i < 12; i++) { var st = BAU.netz(new THREE.OctahedronGeometry(0.06 + (i % 3) * 0.02), zimmerTeile.sterneMat, g, H.x0 + 0.14, 2.0 + Math.sin(i * 2.3) * 0.45, -20.4 + i * 0.5); st.scale.x = 0.25; st.castShadow = false; }
+  }
+  function liesBuch() {
+    var f = FAKTEN[gemuetlich.buch % FAKTEN.length]; gemuetlich.buch++;
+    KERN.ton(700, 0.05, 'triangle', 0.08); KERN.ton(900, 0.05, 'triangle', 0.08, 0.08);
+    C.karte('<h2>📖 Das große Pferdebuch</h2><div class="details">Du blätterst in deinem Lieblingsbuch.<br><br><b>Wusstest du schon?</b><br>' + f + '</div>', [{ text: 'Noch eine Seite', aktion: liesBuch }]);
+  }
+  function spieleUhr() {
+    gemuetlich.musik = 6;
+    [659, 784, 880, 784, 659, 587, 523, 587, 659, 784, 659, 523].forEach(function (n, i) { KERN.ton(n * 2, 0.35, 'sine', 0.09, i * 0.42); });
+    KERN.meldung('🎵 Die Spieluhr spielt dein Lieblingslied', 'gut');
+  }
+  function bewegeGemuetlich(dt, z, an) {
+    var G = gemuetlich;
+    if (G.zeiger) { G.zeiger[0].rotation.z = -d.stunde / 12 * Math.PI * 2; G.zeiger[1].rotation.z = -(d.stunde % 1) * Math.PI * 2; }
+    if (G.musik > 0) { G.musik -= dt; G.taenzer.rotation.y += dt * 4; G.taenzer.position.y = 0.17 + Math.abs(Math.sin(z * 4)) * 0.02; }
+    if (zimmerTeile.z_aquarium && zimmerTeile.z_aquarium.visible) G.fische.forEach(function (f) { var w = z * 0.9 + f.p; f.m.position.set(9.42 + Math.sin(w * 2) * 0.08, f.y + Math.sin(w * 1.3) * 0.04 + (G.futter > 0 ? 0.06 : 0), -18.75 + Math.sin(w) * 0.17); f.m.rotation.y = Math.cos(w) > 0 ? 0 : Math.PI; });
+    if (G.futter > 0) G.futter -= dt;
+    if (G.schaukel) { G.schubs = Math.max(0, G.schubs - dt * 0.25); G.schaukel.rotation.x = Math.sin(z * 3.2) * 0.22 * G.schubs; }
+    if (zimmerTeile.lampeMat) { zimmerTeile.lampeMat.emissiveIntensity = 0.5 + an; zimmerTeile.lampeLicht.intensity = zimmerTeile.z_lampe.visible ? 1.5 + an * 6 : 0; }
+    if (zimmerTeile.sterneMat) zimmerTeile.sterneMat.emissiveIntensity = 0.3 + an * 1.4 + Math.sin(z * 2) * 0.1;
   }
   function zeigeZimmer() {
     LADEN.forEach(function (w) { if (w.kat === 'zimmer' && zimmerTeile[w.id]) zimmerTeile[w.id].visible = !!d.besitz[w.id]; });
@@ -709,6 +841,11 @@ var HOFTAG = (function () {
     vor(SCHRANK[0], SCHRANK[1] + 1.0, 1.4, '👗 Kleiderschrank', zeigeSchrank);
     vor(TISCH[0] - 0.9, TISCH[1], 1.3, '📋 Aufgabenbuch', zeigeAufgaben);
     vor(REGAL[0] + 0.8, REGAL[1], 1.3, '🏆 Pokalregal', zeigeRegal);
+    vor(13.6, -19.9, 1.1, '📖 Im Pferdebuch lesen', liesBuch);
+    vor(10.2, -18.5, 1.0, d.besitz.z_aquarium ? '🐠 Fische füttern' : '🎵 Spieluhr aufziehen', function () {
+      if (d.besitz.z_aquarium && gemuetlich.futter <= 0) { gemuetlich.futter = 5; KERN.ton(1200, 0.05, 'sine', 0.08); KERN.ton(1500, 0.05, 'sine', 0.08, 0.1); KERN.meldung('🐠 Die Fische schnappen nach dem Futter', 'gut'); } else spieleUhr();
+    });
+    if (d.besitz.z_schaukel) vor(14.4, -15.9, 1.0, '🎠 Schaukelpferd anschubsen', function () { gemuetlich.schubs = 1; KERN.ton(300, 0.08, 'triangle', 0.1); KERN.ton(360, 0.08, 'triangle', 0.1, 0.3); });
     vor(RAD[0], RAD[1], 2.0, '🚲 Nach Hause fahren', function () { fragSchlafen('rad'); });
     if (!P) vor(katze.x, katze.z, 1.5, '🐱 Minka streicheln', streichle);
     if (!P && bello.da) vor(bello.x, bello.z, 1.6, '🐶 Bello streicheln', streichleBello);
@@ -740,6 +877,7 @@ var HOFTAG = (function () {
     var h = d.stunde, an = Math.max(0, Math.min(1, (h - 18.8) / 1.5));
     fenster.forEach(function (m) { m.emissiveIntensity = an * 0.9; });
     lampen.forEach(function (l) { l.m.emissiveIntensity = an * 1.6; l.l.intensity = an * 14; });
+    bewegeGemuetlich(dt, z, an);
     if (zimmerTeile.lichterMat) zimmerTeile.lichterMat.forEach(function (m, i) { m.emissiveIntensity = 0.5 + an + Math.sin(z * 3 + i * 1.6) * 0.3; });
     // der Abend kommt
     if (letzteStunde !== null && !schlaeft) {

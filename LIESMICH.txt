@@ -66,9 +66,21 @@ PFERDEHOF UND MODI
     vier Fragen, von denen drei richtig sein muessen.
 
   Ausritt
-    Am Gelaendetor oder direkt im Menue: mit Lotte frei durch Wald und
-    Wiesen an den See reiten. Hoch / runter = schneller / langsamer,
-    links / rechts = lenken. Ueber sechs Orten schwebt ein goldener Stern.
+    Durch das Tor im Sueden des Hofs (zu Fuss, mit Pferd an der Hand oder
+    im Sattel), am Gelaendetor oder direkt im Menue: mit Lotte durch eine
+    grosse Landschaft reiten. Wiesen, See, grosse Waelder mit Wegen bergauf
+    und bergab, Felder mit Traktoren, eine Landstrasse, ein Bach mit
+    Bruecken, ein Dorf, eine Windmuehle, Berge am Horizont.
+    Hoch / runter = schneller / langsamer, links / rechts = lenken.
+    Ueber zwoelf Orten schwebt ein goldener Stern.
+    - Im Halten absteigen (Knopf rechts unten, Taste F), das Pferd fuehren
+      oder grasen lassen, zu Fuss herumlaufen, das Pferd wechseln (Taste V):
+      mit Lotte tauschen oder ein anderes Pferd vom Hof nehmen.
+    - Unterwegs: Rehe, Hirsch, Hasen, Fuchs, Schafe, Kuehe, Stoerche und
+      Enten beobachten (Tierbuch), Schafe kreuzen den Weg, ein Baum faellt
+      auf den Weg, Baumstaemme zum Springen, Slalom, Ringstechen,
+      Wettreiten mit Lotte, Glueckshufeisen, Pilze, Aepfel, Eis im Dorf.
+    - Auf dem Hof wird nur Schritt geritten, draussen auch Trab und Galopp.
 
   Kuer mit Musik (in der Dressur waehlbar)
     Frei im Viereck reiten. Die Musik wechselt zwischen Schritt, Trab und
@@ -150,6 +162,7 @@ DAS SPIEL ERWEITERN
                     (Listen ABZEICHEN und THEORIE zum Erweitern)
     js/wetter.js    Tageszeiten und Wetter
     js/ausritt.js   der Ausritt
+    js/natur.js     Himmel, Wolken, Voegel, Berge, Tiere
     js/rennen.js, js/gelaende.js, js/dressur.js, js/voltigieren.js   die Modi
     In js/config.js stehen auch die Hofpferde (HOF_PFERDE), die Artikel im
     Reitladen (LADEN) und die Preisgelder (PREISGELD).
@@ -163,7 +176,14 @@ EIN TAG AUF DEM HOF
   - Aufgaben: jeden Morgen fuenf neue (Knopf mit dem Klemmbrett).
   - Tag und Nacht: 7 bis 21 Uhr. Nachts ins Bett (eigenes Zimmer im Haus noerdlich
     vom Stall) oder mit dem Fahrrad nach Hause.
-  - Schubkarre westlich am Stall: Mist aus den Boxen zum Misthaufen fahren.
+  - Mistgabel und Schubkarre westlich am Stall: Pferdeaepfel aufgabeln (in den
+    Boxen und auf dem Hof), in die Karre werfen, am Misthaufen auskippen.
+  - Futterwagen in der Stallgasse: im Vorratsraum beladen, alle Pferde fuettern.
+  - Putzen von beiden Seiten (Knopf "Andere Seite"). Putzplatz draussen
+    westlich vom Stall, zum Beispiel fuer nach dem Ausritt.
+  - Gemuetliches Zimmer: Pferdebuch lesen, Spieluhr, neue Moebel im Reitladen.
+  - Fohlen: beim Versorgen geht die Kamera ganz nah heran. Es tobt ueber die
+    Weide und springt ueber eine kleine Stange.
   - Reitladen: Reitkappen, Frisuren, Kleidung, Extras, Sachen fuers Zimmer.
     Umziehen am Kleiderschrank im Zimmer.
   - Ausritt: absteigen, Picknickdecke, Steine flitschen, Enten fuettern, angeln,

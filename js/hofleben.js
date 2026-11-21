@@ -231,7 +231,25 @@ var HOFLEBEN = (function () {
     var tier = HERDE.bauePferd({ fell: 'fuchs', saat: 23 });
     tier.setzeSattel(false); tier.setzeZaum(false);
     H.szene.add(tier.wurzel);
-    fohlen = { tier: tier, x: W[0] + 8, z: W[1] + 8, kurs: 1, tempo: 0, phase: 0, ziel: null, warte: 2, blick: 0, schild: null, schildText: '', herz: null, herzZeit: 0, huepf: 0 };
+    fohlen = { tier: tier, x: W[0] + 8, z: W[1] + 8, kurs: 1, tempo: 0, phase: 0, ziel: null, warte: 2, blick: 0, schild: null, schildText: '', herz: null, herzZeit: 0, huepf: 0, tobt: 0, tobPause: 8, bock: 0, sprung: 0, nah: false };
+    // eine kleine Stange zum Drüberhüpfen
+    var sx = (W[0] + W[2]) / 2 + 5, sz = (W[1] + W[3]) / 2 + 3;
+    fohlen.stange = [sx, sz];
+    [-1.3, 1.3].forEach(function (v) { BAU.kasten(0.14, 0.5, 0.14, 0xffffff, H.szene, sx, 0.25, sz + v); BAU.kasten(0.3, 0.06, 0.3, 0xe84393, H.szene, sx, 0.03, sz + v); });
+    var stg = BAU.walze(0.05, 0.05, 2.6, 0xe84393, H.szene, sx, 0.34, sz, 8); stg.rotation.x = Math.PI / 2;
+    [-0.65, 0.65].forEach(function (v) { var r = BAU.walze(0.054, 0.054, 0.4, 0xffffff, H.szene, sx, 0.34, sz + v, 8); r.rotation.x = Math.PI / 2; });
+    // Fläschchen und Bürste für die Nahansicht
+    var fl = new THREE.Group(); H.szene.add(fl); fl.visible = false; fl.scale.setScalar(0.72);
+    var glas = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, roughness: 0.2 });
+    var fg = BAU.netz(new THREE.CylinderGeometry(0.055, 0.055, 0.24, 10), glas, fl, 0, 0, 0); fg.castShadow = false;
+    var milch = BAU.netz(new THREE.CylinderGeometry(0.047, 0.047, 0.22, 10), 0xffffff, fl, 0, 0, 0); milch.castShadow = false;
+    BAU.netz(new THREE.CylinderGeometry(0.02, 0.05, 0.07, 8), 0xffb37a, fl, 0, 0.155, 0).castShadow = false;
+    BAU.netz(new THREE.CylinderGeometry(0.058, 0.058, 0.03, 10), 0xff6fae, fl, 0, 0.115, 0).castShadow = false;
+    var bu = new THREE.Group(); H.szene.add(bu); bu.visible = false;
+    BAU.kasten(0.2, 0.05, 0.1, 0xb5773c, bu, 0, 0.03, 0).castShadow = false; BAU.kasten(0.19, 0.05, 0.09, 0xf6e3b4, bu, 0, -0.02, 0).castShadow = false;
+    var fu = [];
+    for (var i = 0; i < 6; i++) { var st = BAU.netz(new THREE.OctahedronGeometry(0.045), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffffff : 0xfff39a }), H.szene, 0, -5, 0); st.castShadow = false; fu.push(st); }
+    fohlen.flasche = fl; fohlen.milch = milch; fohlen.buerste = bu; fohlen.funken = fu;
     zeigeFohlen();
   }
   function zeigeFohlen() {
@@ -255,7 +273,25 @@ var HOFLEBEN = (function () {
     var F = fohlen, S = H.S, W = H.ORT.weide.platz, f = STAND.daten.fohlen;
     var imGatter = S.x > W[0] && S.x < W[2] && S.z > W[1] && S.z < W[3];
     var dS = Math.hypot(S.x - F.x, S.z - F.z), soll = 0, zx, zz;
-    if (imGatter && dS < 11) {              // laeuft neugierig zur Spielerin
+    F.tobPause -= dt;
+    if (F.nah) {                            // Nahansicht: steht still und lässt sich versorgen
+      zx = F.x; zz = F.z; soll = 0; F.tobt = 0;
+      F.blick += ((F.nahKopf || 0) - F.blick) * Math.min(1, dt * 5);
+    } else if (F.tobt > 0) {                // tobt fröhlich über die Weide: Galopp, Bocksprünge, über die Stange
+      F.tobt -= dt;
+      if (!F.ziel || Math.hypot(F.ziel[0] - F.x, F.ziel[1] - F.z) < 1.6) {
+        F.tobNr = (F.tobNr || 0) + 1;
+        F.ziel = F.tobNr % 3 === 1 ? [F.stange[0] + (F.x < F.stange[0] ? 7 : -7), F.stange[1] + (Math.random() - 0.5) * 1.2] : [W[0] + 3 + Math.random() * (W[2] - W[0] - 6), W[1] + 3 + Math.random() * (W[3] - W[1] - 6)];
+      }
+      zx = F.ziel[0]; zz = F.ziel[1]; soll = 6.2;
+      F.bock -= dt;
+      if (F.bock <= 0 && F.sprung <= 0) { F.bock = 1.1 + Math.random() * 1.4; F.huepf = 1; if (dS < 30) KERN.ton(500 + Math.random() * 200, 0.07, 'triangle', 0.05); }
+      F.blick += (0 - F.blick) * Math.min(1, dt * 4);
+      if (F.tobt <= 0) { F.warte = 3; F.ziel = null; F.tobPause = 14 + Math.random() * 16; }
+    } else if (F.tobPause <= 0 && !(imGatter && dS < 4)) {
+      F.tobt = 6 + Math.random() * 4; F.ziel = null; F.tobNr = 0; F.bock = 0.5; soll = 0; zx = F.x; zz = F.z;
+      if (dS < 40) { [0, 1, 2, 3, 4].forEach(function (i) { KERN.ton(1150 - i * 110 + (i % 2) * 90, 0.12, 'sawtooth', 0.045, i * 0.09); }); }
+    } else if (imGatter && dS < 11) {       // laeuft neugierig zur Spielerin
       zx = S.x; zz = S.z; soll = dS > 5 ? 4.2 : dS > 1.9 ? 1.5 : 0;
       F.blick += (0 - F.blick) * Math.min(1, dt * 3);
     } else {
@@ -278,8 +314,16 @@ var HOFLEBEN = (function () {
     var gang = F.tempo < 0.15 ? 'steh' : F.tempo < 2.2 ? 'schritt' : F.tempo < 4.6 ? 'trab' : 'galopp';
     F.phase += F.tempo * dt * Math.PI * 2 / ((gang === 'galopp' ? 4.19 : gang === 'trab' ? 2.9 : 1.9) * F.gross);
     F.huepf = Math.max(0, F.huepf - dt * 1.6);
-    F.tier.wurzel.position.set(F.x, Math.abs(Math.sin(F.huepf * Math.PI * 2)) * 0.25 * F.huepf, F.z);
-    F.tier.wurzel.rotation.y = F.kurs;
+    // über die kleine Stange springen
+    if (F.sprung <= 0 && F.tempo > 3.5 && Math.abs(F.z - F.stange[1]) < 1.5) {
+      var vor = (F.stange[0] - F.x) * Math.sin(F.kurs);
+      if (vor > 0.4 && vor < 1.5 && Math.abs(Math.sin(F.kurs)) > 0.6) { F.sprung = 1; F.huepf = 0; if (dS < 30) KERN.huf(0.2, 1500); }
+    }
+    var hoch = Math.abs(Math.sin(F.huepf * Math.PI * 2)) * 0.25 * F.huepf, nick = F.huepf > 0 ? Math.sin(F.huepf * Math.PI * 2) * 0.22 * F.huepf : 0;
+    if (F.sprung > 0) { F.sprung -= dt / 0.62; var sq = 1 - Math.max(0, F.sprung); hoch = Math.sin(sq * Math.PI) * 0.75 * F.gross + 0.1; nick = Math.cos(sq * Math.PI) * -0.3; if (F.sprung <= 0 && dS < 30) KERN.huf(0.25, 1100); }
+    F.tier.wurzel.position.set(F.x, hoch, F.z);
+    F.tier.wurzel.rotation.set(0, F.kurs, 0); F.tier.koerper.rotation.x = nick;
+    if (F.nah) bewegeNah(dt, zeit);
     F.tier.setzeKopfTief(F.blick);
     F.tier.bewege(gang, F.phase, 1, -1, dt);
     F.schild.position.set(F.x, 2.3 * F.gross + 0.5, F.z);
@@ -297,34 +341,104 @@ var HOFLEBEN = (function () {
         [{ text: 'Juhu!', aktion: H.frei }]);
     }
   }
+  // Nahansicht: Die Kamera geht ganz nah heran, man sieht genau, was man mit dem Fohlen macht
+  var hv = new THREE.Vector3();
+  function maul(F, o) {                    // wo ist das Maul des Fohlens?
+    var k = F.tier.knochen.spine016 || F.tier.knochen.spine014, s = F.gross;
+    if (k) { k.getWorldPosition(o); o.x += Math.sin(F.kurs) * 0.42 * s; o.z += Math.cos(F.kurs) * 0.42 * s; o.y -= 0.12 * s; }
+    else o.set(F.x + Math.sin(F.kurs) * 1.3 * s, 1.5 * s, F.z + Math.cos(F.kurs) * 1.3 * s);
+    return o;
+  }
+  function geheNah() {
+    var F = fohlen, S = H.S, s = F.gross;
+    if (F.nah) return;
+    F.nah = true; F.tat = null; F.tempo = 0; F.sprung = 0; F.huepf = 0; F.nahKopf = 0.12;
+    var vx = Math.sin(F.kurs), vz = Math.cos(F.kurs), rx = Math.cos(F.kurs), rz = -Math.sin(F.kurs);
+    // die Spielerin steht vorn am Kopf, die Kamera schaut von der Seite
+    S.x = F.x + vx * (1.25 * s + 0.55) - rx * 0.35; S.z = F.z + vz * (1.25 * s + 0.55) - rz * 0.35;
+    S.kurs = Math.atan2(F.x + vx * 0.9 * s - S.x, F.z + vz * 0.9 * s - S.z); S.tempo = 0;
+    S.figur.wurzel.position.set(S.x, 0, S.z); S.figur.wurzel.rotation.y = S.kurs; S.figur.gehe(0, 0);
+    var schmal = window.innerWidth < 700, weit = (2.4 * s + 2.0) * (schmal ? 1.75 : 1);
+    var pos = new THREE.Vector3(F.x + rx * weit + vx * (0.9 * s + 0.3), 0.9 * s + 0.95, F.z + rz * weit + vz * (0.9 * s + 0.3));
+    var blick = new THREE.Vector3(F.x + vx * (0.75 * s + (schmal ? 0 : -0.5)), schmal ? 0.1 : 1.0 * s + 0.1, F.z + vz * (0.75 * s + (schmal ? 0 : -0.5)));
+    H.setzeKamera({ pos: pos, blick: blick });
+    F.schild.visible = false;
+  }
+  function verlasseNah() {
+    var F = fohlen;
+    F.nah = false; F.tat = null; F.flasche.visible = false; F.buerste.visible = false; F.schild.visible = true;
+    F.funken.forEach(function (m) { m.position.y = -5; });
+    H.S.figur.setzePose('steh');
+    H.setzeKamera(null); H.frei();
+  }
+  function bewegeNah(dt, zeit) {
+    var F = fohlen, T = F.tat, s = F.gross, fig = H.S.figur;
+    if (!T) { F.nahKopf = 0.12 + Math.sin(zeit * 1.3) * 0.04; return; }
+    T.t += dt;
+    var q = T.t / T.dauer, rx = Math.cos(F.kurs), rz = -Math.sin(F.kurs), vx = Math.sin(F.kurs), vz = Math.cos(F.kurs);
+    if (T.art === 'flasche') {
+      fig.setzePose('flasche');
+      F.nahKopf = 0.0 + Math.sin(zeit * 9) * 0.025;
+      maul(F, hv);
+      F.flasche.visible = true; F.flasche.position.set(hv.x + vx * 0.12, hv.y - 0.1, hv.z + vz * 0.12);
+      F.flasche.rotation.set(0, 0, 0); F.flasche.rotateY(F.kurs); F.flasche.rotateX(-2.0);
+      F.milch.scale.y = Math.max(0.03, 1 - q); F.milch.position.y = -0.11 * q;
+      T.takt -= dt; if (T.takt <= 0) { T.takt = 0.3; KERN.ton(260 + Math.random() * 60, 0.05, 'sine', 0.1); }
+    } else if (T.art === 'buerste') {
+      fig.setzePose('streicheln');
+      F.nahKopf = 0.08;
+      var hin = Math.sin(T.t * 5.2), bx = F.x + vx * (0.25 + 0.38 * hin) * s + rx * 0.33 * s, bz = F.z + vz * (0.25 + 0.38 * hin) * s + rz * 0.33 * s, by = (1.42 + 0.14 * Math.cos(T.t * 2.6)) * s;
+      F.buerste.visible = true; F.buerste.position.set(bx, by, bz); F.buerste.rotation.set(0, F.kurs + Math.PI / 2, Math.PI / 2);
+      F.funken.forEach(function (m, i) { var w = T.t * 2.2 + i * 1.05, a = (w % 1); m.position.set(bx + rx * 0.12 + Math.sin(i * 2.4) * 0.3 * a, by + a * 0.45 + Math.cos(i * 1.7) * 0.1, bz + rz * 0.12 + Math.cos(i * 2.4) * 0.3 * a); m.scale.setScalar(1.2 - a); m.rotation.y = w * 4; });
+      T.takt -= dt; if (T.takt <= 0) { T.takt = 0.6; KERN.huf(0.05, 3200); }
+    } else {
+      fig.setzePose('streicheln');
+      F.nahKopf = 0.2 + Math.sin(T.t * 4) * 0.1;
+      T.takt -= dt; if (T.takt <= 0) { T.takt = 0.9; herz('💕'); F.huepf = 0; KERN.ton(700 + Math.random() * 200, 0.12, 'sine', 0.08); }
+    }
+    if (T.t >= T.dauer) {
+      F.tat = null; F.flasche.visible = false; F.buerste.visible = false; F.funken.forEach(function (m) { m.position.y = -5; });
+      fig.setzePose('steh');
+      T.fertig();
+    }
+  }
   function zeigeFohlenKarte() {
     var f = fohlenDaten(), jetzt = Date.now(), name = esc(f.name || 'Fohlen');
+    geheNah();
     function rest(wann) { return Math.max(0, Math.ceil((wann + 120000 - jetzt) / 1000)); }
     var rF = rest(f.flasche), rB = rest(f.buerste), klein = f.wuchs < 1;
     var html = '<h2>🐴 ' + name + '</h2><div class="details">' + stufe(f.wuchs) + (klein ? ' · gewachsen: ' + REITEN.messer(f.wuchs) +
       '<br><small>Mit Milch, Bürsten und Streicheln wächst es schneller. Es wächst auch von allein, jeden Tag ein Stück.</small>' : '<br>Dein großes Pferd kommt beim Ausritt mit.') +
       '</div><div class="details">Name: <input id="fohlenName" type="text" maxlength="14" value="' + esc(f.name) + '" placeholder="Wie soll es heißen?" style="font:inherit;padding:6px 10px;border-radius:10px;border:2px solid #d9cbb0;width:55%;text-align:center"></div>';
     function merkeName() { var e = document.getElementById('fohlenName'); if (e) f.name = e.value.replace(/[<>&"]/g, '').trim().slice(0, 14); }
-    function tat(feld, plus, text, bild) {
+    // erst sieht man in Ruhe zu, dann zählt es
+    function tat(art, feld, plus, text, bild, dauer) {
       return function () {
         merkeName();
-        if (feld) f[feld] = Date.now();
-        f.wuchs = Math.min(1, f.wuchs + plus);
-        STAND.merke('fohlenPflege', (STAND.daten.leistung.fohlenPflege || 0) + 1);
-        HOFTAG.zaehle('fohlen', 1);
-        STAND.speichere(); zeigeFohlen(); herz(bild);
-        H.frei(); KERN.meldung(text, 'gut'); KERN.klang('gut');
+        KERN.schliesseKarte();
+        fohlen.tat = { art: art, t: 0, dauer: dauer, takt: 0, fertig: function () {
+          if (feld) f[feld] = Date.now();
+          f.wuchs = Math.min(1, f.wuchs + plus);
+          STAND.merke('fohlenPflege', (STAND.daten.leistung.fohlenPflege || 0) + 1);
+          HOFTAG.zaehle('fohlen', 1);
+          STAND.speichere(); zeigeFohlen(); fohlen.schild.visible = false; herz(bild);
+          KERN.meldung(text, 'gut'); KERN.klang('gut');
+          if (!(f.wuchs >= 1 && !f.gross)) zeigeFohlenKarte(); else verlasseNah();
+        } };
       };
     }
+    function satt() { KERN.ton(300, 0.1, 'triangle', 0.1); }
     var kn = [];
     if (klein) {
-      kn.push(rF ? { text: '🍼 Milch (noch ' + rF + ' s satt)', klasse: 'zweit', aktion: function () { KERN.ton(300, 0.1, 'triangle', 0.1); } } : { text: '🍼 Fläschchen Milch geben', aktion: tat('flasche', 0.025, 'Schmatz! Das schmeckt.', '🍼') });
-      kn.push(rB ? { text: '🖌️ Bürsten (noch ' + rB + ' s)', klasse: 'zweit', aktion: function () { KERN.ton(300, 0.1, 'triangle', 0.1); } } : { text: '🖌️ Weich bürsten', aktion: tat('buerste', 0.015, 'So ein weiches Fell!', '✨') });
+      kn.push(rF ? { text: '🍼 Milch (noch ' + rF + ' s satt)', klasse: 'zweit', aktion: satt } : { text: '🍼 Fläschchen Milch geben', aktion: tat('flasche', 'flasche', 0.025, 'Schmatz! Das schmeckt.', '🍼', 3.4) });
+      kn.push(rB ? { text: '🖌️ Bürsten (noch ' + rB + ' s)', klasse: 'zweit', aktion: satt } : { text: '🖌️ Weich bürsten', aktion: tat('buerste', 'buerste', 0.015, 'So ein weiches Fell!', '✨', 3.4) });
     }
-    kn.push({ text: '💕 Streicheln', aktion: tat(null, klein ? 0.004 : 0, (f.name || 'Das Fohlen') + ' mag dich!', '💕') });
-    H.karte(html, kn);
+    kn.push({ text: '💕 Streicheln', aktion: tat('streicheln', null, klein ? 0.004 : 0, (f.name || 'Das Fohlen') + ' mag dich!', '💕', 2.6) });
+    kn.push({ text: 'Fertig', klasse: 'zweit', aktion: function () { merkeName(); STAND.speichere(); zeigeFohlen(); verlasseNah(); } });
+    H.setzeModus('karte');
+    KERN.zeigeKarte('seite', html, kn);
     var eingabe = document.getElementById('fohlenName');
-    if (eingabe) eingabe.addEventListener('change', function () { merkeName(); STAND.speichere(); zeigeFohlen(); });
+    if (eingabe) eingabe.addEventListener('change', function () { merkeName(); STAND.speichere(); zeigeFohlen(); fohlen.schild.visible = false; });
   }
 
   // ---------- Reitabzeichen ----------
