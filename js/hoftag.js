@@ -86,6 +86,7 @@ var HOFTAG = (function () {
       // über Nacht: die Pferde bekommen Hunger, die Boxen werden schmutzig
       C.pferde.forEach(function (P) {
         var st = P.st;
+        if (!STAND.istMeins(P.def.id)) { STAND.versorge(st); st.hafer = 1; st.heu = 1; C.zeigeZustand(P, true); return; }     // die anderen Pferde versorgen die Hofkinder
         st.hunger = Math.min(1, st.hunger + 0.3); st.mist = Math.min(1, st.mist + 0.38); st.stroh = Math.max(0, st.stroh - 0.25);
         st.schmutz = Math.min(1, st.schmutz + 0.12); st.hufe = Math.min(1, st.hufe + 0.2); st.hafer = 0; st.heu = 0;
         C.zeigeZustand(P, true);

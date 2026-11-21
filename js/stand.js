@@ -19,6 +19,17 @@ var STAND = (function () {
     def.standardName = def.name;
     if (d.namen[def.id]) def.name = d.namen[def.id];
   });
+  // Dein eigenes Pferd: Nur um dieses musst du dich kümmern. Die anderen versorgen die Hofkinder.
+  var BETREUER = ['Emma', 'Jonas', 'Hanna', 'Ben', 'Lina', 'Paul'];
+  var kennungen = typeof HOF_PFERDE !== 'undefined' ? HOF_PFERDE.map(function (p) { return p.id; }) : [];
+  if (kennungen.indexOf(d.meins) < 0) d.meins = kennungen.indexOf(d.gewaehlt) >= 0 ? d.gewaehlt : (kennungen[0] || null);
+  function betreuer(id) { return BETREUER[Math.max(0, kennungen.indexOf(id)) % BETREUER.length]; }
+  // ein Pferd, das ein anderes Kind betreut, ist immer gut versorgt und gesund
+  function versorge(p) {
+    p.schmutz = Math.min(p.schmutz, 0.1); p.hunger = Math.min(p.hunger, 0.15); p.mist = 0; p.stroh = Math.max(p.stroh || 0, 0.9);
+    p.hufe = Math.min(p.hufe, 0.1); p.krank = null; p.eisen = Math.min(p.eisen || 0, 0.3);
+    return p;
+  }
   function speichere() { try { localStorage.setItem(NAME, JSON.stringify(d)); } catch (e) { /* egal */ } }
 
   // Zustand eines Pferdes holen. Schmutz und Hunger wachsen mit der Zeit (auch wenn das Spiel zu ist).
@@ -40,6 +51,7 @@ var STAND = (function () {
       p.zeit = jetzt;
     }
     p.ausruestung = p.ausruestung || {};
+    if (id !== d.meins) versorge(p);
     return p;
   }
   // Wie gut geht es dem Pferd? 0..1
@@ -69,7 +81,8 @@ var STAND = (function () {
     if (alt === undefined || (kleiner ? wert < alt : wert > alt)) { d.leistung[art] = wert; speichere(); }
   }
   return {
-    benenne: benenne, merke: merke,
+    benenne: benenne, merke: merke, versorge: versorge, betreuer: betreuer,
+    meins: function () { return d.meins; }, istMeins: function (id) { return id === d.meins; },
     daten: d, speichere: speichere, pferd: pferd, laune: laune, belohne: belohne,
     zahle: function (preis) { if (d.muenzen < preis) return false; d.muenzen -= preis; speichere(); return true; }
   };

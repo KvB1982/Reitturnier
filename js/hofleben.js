@@ -104,8 +104,6 @@ var HOFLEBEN = (function () {
     // ein Pferd ist beim ersten Besuch krank, damit man die Tieraerztin kennenlernt
     if (!d.arztBekannt) {
       d.arztBekannt = true;
-      var erste = H.pferde[4] || H.pferde[0];
-      if (erste) erste.st.krank = 'husten';
       STAND.speichere();
     }
     baueFohlen();
@@ -120,20 +118,29 @@ var HOFLEBEN = (function () {
   function nachRitt(P) {
     var st = P.st;
     st.eisen = Math.min(1, (st.eisen || 0) + 0.13);
-    if (!st.krank && st.eisen > 0.85 && Math.random() < 0.35) { st.krank = 'lahm'; KERN.meldung(P.def.name + ' lahmt. Ab zur Tierärztin!', 'rot'); }
-    else if (!st.krank && WETTER.regnet() && Math.random() < 0.12) { st.krank = 'husten'; KERN.meldung(P.def.name + ' hustet nach dem Regen.', 'rot'); }
+    if (!STAND.istMeins(P.def.id)) { STAND.versorge(st); return; }             // um die anderen kümmern sich die Hofkinder
+    if (st.krank || gesundZeit(st)) return;
+    if (st.eisen > 0.92 && Math.random() < 0.15) { werdeKrank(st, 'lahm'); KERN.meldung(P.def.name + ' lahmt. Ab zur Tierärztin!', 'rot'); }
+    else if (WETTER.regnet() && st.schmutz > 0.6 && Math.random() < 0.04) { werdeKrank(st, 'husten'); KERN.meldung(P.def.name + ' hustet nach dem Regen.', 'rot'); }
   }
   // ab und zu wird ein vernachlaessigtes Pferd krank
+  // Krank wird nur das eigene Pferd, und das selten: nach einer Krankheit ist mindestens vier Tage Ruhe
+  function gesundZeit(st) { var tag = STAND.daten.tag || 1; return st.krankTag !== undefined && tag - st.krankTag < 4 && tag >= st.krankTag; }
+  function werdeKrank(st, art) { st.krank = art; st.krankTag = STAND.daten.tag || 1; }
   var krankZeit = 60;
   function pruefeGesundheit(dt) {
     krankZeit -= dt;
     if (krankZeit > 0) return;
     krankZeit = 90;
     H.pferde.forEach(function (P) {
-      if (P.st.krank || P.ort !== 'box') return;
-      if (P.st.hunger > 0.92 && Math.random() < 0.25) P.st.krank = 'bauch';
-      else if (P.st.hufe > 0.95 && Math.random() < 0.15) P.st.krank = 'lahm';
-      else if (Math.random() < 0.012) P.st.krank = ['husten', 'bauch', 'lahm'][Math.floor(Math.random() * 3)];
+      if (!STAND.istMeins(P.def.id)) {         // die Hofkinder halten ihre Pferde sauber, satt und gesund
+        if (P.ort === 'box' && (P.st.schmutz > 0.1 || P.st.hunger > 0.15 || P.st.hufe > 0.1 || P.st.krank)) { STAND.versorge(P.st); H.zeigeZustand(P, true); }
+        return;
+      }
+      if (P.st.krank || P.ort !== 'box' || gesundZeit(P.st)) return;
+      // nur wer lange vernachlässigt wird, wird krank
+      if (P.st.hunger > 0.97 && Math.random() < 0.06) werdeKrank(P.st, 'bauch');
+      else if (P.st.hufe > 0.98 && Math.random() < 0.04) werdeKrank(P.st, 'lahm');
       if (P.st.krank) { H.zeigeZustand(P); STAND.speichere(); }
     });
   }
@@ -161,7 +168,7 @@ var HOFLEBEN = (function () {
       else H.karte(html, HILFE.map(function (h, i) {
         return { text: h, aktion: function () {
           if (i !== k.hilfe) { fehler++; KERN.klang('knapp'); untersuche('„Hm, das hilft bei ' + k.name + ' nicht. Überleg noch einmal.“'); return; }
-          P.st.krank = null; STAND.merke('arzt', 1);
+          P.st.krank = null; P.st.krankTag = STAND.daten.tag || 1; STAND.merke('arzt', 1);
           var lohn = STAND.belohne(fehler ? 2 : 5, 'gut geholfen');
           H.zeigeZustand(P); STAND.speichere();
           KERN.klang('perfekt');

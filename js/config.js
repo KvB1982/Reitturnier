@@ -198,9 +198,9 @@ var FARBPAKETE = {
 
 // Aufgaben für den Tag: [Kennung, Text (# = Anzahl), kleinste Anzahl, größte Anzahl, Münzen]
 var TAGESAUFGABEN = [
-  ['fuettern', 'Füttere # Pferde mit Hafer oder Heu', 2, 4, 5],
-  ['box', 'Miste # Boxen aus', 2, 3, 6],
-  ['mist', 'Bring # Mistäpfel mit der Schubkarre zum Misthaufen', 6, 14, 6],
+  ['fuettern', 'Gib deinem Pferd # Mal Hafer oder Heu', 1, 2, 5],
+  ['box', 'Miste die Box von deinem Pferd aus (# Mal)', 1, 1, 6],
+  ['mist', 'Bring # Mistäpfel mit der Schubkarre zum Misthaufen', 3, 6, 6],
   ['putzen', 'Putze # Pferd blitzblank', 1, 1, 5],
   ['hufe', 'Kratze # Pferd die Hufe aus', 1, 1, 4],
   ['stroh', 'Streue # Box frisch ein', 1, 1, 4],

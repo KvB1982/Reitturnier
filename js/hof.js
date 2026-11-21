@@ -100,6 +100,7 @@ WELTEN.hof = (function () {
     szene.add(orte.zeiger);
 
     bauePferde();
+    zeigeMeins();
     baueMaedchen();
     var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
       frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
@@ -351,6 +352,33 @@ WELTEN.hof = (function () {
       pferde.push(P);
     });
   }
+  // ---------- dein eigenes Pferd: goldene Box, Stern über dem Pferd ----------
+  var meinZeichen = null, meinStern = null;
+  function meinPferd() { return pferde.filter(function (P) { return STAND.istMeins(P.def.id); })[0] || pferde[0]; }
+  function zeigeMeins() {
+    var P = meinPferd(), b = P.box, i;
+    if (!meinZeichen) {
+      meinZeichen = new THREE.Group(); szene.add(meinZeichen);
+      var GOLD = new THREE.MeshStandardMaterial({ color: 0xf2c230, emissive: 0xf2a500, emissiveIntensity: 0.35, roughness: 0.4 });
+      // goldener Rahmen um die Tür, goldene Schwelle, Wimpel
+      [-0.86, 0.86].forEach(function (x) { BAU.kasten(0.1, 2.25, 0.1, GOLD, meinZeichen, x, 1.12, 0.06).castShadow = false; });
+      BAU.kasten(1.82, 0.1, 0.1, GOLD, meinZeichen, 0, 2.25, 0.06).castShadow = false;
+      var sw = BAU.netz(new THREE.PlaneGeometry(1.9, 0.9), GOLD, meinZeichen, 0, 0.03, 0.5); sw.rotation.x = -Math.PI / 2; sw.castShadow = false;
+      for (i = 0; i < 9; i++) { var w = BAU.netz(new THREE.ConeGeometry(0.11, 0.24, 3), [0xe84393, 0xf2c230, 0x3f8fd6][i % 3], meinZeichen, -1.76 + i * 0.44, 2.36 - Math.sin(i / 8 * Math.PI) * 0.12, 0.1); w.rotation.x = Math.PI; w.scale.z = 0.15; w.castShadow = false; }
+      meinZeichen.userData.stern = BAU.netz(new THREE.OctahedronGeometry(0.2), GOLD, meinZeichen, 0, 2.62, 0.1); meinZeichen.userData.stern.scale.z = 0.35; meinZeichen.userData.stern.castShadow = false;
+      meinStern = BAU.schwebeText('⭐', 0.42, { grund: null, schrift: 90 }); szene.add(meinStern);
+    }
+    meinZeichen.position.set(b.xc, 0, b.zVorn); meinZeichen.rotation.y = b.v < 0 ? 0 : Math.PI;
+  }
+  function frageMeins(B) {
+    var alt = meinPferd();
+    karte('<h2>⭐ ' + B.def.name + ' soll dein Pferd sein?</h2><div class="details">Dann kümmerst du dich ab jetzt um <b>' + B.def.name + '</b> und um diese Box: füttern, putzen, ausmisten.<br>Um <b>' + alt.def.name + '</b> kümmert sich dann ' + STAND.betreuer(alt.def.id) + '.</div>',
+      [{ text: '⭐ Ja, ' + B.def.name + ' ist jetzt mein Pferd', aktion: function () {
+        STAND.daten.meins = B.def.id; STAND.versorge(alt.st); STAND.speichere();
+        pferde.forEach(function (Q) { zeigeZustand(Q, true); }); zeigeMeins();
+        KERN.schliesseKarte(); modus = 'frei'; KERN.klang('perfekt'); KERN.meldung('⭐ ' + B.def.name + ' ist jetzt dein Pferd!', 'perfekt');
+      } }]);
+  }
   function inBox(P) {
     var b = P.box;
     P.ort = 'box'; P.x = b.xc; P.z = b.zc + b.v * 0.9; P.kurs = Math.PI / 2; P.tempo = 0; P.gang = 'steh';
@@ -371,12 +399,13 @@ WELTEN.hof = (function () {
     }
     while (b.mist.length > soll) szene.remove(b.mist.pop());
     var sauber = Math.round((1 - st.schmutz) * 100), satt = Math.round((1 - st.hunger) * 100);
-    var text = P.def.name + HOFLEBEN.zeichen(P) + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%';
+    var mein = STAND.istMeins(P.def.id);
+    var text = mein ? '⭐ Dein Pferd ⭐\n' + P.def.name + HOFLEBEN.zeichen(P) + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%' : P.def.name + '\n' + STAND.betreuer(P.def.id) + ' kümmert sich';
     if (text !== P.schildText) {
       P.schildText = text;
       if (P.schild) { szene.remove(P.schild); P.schild.material.map.dispose(); P.schild.material.dispose(); }
-      P.schild = BAU.schwebeText(text, 0.62, { schrift: 40 });
-      P.schild.position.set(b.xc, 2.75, b.zVorn);
+      P.schild = BAU.schwebeText(text, mein ? 0.95 : 0.5, mein ? { schrift: 40, grund: 'rgba(255,236,160,0.96)' } : { schrift: 36 });
+      P.schild.position.set(b.xc, mein ? 2.95 : 2.7, b.zVorn);
       szene.add(P.schild);
     }
     P.schild.visible = !P.versteckt;
@@ -1156,6 +1185,14 @@ WELTEN.hof = (function () {
       if (S.reitet) zw.push({ text: '🥾 Absteigen', tun: function () { steigeAb(); } });
       else if (darfAufsteigen()) zw.push({ text: '🐴 Aufsteigen', tun: steigeAuf });
       zw = zw.concat(HOFTAG.zweit());
+      var mb = !S.fuehrt && !S.reitet && zw.length < 3 ? inBoxVon(S.x, S.z) : null;
+      if (mb && mb.pferd && mb.pferd.ort === 'box' && !STAND.istMeins(mb.pferd.def.id)) zw.push({ text: '⭐ Zu meinem Pferd machen', tun: (function (B) { return function () { frageMeins(B); }; })(mb.pferd) });
+    }
+    if (meinStern) {
+      var MP = meinPferd();
+      meinStern.visible = MP.ort !== 'box' && !MP.versteckt && modus !== 'pflege';
+      meinStern.position.set(MP.x, (MP.ort === 'geritten' ? 3.5 : 2.75) + Math.sin(zeit * 3) * 0.08, MP.z);
+      meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
     var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
@@ -1204,10 +1241,11 @@ WELTEN.hof = (function () {
         if (opt.zurueckVon === 'ausritt') S.kurs = Math.PI;
         if (S.fuehrt) { S.fuehrt.x = S.x + 1.2; S.fuehrt.z = S.z + 1.8; }
       }
-      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten4) {
-        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.speichere();
+      if (STAND.daten.begruesst && !STAND.daten.neuigkeiten5) {
+        STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>✨ Neu auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
+          '• <b>⭐ Dein Pferd:</b> Du kümmerst dich jetzt nur noch um <b>' + meinPferd().def.name + '</b>. Die Box hat einen <b>goldenen Rahmen</b> und ein gelbes Schild. Die anderen Pferde versorgen die anderen Kinder vom Hof. Reiten darfst du trotzdem alle. In einer anderen Box kannst du mit dem Knopf ⭐ ein anderes Pferd zu deinem machen. Krank werden Pferde jetzt nur noch selten.<br>' +
           '• <b>Ausritt:</b> Im Süden ist ein neues <b>Tor ins Grüne</b>. Dahinter liegt eine riesige Landschaft mit Wäldern, Bergen, Feldern, einem Bach, einem Dorf und einer Windmühle. Unterwegs: Tiere, Slalom, Ringstechen, Wettreiten mit Lotte.<br>' +
           '• <b>Aufsteigen:</b> Mit einem Pferd an der Hand kannst du draußen aufsteigen (Knopf rechts unten). Auf dem Hof geht es im Schritt, draußen auch im Trab und Galopp. Unterwegs kannst du absteigen, führen und das <b>Pferd wechseln</b>.<br>' +
           '• <b>Mistgabel:</b> Sie lehnt westlich am Stall. Damit gabelst du Pferdeäpfel auf, wirfst sie in die Schubkarre und kippst sie am Misthaufen aus.<br>' +
@@ -1218,11 +1256,11 @@ WELTEN.hof = (function () {
           [{ text: 'Toll!', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
       if (!STAND.daten.begruesst) {
-        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.speichere();
+        STAND.daten.begruesst = true; STAND.daten.neuigkeiten2 = true; STAND.daten.neuigkeiten3 = true; STAND.daten.neuigkeiten4 = true; STAND.daten.neuigkeiten5 = true; STAND.speichere();
         modus = 'karte';
         KERN.zeigeKarte('mitte', '<h2>🏡 Willkommen auf dem Pferdehof!</h2><div class="details" style="text-align:left">' +
           '• Lauf mit den <b>Pfeiltasten</b> (oder WASD). Auf dem iPad: <b>Finger auflegen und ziehen</b>.<br>' +
-          '• Im <b>Stall</b> wohnen sechs Pferde. Geh in eine Box und <b>pflege</b> dein Pferd: abspritzen, striegeln, Hufe auskratzen, ausmisten, einstreuen.<br>' +
+          '• Im <b>Stall</b> wohnen sechs Pferde. <b>⭐ ' + meinPferd().def.name + '</b> ist dein Pferd, in der Box mit dem <b>goldenen Rahmen</b>. Geh hinein und <b>pflege</b> dein Pferd: abspritzen, striegeln, Hufe auskratzen, ausmisten, einstreuen. Um die anderen Pferde kümmern sich die anderen Kinder.<br>' +
           '• Im <b>Vorratsraum</b> gibt es Hafer, Heu und Möhren.<br>' +
           '• Leg deinem Pferd das <b>Halfter</b> an und führe es zum Trainingsplatz, Turnierplatz, zur Rennbahn, ins Gelände, in die Schrittmaschine, den Longierzirkel oder auf die Weide.<br>' +
           '• Für Siege und gute Pflege gibt es <b>Münzen</b> 🪙 für den <b>Reitladen</b>.<br>' +

@@ -171,6 +171,11 @@ DAS SPIEL ERWEITERN
     css/style.css Aussehen von Menue und Anzeigen
 
 EIN TAG AUF DEM HOF
+  - Dein Pferd: Du kuemmerst dich nur um ein Pferd. Seine Box hat einen goldenen
+    Rahmen und ein gelbes Schild, draussen schwebt ein Stern ueber ihm. Die anderen
+    Pferde versorgen die Hofkinder (reiten darfst du sie trotzdem). In einer anderen
+    Box macht der Knopf mit dem Stern dieses Pferd zu deinem. Krank wird nur dein
+    Pferd, und nur selten, wenn es lange vernachlaessigt wird.
   - Kamera frei waehlen: Knoepfe rechts (drehen, zoomen, Uebersicht), Maus: rechte
     Taste ziehen und Mausrad, iPad: zwei Finger. Tasten Q/R, T/G, M.
   - Aufgaben: jeden Morgen fuenf neue (Knopf mit dem Klemmbrett).
