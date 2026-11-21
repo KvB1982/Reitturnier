@@ -258,3 +258,8 @@ body { position: fixed; top: var(--rand-o); right: var(--rand-r); bottom: var(--
   #menue { top: auto; left: calc(0px - var(--rand-l)); width: auto; padding: 12px calc(16px + var(--rand-r)) 16px calc(16px + var(--rand-l)); }
 }
 html { -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+
+/* Dressur: kleiner Plan vom Viereck oben links (Buchstaben, Linie der Lektion, Pferd als Punkt) */
+#dressurPlan { position: fixed; left: calc(10px + var(--rand-l, 0px)); top: 78px; z-index: 5; pointer-events: none; background: rgba(255,250,240,0.82); border-radius: 12px; padding: 3px; box-shadow: 0 3px 0 rgba(0,0,0,0.25); line-height: 0; }
+body:not(.welt-dressur) #dressurPlan, body.foto #dressurPlan { display: none !important; }
+@media (max-height: 460px) { #dressurPlan { transform: scale(0.72); transform-origin: top left; top: 64px; } }

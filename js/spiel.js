@@ -1298,7 +1298,7 @@
   el('zumMenue').addEventListener('click', function () { heim(); });
   el('ueberspringen').addEventListener('click', ueberspringe);
   function zeigeTon() { el('ton').textContent = el('weltTon').textContent = SOUND.bild(); }
-  el('ton').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); });
+  el('ton').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); meldung(SOUND.text(), 'knapp'); });
   zeigeTon();
 
   // ---------- 3D-Modelle laden (wenn vorhanden), dann starten ----------
@@ -1493,7 +1493,7 @@
   window.addEventListener('wheel', function (e) { if (welt && welt.rad && !foto.an && e.target === renderer.domElement) welt.rad(e.deltaY); }, { passive: true });
   renderer.domElement.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });
-  el('weltTon').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); });
+  el('weltTon').addEventListener('click', function () { tonAn = SOUND.weiter(); zeigeTon(); meldung(SOUND.text(), 'knapp'); });
 
   // fuer Tests und zum Ausprobieren in der Konsole
   window.SPIEL = {

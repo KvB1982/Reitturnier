@@ -9,20 +9,25 @@
 //    SOUND.spiel('hund', 0.6, 1.1)     leiser (0..1) und etwas höher (Tempo)
 //    SOUND.schleife('bach', 0.5)       Dauergeräusch: jedes Bild aufrufen, sonst wird es von selbst leise
 //
-//  Lautstärke-Knopf: laut -> leise -> aus (wird gemerkt).
+//  Hintergrundmusik: liegt als MP3 im Ordner musik/ (Quellen in musik/CREDITS.md).
+//  Welche Musik läuft, sucht sich das Spiel selbst aus (Menü, Hof, Zimmer, Ausritt, Dressur ...).
+//
+//  Ton-Knopf: laut mit Musik -> leise mit Musik -> nur Geräusche -> aus (wird gemerkt).
 // ============================================================
 var SOUND = (function () {
   var ctx = null, haupt = null;
   var puffer = {}, gruppen = {}, schleifen = {};
   var entsperrt = false, geladen = false;
-  var STUFEN = [{ laut: 1, bild: '🔊' }, { laut: 0.4, bild: '🔉' }, { laut: 0, bild: '🔇' }];
+  var STUFEN = [{ laut: 1, musik: true, bild: '🎵🔊', text: 'Ton laut, mit Musik' }, { laut: 0.4, musik: true, bild: '🎵🔉', text: 'Ton leise, mit Musik' },
+    { laut: 1, musik: false, bild: '🔊', text: 'Nur Geräusche, keine Musik' }, { laut: 0, musik: false, bild: '🔇', text: 'Ton aus' }];
   var stufe = 0;
   try {
-    if (localStorage.getItem('reitturnier_ton') === 'false') stufe = 2;
+    if (localStorage.getItem('reitturnier_ton') === 'false') stufe = 3;
     else if (localStorage.getItem('reitturnier_laut') === '1') stufe = 1;
+    else if (localStorage.getItem('reitturnier_laut') === '2') stufe = 2;
   } catch (e) { /* egal */ }
 
-  function an() { return stufe < 2; }
+  function an() { return stufe < 3; }
   function kontext() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -175,6 +180,7 @@ var SOUND = (function () {
   var drinnen = 0, drinnenZeit = -9, naechstesTier = 20, uhr = 0;
   function stimmung() {
     pflegeSchleifen();
+    pflegeMusik();
     if (!ctx || ctx.state !== 'running' || !an()) return;
     uhr += 0.1;
     var imMenue = document.body.classList.contains('im-menue');
@@ -204,6 +210,85 @@ var SOUND = (function () {
   }
   setInterval(stimmung, 100);
 
+  // ============================================================
+  //  HINTERGRUNDMUSIK
+  //  Jedes Stück ist eine MP3-Datei im Ordner musik/. Es läuft immer nur eins,
+  //  beim Wechsel wird das alte leise und das neue laut (überblenden).
+  // ============================================================
+  var MUSIK_LAUT = 0.5;                 // Musik insgesamt leiser als die Geräusche, damit man die Hufe noch hört
+  var MUSIK = typeof MUSIKLISTE !== 'undefined' ? MUSIKLISTE : {};
+  var M = { wunsch: null, seit: 0, jetzt: null, quelle: null, regler: null, element: null, elementLaut: 0, puffer: {}, reihe: [], laedt: {}, ohneNetz: false };
+  // Welches Stück passt gerade?
+  function musikWunsch() {
+    if (!STUFEN[stufe].musik || !entsperrt) return null;
+    if (document.body.classList.contains('im-menue')) return 'menue';
+    var welt = typeof KERN !== 'undefined' && KERN.welt ? KERN.welt() : null;
+    if (!welt) return 'springen';
+    if (welt.musik) return typeof welt.musik === 'function' ? welt.musik() : welt.musik;
+    if (welt === WELTEN.hof) {
+      var s = welt.spielerin ? welt.spielerin() : null;
+      return s && typeof HOFTAG !== 'undefined' && HOFTAG.imHaus && HOFTAG.imHaus(s.x, s.z) ? 'zimmer' : 'hof';
+    }
+    for (var name in WELTEN) if (WELTEN[name] === welt) return name;
+    return null;
+  }
+  // gibt es das Stück nicht, nimmt man ein ähnliches
+  function musikName(n) { while (n && MUSIK[n] && MUSIK[n].wie) n = MUSIK[n].wie; return n && MUSIK[n] ? n : null; }
+  function musikLaden(name, fertig) {
+    if (M.puffer[name]) { fertig(M.puffer[name]); return; }
+    if (M.laedt[name] || M.ohneNetz) return;
+    M.laedt[name] = true;
+    var fehler = function () { M.laedt[name] = false; M.ohneNetz = true; };      // per Doppelklick geöffnet: dann spielt ein <audio> die Datei
+    try {
+      fetch(MUSIK[name].datei).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(function (roh) {
+        ctx.decodeAudioData(roh, function (p) {
+          M.laedt[name] = false; M.puffer[name] = p; M.reihe.push(name);
+          if (M.reihe.length > 3) { var weg = M.reihe.shift(); if (weg !== M.jetzt) delete M.puffer[weg]; else M.reihe.push(weg); }   // höchstens 3 Stücke im Speicher
+          fertig(p);
+        }, fehler);
+      }).catch(fehler);
+    } catch (e) { fehler(); }
+  }
+  function musikStopp() {
+    if (M.quelle) {
+      var q = M.quelle, r = M.regler;
+      try { r.gain.setTargetAtTime(0, ctx.currentTime, 0.35); q.stop(ctx.currentTime + 1.6); } catch (e) { /* egal */ }
+      M.quelle = null; M.regler = null;
+    }
+    if (M.element) { var el = M.element; M.element = null; var t = setInterval(function () { el.volume = Math.max(0, el.volume - 0.06); if (el.volume <= 0.01) { el.pause(); clearInterval(t); } }, 60); }
+  }
+  function musikStart(name) {
+    musikStopp();
+    M.jetzt = name;
+    if (!name) return;
+    var laut = (MUSIK[name].laut || 1) * MUSIK_LAUT;
+    if (M.ohneNetz) {
+      try {
+        M.element = new Audio(MUSIK[name].datei); M.element.loop = true; M.element.volume = 0; M.elementLaut = laut;
+        var v = M.element.play(); if (v && v.catch) v.catch(function () { /* egal */ });
+      } catch (e) { M.element = null; }
+      return;
+    }
+    musikLaden(name, function (p) {
+      if (M.jetzt !== name || M.quelle) return;
+      try {
+        M.quelle = ctx.createBufferSource(); M.regler = ctx.createGain();
+        M.quelle.buffer = p; M.quelle.loop = true;
+        M.regler.gain.value = 0; M.regler.gain.setTargetAtTime(laut, ctx.currentTime + 0.3, 0.5);
+        M.quelle.connect(M.regler); M.regler.connect(haupt);
+        M.quelle.start(0);
+      } catch (e) { M.quelle = null; }
+    });
+  }
+  function pflegeMusik() {
+    if (!ctx) return;
+    var w = musikName(musikWunsch()), jetzt = ctx.currentTime;
+    if (w !== M.wunsch) { M.wunsch = w; M.seit = jetzt; }
+    if (w !== M.jetzt && (jetzt - M.seit > 0.4 || ctx.state !== 'running')) musikStart(w);
+    else if (w && M.ohneNetz && !M.element && !M.quelle) musikStart(w);          // Laden über das Netz ging nicht: zweiter Versuch mit <audio>
+    if (M.element) M.element.volume += (M.elementLaut * STUFEN[stufe].laut - M.element.volume) * 0.15;
+  }
+
   // ---------- Knöpfe klicken, Münzen klimpern ----------
   document.addEventListener('click', function (e) {
     var k = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -222,7 +307,8 @@ var SOUND = (function () {
   });
 
   return {
-    kontext: kontext, ausgang: ausgang, an: an, weiter: weiter, bild: function () { return STUFEN[stufe].bild; },
+    kontext: kontext, ausgang: ausgang, an: an, weiter: weiter, bild: function () { return STUFEN[stufe].bild; }, text: function () { return STUFEN[stufe].text; },
+    musikLaeuft: function () { return !!(M.quelle || (M.element && !M.element.paused)); }, musikJetzt: function () { return M.jetzt; },
     spiel: spiel, schleife: schleife, huf: huf, applaus: applaus, klang: klang,
     // der Hof meldet jedes Bild, wie sehr man drinnen ist (0..1): dann klingt draußen gedämpft
     setzeDrinnen: function (w) { drinnen = w; if (ctx) drinnenZeit = ctx.currentTime; },

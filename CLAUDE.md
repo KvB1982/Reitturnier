@@ -19,6 +19,8 @@ Repository: https://github.com/KvB1982/Reitturnier · läuft auf GitHub Pages un
 - Pferde: `js/pferd.js` (eigenes Pferd), `js/herde.js` (alle anderen), Modelle in `modelle/`.
 - Gebäude, Bäume, Möbel: `js/modelle3d.js` lädt `modelle/umwelt/<name>.js` bei Bedarf.
 - Spielstand: `js/stand.js` (`STAND`, localStorage `reitturnier_hof`). Einstellbares: `js/config.js`.
+- Dressur (`js/dressur.js`): sechs Aufgaben von Klasse E bis Grand Prix (`AUFGABEN`), gebaut mit einer kleinen Zeichen-Sprache (`Bauer`: `bahn`, `kreis`, `seit`, `wechsel`, `lek` …), besondere Lektionen in `SPEZ`, Notenbogen in `fertig`, Lexikon `WISSEN`. Was nachgeschlagen ist und was nicht: `docs/dressur.md`. Prüfen ohne Bild: `node tools/dressur.mjs` (malt `tools/dressur.svg`).
+- Musik: MP3-Dateien in `musik/`, Liste `MUSIKLISTE` in `musik/musik.js`, abgespielt in `js/sound.js` (`musikWunsch` sucht das Stück zur Welt; eine Welt kann mit `musik` selbst eins nennen). Der Ton-Knopf hat vier Stufen: laut mit Musik, leise mit Musik, nur Geräusche, aus. Nur CC0, Quellen in `musik/CREDITS.md`. Angehört hat die Stücke noch niemand.
 - Tempo-Wächter (`tempoPruefen` in `js/spiel.js`, abgeschaut vom Rennspiel): Dauert ein Bild zu lange, malt das Spiel mit weniger Bildpunkten.
 - App: Capacitor in `ios/`, `npm run sync` kopiert nach `www/` (`scripts/copy-web.mjs`, neue Ordner dort in `FILES`). Anleitung `APP-ANLEITUNG.md`.
 
