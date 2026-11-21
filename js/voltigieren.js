@@ -75,7 +75,7 @@ WELTEN.voltigieren = (function () {
     BAU.kasten(3.2, 0.8, 0.9, 0xf4f1e8, tisch, 0, 0.4, 0);
     var schild = BAU.tafel('Richter', 0.4, { farbe: '#7a3b12' }); schild.position.set(0, 0.42, 0.46); tisch.add(schild);
     for (i = 0; i < 2; i++) {
-      var r = baueFigur(KERN.zufallsOutfit(), { helm: false });
+      var r = baueFigur(KERN.zufallsOutfit(i ? 'frau' : 'mann'), { helm: false });
       r.setzePose({ beinL: [-1.5, 0, 0], beinR: [-1.5, 0, 0], knieL: [1.5, 0, 0], knieR: [1.5, 0, 0], armL: [-0.7, 0, 0], armR: [-0.7, 0, 0], ellL: [-1.0, 0, 0], ellR: [-1.0, 0, 0], hoch: 0.55 }, true);
       r.wurzel.position.set(-0.7 + i * 1.4, 0, -0.7); tisch.add(r.wurzel);
     }
@@ -126,7 +126,7 @@ WELTEN.voltigieren = (function () {
     }
 
     // Longenfuehrerin in der Mitte
-    fuehrer = baueFigur({ jacke: '#3a7bd5', hose: '#f4f1e8', stiefel: '#2a1c12', haare: '#5a3a1e', frisur: 'zopf' }, { helm: false });
+    fuehrer = baueFigur({ jacke: '#3a7bd5', hose: '#f4f1e8', stiefel: '#2a1c12', haare: '#5a3a1e', frisur: 'zopf', art: 'frau' }, { helm: false });
     fuehrer.setzePose('longe', true);
     szene.add(fuehrer.wurzel);
     leine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0x2a2a2a }));

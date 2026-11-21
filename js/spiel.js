@@ -768,12 +768,14 @@
   // ============================================================
   //  TURNIER  (mehrere Spieler + Computergegner, Stechen, Siegerehrung)
   // ============================================================
-  function zufallsOutfit() {
+  // art = 'maedchen', 'junge', 'frau' oder 'mann'; ohne Angabe ein Kind (meist ein Maedchen)
+  function zufallsOutfit(art) {
     var o = {};
     AUSWAHL.forEach(function (a) {
       var liste = a.farben || a.werte.map(function (w) { return w[0]; });
       o[a.key] = liste[Math.floor(Math.random() * liste.length)];
     });
+    o.art = art || (Math.random() < 0.35 ? 'junge' : 'maedchen');
     return o;
   }
 
@@ -786,7 +788,7 @@
     var anzahl = gegnerAnzahl;
     if (teilnehmer.length + anzahl < 2) anzahl = 1;      // allein kann man kein Turnier reiten
     for (var i = 0; i < anzahl; i++) {
-      teilnehmer.push({ name: namen[i], outfit: zufallsOutfit(), ki: stufe, erg: null, stech: null });
+      teilnehmer.push({ name: namen[i], outfit: zufallsOutfit('maedchen'), ki: stufe, erg: null, stech: null });
     }
     T = { teilnehmer: teilnehmer, liste: teilnehmer.map(function (t, k) { return k; }), pos: 0, stechen: false };
     naechsterReiter();
@@ -990,7 +992,7 @@
       var plus = document.createElement('button');
       plus.type = 'button'; plus.className = 'wahl'; plus.textContent = '+ Mitspieler';
       plus.addEventListener('click', function () {
-        spieler.push({ name: 'Spieler ' + (spieler.length + 1), outfit: zufallsOutfit(), siege: 0 });
+        spieler.push({ name: 'Spieler ' + (spieler.length + 1), outfit: zufallsOutfit('maedchen'), siege: 0 });
         aktiv = spieler.length - 1;
         speichereSpieler(); baueMenue();
       });
@@ -1431,9 +1433,29 @@
   el('fotoAus').addEventListener('click', fotoAufnahme);
   el('fotoRahmen').addEventListener('click', function () { foto.rahmen = !foto.rahmen; el('fotoRahmen').textContent = '🖼️ Rahmen: ' + (foto.rahmen ? 'an' : 'aus'); });
 
+  // ---------- Tempo-Waechter (abgeschaut vom Rennspiel) ----------
+  // Dauert ein Bild zu lange, malt das Spiel mit weniger Bildpunkten (etwas unschaerfer, dafuer fluessig).
+  // Laeuft es wieder eine Weile ruhig, werden es wieder mehr - aber nie zurueck auf eine Stufe, die schon zu langsam war.
+  var TEMPO = { punkte: Math.min(window.devicePixelRatio || 1, 2), max: Math.min(window.devicePixelRatio || 1, 2), min: 0.75, bildZeit: 1 / 60, uhr: 0, ruhig: 0, grenze: 99 };
+  function tempoPruefen(roh) {
+    if (!(roh > 0) || roh > 0.25) return;          // Fenster war weg oder eine Welt wurde gerade gebaut: nicht mitzaehlen
+    TEMPO.bildZeit += (roh - TEMPO.bildZeit) * 0.05;
+    TEMPO.uhr += roh;
+    if (TEMPO.uhr < 1.5) return;
+    TEMPO.uhr = 0;
+    var neu = TEMPO.punkte;
+    if (TEMPO.bildZeit > 1 / 40 && TEMPO.punkte > TEMPO.min) { TEMPO.grenze = TEMPO.punkte; neu = Math.max(TEMPO.min, TEMPO.punkte - 0.25); TEMPO.ruhig = 0; }
+    else if (TEMPO.bildZeit < 1 / 55) {
+      var hoch = Math.min(TEMPO.max, TEMPO.punkte + 0.25);
+      if (++TEMPO.ruhig >= 4 && hoch > TEMPO.punkte && !(hoch >= TEMPO.grenze)) { neu = hoch; TEMPO.ruhig = 0; }
+    } else TEMPO.ruhig = 0;
+    if (neu !== TEMPO.punkte) { TEMPO.punkte = neu; renderer.setPixelRatio(neu); renderer.setSize(window.innerWidth, window.innerHeight); }
+  }
+
   var letzte = performance.now();
   function bild(jetzt) {
     var dt = Math.min(0.05, (jetzt - letzte) / 1000);
+    if (!foto.an) tempoPruefen((jetzt - letzte) / 1000);
     letzte = jetzt;
     if (foto.an) { fotoBild(); requestAnimationFrame(bild); return; }
     if (welt) {

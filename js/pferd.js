@@ -347,6 +347,8 @@ function bauePferdMitReiterin() {
   vorderzwiesel.scale.set(1.0, 0.6, 0.6);
 
   // ======================= REITERIN =======================
+  // So sitzt der echte Mensch im Sattel: Knie am Pferd, Fuesse in den Steigbuegeln, Haende an den Zuegeln
+  var REITSITZ = { beinL: [-1.0, 0, 0.5], beinR: [-1.0, 0, -0.5], knieL: [1.25, 0, 0], knieR: [1.25, 0, 0], armL: [-0.45, 0, 0.12], armR: [-0.45, 0, -0.12], ellL: [-1.0, 0, 0], ellR: [-1.0, 0, 0] };
   var SITZ_Y = 1.635;
   var reiterin = new THREE.Group();
   var RG = 1.12;                       // Groesse der Reiterin
@@ -450,6 +452,31 @@ function bauePferdMitReiterin() {
   medaille.visible = false;
   oberkoerper.add(medaille);
 
+  // ---- Echter Mensch als Reiterin (js/mensch.js): dieselbe Figur wie zu Fuss, im Reitsitz ----
+  // Solange der Mensch noch laedt (oder wenn er fehlt), sieht man die Reiterin aus einfachen Formen von oben.
+  var reitFigur = null, reitFigurAn = false, alteReiterin = [];
+  if (typeof MENSCH !== 'undefined' && !MENSCH.aus()) {
+    (function sammle(o) {
+      if (o === medaille) return;
+      if (o.isMesh && o.material !== M.metall && !(o.material === M.zaum && o.parent === reiterin)) alteReiterin.push(o);      // Steigbuegel und ihre Riemen bleiben
+      o.children.forEach(sammle);
+    })(reiterin);
+    reitFigur = baueFigur(null, { helm: true, mocap: false });
+    reitFigur.setzeHoehe(0, true);
+    reitFigur.setzePose(REITSITZ, true);
+    reitFigur.wurzel.position.set(0, 0.02, -0.02);
+    reitFigur.wurzel.scale.setScalar(1.07);      // so reichen die Fuesse bis in die Steigbuegel
+    reitFigur.wurzel.visible = false;
+    reiterin.add(reitFigur.wurzel);
+  }
+  function reitFigurPruefen() {
+    if (!reitFigur || reitFigurAn === reitFigur.mensch().da) return;
+    reitFigurAn = reitFigur.mensch().da;
+    reitFigur.wurzel.visible = reitFigurAn;
+    alteReiterin.forEach(function (n) { n.visible = !reitFigurAn; });
+    frisur.visible = kappeDeko.visible = kopfDeko.visible = rumpfDeko.visible = !reitFigurAn;
+  }
+
   // ---------------- Frisuren ----------------
   function baueFrisur(art) {
     while (frisur.children.length) frisur.remove(frisur.children[0]);
@@ -490,6 +517,7 @@ function bauePferdMitReiterin() {
   // ---------------- Outfit setzen ----------------
   function setzeOutfit(o) {
     letzteFarben = o;
+    if (reitFigur) { reitFigur.setzeOutfit(o); reitFigurPruefen(); }
     var fellHex = (typeof o.fell === 'string' && o.fell.charAt(0) === '#') ? o.fell : HERDE.fellAus(o.fell).koerper;
     M.jacke.color.set(o.jacke);
     M.hose.color.set(o.hose);
@@ -676,6 +704,7 @@ function bauePferdMitReiterin() {
       oberkoerper.rotation.x = 0.14 * staerke + Math.sin(phase) * 0.04 * staerke;
       reiterin.position.y = SITZ_Y + Math.abs(Math.sin(phase * 0.5 + 0.4)) * 0.04 * staerke;
     }
+    if (reitFigur) { reitFigurPruefen(); reitFigur.gelenke.rumpf.rotation.x = oberkoerper.rotation.x; }
     if (modell) bewegeModell(phase, staerke, sprung);
     for (i = 0; i < frisur.children.length; i++) {
       var h = frisur.children[i];
