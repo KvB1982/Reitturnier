@@ -1431,9 +1431,29 @@
   el('fotoAus').addEventListener('click', fotoAufnahme);
   el('fotoRahmen').addEventListener('click', function () { foto.rahmen = !foto.rahmen; el('fotoRahmen').textContent = '🖼️ Rahmen: ' + (foto.rahmen ? 'an' : 'aus'); });
 
+  // ---------- Tempo-Waechter (abgeschaut vom Rennspiel) ----------
+  // Dauert ein Bild zu lange, malt das Spiel mit weniger Bildpunkten (etwas unschaerfer, dafuer fluessig).
+  // Laeuft es wieder eine Weile ruhig, werden es wieder mehr - aber nie zurueck auf eine Stufe, die schon zu langsam war.
+  var TEMPO = { punkte: Math.min(window.devicePixelRatio || 1, 2), max: Math.min(window.devicePixelRatio || 1, 2), min: 0.75, bildZeit: 1 / 60, uhr: 0, ruhig: 0, grenze: 99 };
+  function tempoPruefen(roh) {
+    if (!(roh > 0) || roh > 0.25) return;          // Fenster war weg oder eine Welt wurde gerade gebaut: nicht mitzaehlen
+    TEMPO.bildZeit += (roh - TEMPO.bildZeit) * 0.05;
+    TEMPO.uhr += roh;
+    if (TEMPO.uhr < 1.5) return;
+    TEMPO.uhr = 0;
+    var neu = TEMPO.punkte;
+    if (TEMPO.bildZeit > 1 / 40 && TEMPO.punkte > TEMPO.min) { TEMPO.grenze = TEMPO.punkte; neu = Math.max(TEMPO.min, TEMPO.punkte - 0.25); TEMPO.ruhig = 0; }
+    else if (TEMPO.bildZeit < 1 / 55) {
+      var hoch = Math.min(TEMPO.max, TEMPO.punkte + 0.25);
+      if (++TEMPO.ruhig >= 4 && hoch > TEMPO.punkte && !(hoch >= TEMPO.grenze)) { neu = hoch; TEMPO.ruhig = 0; }
+    } else TEMPO.ruhig = 0;
+    if (neu !== TEMPO.punkte) { TEMPO.punkte = neu; renderer.setPixelRatio(neu); renderer.setSize(window.innerWidth, window.innerHeight); }
+  }
+
   var letzte = performance.now();
   function bild(jetzt) {
     var dt = Math.min(0.05, (jetzt - letzte) / 1000);
+    if (!foto.an) tempoPruefen((jetzt - letzte) / 1000);
     letzte = jetzt;
     if (foto.an) { fotoBild(); requestAnimationFrame(bild); return; }
     if (welt) {
