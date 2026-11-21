@@ -1045,7 +1045,12 @@ WELTEN.ausritt = (function () {
     KERN.ton(440, 0.1, 'triangle', 0.12);
     sage(s.decke ? 'Ich habe Apfelkuchen und Saft dabei!' : 'Schau mal, wie weit man sehen kann!', 5);
   }
-  function aufstehen() { I.sitzt = null; ich.setzePose('steh'); ich.setzeHoehe(0.8); freundin.setzePose('steh'); freundin.setzeHoehe(0.8); }
+  function aufstehen() {
+    var decke = I.sitzt && I.sitzt.decke;
+    I.sitzt = null; ich.setzePose('steh'); ich.setzeHoehe(0.8); freundin.setzePose('steh'); freundin.setzeHoehe(0.8);
+    // von der Decke richtig aufstehen (aufgenommene Bewegung)
+    if (decke && ich.spiele('aufstehen', { tempo: 1.7 })) { freundin.spiele('aufstehen', { tempo: 1.55 }); I.pose = 'auf'; I.poseZeit = 2.5; }
+  }
   function picknick() {
     ich.setzePose('essen'); freundin.setzePose('essen'); I.poseZeit = 2.2; I.pose = 'sitzt';
     [0, 0.5, 1.0].forEach(function (t) { KERN.ton(190, 0.06, 'square', 0.05, t); KERN.ton(150, 0.06, 'square', 0.05, t + 0.15); });
@@ -1162,7 +1167,7 @@ WELTEN.ausritt = (function () {
     var sx = (t.rechts ? 1 : 0) - (t.links ? 1 : 0) - w.lenk, sz = (t.langsamer ? 1 : 0) - (t.schneller ? 1 : 0) - w.hoch;
     var kc = Math.cos(kamW), ks = Math.sin(kamW), ex = sx * kc + sz * ks, ez = -sx * ks + sz * kc, st = Math.min(1, Math.hypot(ex, ez));
     if (I.poseZeit > 0) { I.poseZeit -= dt; if (I.poseZeit <= 0) { if (I.sitzt) { ich.setzePose(I.sitzt.pose); freundin.setzePose(I.sitzt.pose); } else { ich.setzePose('steh'); ich.setzeHoehe(0.8); } I.pose = null; } }
-    if (I.sitzt || I.pose === 'pfluecken' || I.pose === 'werfen' || I.pose === 'essen') st = 0;
+    if (I.sitzt || I.pose === 'pfluecken' || I.pose === 'werfen' || I.pose === 'essen' || I.pose === 'auf') st = 0;
     if (st > 0.05 && angel) { schwimmer.visible = false; angel = null; I.pose = null; I.poseZeit = 0; ich.setzePose('steh'); }
     I.tempo += (st * (fuehrt ? 3.4 : 4.6) - I.tempo) * Math.min(1, dt * 10);
     var steg = aufSteg(I.x, I.z), bruecke = aufBruecke(I.x, I.z), wasserTief = WASSER - boden(I.x, I.z), imWasser = wasserTief > 0.05 && steg === null && !bruecke;

@@ -488,7 +488,7 @@ WELTEN.hof = (function () {
     var namen = ['Lotte', 'Mia', 'Emma'];
     var wege = [
       // Lotte: holt Heu, bringt es zu einer Box, putzt, macht Pause auf dem Hof
-      [['geh', 4, 0], ['geh', 4, -4.2], ['pose', 'schaufeln', 2.5], ['trage', 'heu'], ['geh', 4, 0], ['geh', -2, 0], ['geh', -2, 3.6], ['pose', 'putzen', 3], ['trage', null], ['pose', 'putzen', 7, 'buerste'], ['geh', -2, 0], ['geh', 10, 0], ['geh', 10.5, 7.6], ['pose', 'winken', 2.5], ['pose', 'steh', 5], ['geh', 10, 0]],
+      [['geh', 4, 0], ['geh', 4, -4.2], ['pose', 'schaufeln', 2.5], ['trage', 'heu'], ['geh', 4, 0], ['geh', -2, 0], ['geh', -2, 3.6], ['pose', 'putzen', 3], ['trage', null], ['pose', 'putzen', 7, 'buerste'], ['geh', -2, 0], ['geh', 10, 0], ['geh', 10.5, 7.6], ['pose', 'winken', 2.5], ['turn', 'hampelmann', 5], ['pose', 'steh', 4], ['turn', 'kniebeuge', 5.6], ['pose', 'steh', 3], ['geh', 10, 0]],
       // Mia: faehrt Mist mit der Schubkarre zum Misthaufen
       [['karre', true], ['geh', -6, 0.6], ['pose', 'schaufeln', 5], ['geh', -13.5, 0.6], ['geh', -14.5, -6.5], ['pose', 'schaufeln', 4], ['geh', -13.5, 0.6], ['geh', -10, 0.6], ['pose', 'schaufeln', 5], ['geh', -13.5, 0.6], ['geh', -14.5, -6.5], ['pose', 'schaufeln', 4], ['geh', -13.5, 0.6]],
       // Emma: reitet auf dem Trainingsplatz
@@ -559,6 +559,11 @@ WELTEN.hof = (function () {
           M.phase += v * dt * 4.2; laeuft = 0.8;
         }
         if (M.gruss <= 0) f.setzePose(M.traegt || M.karre ? 'tragen' : 'steh');
+      } else if (s[0] === 'turn') {
+        // Gymnastik in der Pause (aufgenommene Bewegung)
+        if (M.warte <= 0) { M.warte = s[2]; f.setzePose('steh'); if (!f.spiele(s[1])) M.warte = 0.01; }
+        M.warte -= dt;
+        if (M.warte <= 0 || M.gruss > 0) { f.spiele(null); M.schritt++; M.warte = 0; }
       } else if (s[0] === 'pose') {
         if (M.warte <= 0) { M.warte = s[2]; f.setzePose(s[1]); }
         M.warte -= dt;

@@ -46,6 +46,7 @@ WELTEN.voltigieren = (function () {
   var winkel = 0, phase = 0, zeit = 0, taktGuete = [], sperre = 0;
   var bal = 0, balZeit = 0, balGut = 0, rausch = [0, 0, 0];
   var flug = null, ort = 'unten', schwung = 0, lohnText = '';
+  var leute = [], turnKinder = [];
   var elTakt = null, elBal = null;
   var v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), sitz = new THREE.Vector3(), kamZiel = new THREE.Vector3(), kamBlick = new THREE.Vector3();
 
@@ -84,6 +85,20 @@ WELTEN.voltigieren = (function () {
       z.wurzel.position.set(Math.sin(w) * 11, 0, Math.cos(w) * 11); z.wurzel.rotation.y = w + PI;
       z.wurzel.scale.setScalar(0.85 + (i % 4) * 0.06);
       szene.add(z.wurzel);
+      leute.push(z);
+    }
+    // Die anderen Voltigierkinder waermen sich neben dem Zirkel auf (aufgenommene Bewegungen)
+    if (MOCAP.gibt('hampelmann')) {
+      for (i = 0; i < 4; i++) {
+        var tw = 3.62 + i * 0.2, tk = baueFigur(KERN.zufallsOutfit(), { helm: false });
+        tk.wurzel.position.set(Math.sin(tw) * 13.2, 0, Math.cos(tw) * 13.2); tk.wurzel.rotation.y = tw + PI + (i % 2 ? 0.25 : -0.2);
+        tk.wurzel.scale.setScalar(0.84 + (i % 3) * 0.05);
+        BAU.kasten(1.0, 0.04, 1.9, [0x3a7bd5, 0xd9534f, 0x3e8f4a, 0xe0a030][i], tk.wurzel, 0, 0.02, 0.15);
+        szene.add(tk.wurzel);
+        turnKinder.push({ figur: tk, nr: i, zeit: i * 2.3, was: -1 });
+      }
+      var twS = BAU.tafel('Aufwärmen', 0.34, { farbe: '#3a7bd5' }); twS.position.set(Math.sin(3.92) * 15, 1.5, Math.cos(3.92) * 15); twS.rotation.y = 3.92 + PI; szene.add(twS);
+      BAU.kasten(0.08, 1.5, 0.08, 0x7a5a3a, szene, Math.sin(3.92) * 15.05, 0.75, Math.cos(3.92) * 15.05);
     }
     var baeume = [], zf = 5;
     function zuf() { zf = (zf * 16807) % 2147483647; return zf / 2147483647; }
@@ -282,9 +297,23 @@ WELTEN.voltigieren = (function () {
     return aus.set(px + Math.cos(k) * 1.0 + Math.sin(k) * 0.2, 0, pz - Math.sin(k) * 1.0 + Math.cos(k) * 0.2);
   }
 
+  var TURNEN = ['hampelmann', 'kniebeuge', 'liegestuetz', 'hampelmann', 'situps', 'burpee'];
+  function bewegeLeute(dt) {
+    var i;
+    for (i = 0; i < leute.length; i++) leute[i].bewege(dt);
+    for (i = 0; i < turnKinder.length; i++) {
+      var K = turnKinder[i];
+      K.zeit += dt;
+      var runde = Math.floor(K.zeit / 9), pause = K.zeit - runde * 9 > 7.6;
+      var was = pause ? -1 : (runde + K.nr * 2) % TURNEN.length;
+      if (was !== K.was) { K.was = was; K.figur.spiele(was < 0 ? null : TURNEN[was], { tempo: 0.92 + K.nr * 0.05 }); }
+      K.figur.bewege(dt);
+    }
+  }
   function schritt(dt) {
     if (modus === 'aus') return;
     zeit += dt;
+    bewegeLeute(dt);
     if (sperre > 0) sperre -= dt;
     // Pferd im Kreis
     var alt = phase;

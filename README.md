@@ -93,4 +93,6 @@ Beide stehen unter der Lizenz [CC BY 4.0](https://creativecommons.org/licenses/b
 
 Die Gebäude, Bäume, Möbel, Tiere und Fahrzeuge in `modelle/umwelt/` (Stall, Wohnhaus, Tribüne, Windmühle, Dorf, Kirche, Traktor, Hofhund Bello, Hühner und mehr) wurden mit [3D AI Studio](https://www.3daistudio.com) erzeugt und für das Spiel verkleinert. Geladen werden sie von `js/modelle3d.js`; fehlt eine Datei, bleibt die einfache Form aus Klötzen stehen. Im Menü lässt sich die Landschaft auf „Einfach (schneller)" stellen.
 
+Die Bewegungen der Figuren (Gehen, Laufen, Stehen, Umschauen, Aufstehen, Gymnastik) in `js/bewegungen.js` stammen aus Motion-Capture-Aufnahmen von [Mixamo](https://www.mixamo.com) und wurden auf die Gelenke der Spielfigur umgerechnet.
+
 Die 3D-Bibliothek [three.js](https://threejs.org) steht unter der MIT-Lizenz, siehe `js/three-LICENSE.txt`.

@@ -1,4 +1,46 @@
 // ============================================================
+//  MOCAP  -  aufgenommene Bewegungen (Motion Capture) abspielen
+//  Die Daten stehen in js/bewegungen.js: je Bild 11 Gelenkdrehungen
+//  (Quaternionen) und der Ort der Huefte, als 16-Bit-Zahlen.
+// ============================================================
+var MOCAP = (function () {
+  'use strict';
+  var GELENKE = ['huefte', 'rumpf', 'kopf', 'armL', 'armR', 'ellL', 'ellR', 'beinL', 'beinR', 'knieL', 'knieR'];
+  var BREITE = GELENKE.length * 4 + 3, fertig = {};
+  function hol(name) {
+    if (fertig[name] !== undefined) return fertig[name];
+    var roh = typeof BEWEGUNGEN !== 'undefined' ? BEWEGUNGEN[name] : null;
+    if (!roh) return (fertig[name] = null);
+    var bin = atob(roh.d), n = bin.length >> 1, a = new Float32Array(n), i;
+    for (i = 0; i < n; i++) a[i] = ((bin.charCodeAt(i * 2) | (bin.charCodeAt(i * 2 + 1) << 8)) << 16 >> 16) / 10000;
+    return (fertig[name] = { a: a, n: n / BREITE, fps: roh.fps, dauer: (n / BREITE - (roh.schleife ? 0 : 1)) / roh.fps, schleife: !!roh.schleife, runden: roh.runden || 1, start: roh.start || 0 });
+  }
+  function neu() { var q = [], i; for (i = 0; i < GELENKE.length; i++) q.push(new THREE.Quaternion()); return { q: q, p: [0, 1, 0] }; }
+  // Bewegung zur Zeit t (Sekunden) in "aus" schreiben
+  function lies(c, t, aus) {
+    var f = t * c.fps, n = c.n, i0, i1, k, a = c.a, j, o0, o1;
+    if (c.schleife) { f = ((f % n) + n) % n; i0 = Math.floor(f); i1 = (i0 + 1) % n; }
+    else { f = Math.max(0, Math.min(n - 1, f)); i0 = Math.floor(f); i1 = Math.min(n - 1, i0 + 1); }
+    k = f - i0; o0 = i0 * BREITE; o1 = i1 * BREITE;
+    for (j = 0; j < GELENKE.length; j++) {
+      var x0 = a[o0], y0 = a[o0 + 1], z0 = a[o0 + 2], w0 = a[o0 + 3], x1 = a[o1], y1 = a[o1 + 1], z1 = a[o1 + 2], w1 = a[o1 + 3];
+      var v = x0 * x1 + y0 * y1 + z0 * z1 + w0 * w1 < 0 ? -k : k, u = 1 - k;
+      aus.q[j].set(x0 * u + x1 * v, y0 * u + y1 * v, z0 * u + z1 * v, w0 * u + w1 * v).normalize();
+      o0 += 4; o1 += 4;
+    }
+    aus.p[0] = a[o0] + (a[o1] - a[o0]) * k; aus.p[1] = a[o0 + 1] + (a[o1 + 1] - a[o0 + 1]) * k; aus.p[2] = a[o0 + 2] + (a[o1 + 2] - a[o0 + 2]) * k;
+    return aus;
+  }
+  // Schrittfolge: runde 0 = linker Fuss ganz vorn, eine Runde = zwei Schritte
+  function liesRunde(c, runde, aus) { return lies(c, c.start + runde * c.dauer / c.runden, aus); }
+  function mische(a, b, w) {
+    for (var j = 0; j < GELENKE.length; j++) a.q[j].slerp(b.q[j], w);
+    a.p[0] += (b.p[0] - a.p[0]) * w; a.p[1] += (b.p[1] - a.p[1]) * w; a.p[2] += (b.p[2] - a.p[2]) * w;
+  }
+  return { GELENKE: GELENKE, hol: hol, neu: neu, lies: lies, liesRunde: liesRunde, mische: mische, gibt: function (n) { return !!hol(n); } };
+})();
+
+// ============================================================
 //  FIGUR  -  ein Maedchen mit beweglichen Gelenken
 //  (zu Fuss im Stall, als Reiterin der anderen Pferde, beim Voltigieren)
 // ============================================================
@@ -138,6 +180,71 @@ function baueFigur(outfit, opt) {
   // Gehen: phase laeuft mit der Strecke, staerke 0..1 (1 = laufen)
   var gehStaerke = 0, gehPhase = 0, flatter = 0;
   function gehe(phase, staerke) { gehPhase = phase; gehStaerke = staerke; }
+  // ---------- echte Bewegungen (Motion Capture, js/bewegungen.js) ----------
+  var MC = MOCAP.GELENKE, mcQ = [], mcP = [0, 1, 0], mcA = MOCAP.neu(), mcB = MOCAP.neu(), mcW = 0, mcWeich = 0;
+  var mcClip = null, mcZeit = 0, mcTempo = 1, mcDanach = null, mcArt = '', mcFrei = false;
+  var ruheZeit = Math.random() * 20, schauIn = 6 + Math.random() * 20, schauZeit = -1, schauClip = null;
+  for (var mi = 0; mi < MC.length; mi++) mcQ.push(new THREE.Quaternion());
+  var EINS = new THREE.Quaternion();
+  // spielt eine aufgenommene Bewegung mit dem ganzen Koerper; spiele(null) beendet sie
+  function spiele(name, o) {
+    o = o || {};
+    var c = name ? MOCAP.hol(name) : null;
+    if (c === mcClip && c) { mcTempo = o.tempo || 1; return !!c; }
+    mcClip = c; mcZeit = o.ab === undefined ? 0 : o.ab * (c ? c.dauer : 0); mcTempo = o.tempo || 1; mcDanach = o.danach || null; mcWeich = 0.3;
+    return !!c;
+  }
+  function posenFrei() {
+    for (var i = 0; i < NAMEN.length; i++) { var z = ziel[NAMEN[i]]; if (Math.abs(z[0]) + Math.abs(z[1]) + Math.abs(z[2]) > 0.02) return false; }
+    return Math.abs(hoeheZiel - 0.8) < 0.02;
+  }
+  function gesperrt(n) {
+    if (mcFrei) return false;
+    if (n === 'huefte') return false;
+    var z = ziel[n.charAt(0) === 'e' ? 'arm' + n.charAt(3) : n.charAt(0) === 'k' && n !== 'kopf' ? 'bein' + n.charAt(4) : n];
+    var eigen = ziel[n];
+    return Math.abs(z[0]) + Math.abs(z[1]) + Math.abs(z[2]) + Math.abs(eigen[0]) + Math.abs(eigen[1]) + Math.abs(eigen[2]) > 0.25;
+  }
+  function mocap(dt) {
+    var soll = 0, art = '', i, gehen = MOCAP.hol('gehen'), aus = null;
+    mcFrei = false;
+    if (mcClip) {
+      mcZeit += dt * mcTempo;
+      if (!mcClip.schleife && mcZeit >= mcClip.dauer) {
+        var d = mcDanach; mcDanach = null;
+        if (typeof d === 'string') { spiele(d); } else { mcClip = null; mcWeich = 0.3; if (d) d(); }
+      }
+    }
+    if (mcClip) { MOCAP.lies(mcClip, mcZeit, mcA); aus = mcA; soll = 1; art = 'clip'; mcFrei = true; }
+    else if (gehStaerke > 0.03 && gehen && Math.abs(hoeheZiel - 0.8) < 0.02 && opt.mocap !== false) {
+      var runde = gehPhase / (Math.PI * 2) - 0.25, rennen = MOCAP.hol('laufen');
+      MOCAP.liesRunde(gehen, runde, mcA); aus = mcA;
+      var wr = rennen ? Math.max(0, Math.min(1, (gehStaerke - 0.86) / 0.1)) : 0;
+      if (wr > 0) { MOCAP.liesRunde(rennen, runde, mcB); MOCAP.mische(mcA, mcB, wr); }
+      soll = Math.min(1, gehStaerke / 0.3); art = 'geh';
+    } else if (opt.mocap !== false && posenFrei() && MOCAP.hol('stehen')) {
+      ruheZeit += dt; schauIn -= dt;
+      if (schauIn < 0 && schauZeit < 0) { schauClip = MOCAP.hol(Math.random() < 0.5 ? 'umschauen' : 'umschauen2'); schauZeit = 0; mcWeich = 0.5; }
+      if (schauZeit >= 0 && schauClip) {
+        schauZeit += dt; MOCAP.lies(schauClip, schauZeit, mcA);
+        if (schauZeit >= schauClip.dauer) { schauZeit = -1; schauIn = 14 + Math.random() * 25; mcWeich = 0.5; }
+      } else { schauZeit = -1; MOCAP.lies(MOCAP.hol('stehen'), ruheZeit, mcA); }
+      aus = mcA; soll = 1; art = 'ruhe';
+    }
+    if (art !== mcArt) { mcArt = art; mcWeich = Math.max(mcWeich, 0.3); if (art !== 'ruhe') schauZeit = -1; }
+    mcW += (soll - mcW) * Math.min(1, dt * 7);
+    if (aus) {
+      var k = mcWeich > 0 ? Math.min(1, dt * 12) : 1;
+      mcWeich = Math.max(0, mcWeich - dt);
+      for (i = 0; i < MC.length; i++) mcQ[i].slerp(aus.q[i], k);
+      mcP[0] += (aus.p[0] - mcP[0]) * k; mcP[1] += (aus.p[1] - mcP[1]) * k; mcP[2] += (aus.p[2] - mcP[2]) * k;
+    }
+    if (mcW < 0.004) { mcW = 0; huefte.quaternion.copy(EINS); huefte.position.x = 0; huefte.position.z = 0; return false; }
+    huefte.quaternion.copy(EINS).slerp(mcQ[0], mcW);
+    for (i = 1; i < MC.length; i++) if (!gesperrt(MC[i])) G[MC[i]].quaternion.slerp(mcQ[i], mcW);
+    huefte.position.set(mcP[0] * 0.8 * mcW, hoeheIst * (1 + (mcP[1] - 1) * mcW), mcP[2] * 0.8 * mcW);
+    return art === 'geh' || art === 'clip';
+  }
   function bewege(dt) {
     var k = Math.min(1, dt * 9), i, n;
     for (i = 0; i < NAMEN.length; i++) {
@@ -148,7 +255,8 @@ function baueFigur(outfit, opt) {
     }
     hoeheIst += (hoeheZiel - hoeheIst) * k;
     huefte.position.y = hoeheIst;
-    if (gehStaerke > 0.01) {
+    var echt = mocap(dt);
+    if (gehStaerke > 0.01 && !echt) {
       var s = Math.sin(gehPhase), c = Math.cos(gehPhase), a = 0.55 * gehStaerke;
       G.beinL.rotation.x += -s * a; G.beinR.rotation.x += s * a;
       G.knieL.rotation.x += Math.max(0, c) * a * 1.5; G.knieR.rotation.x += Math.max(0, -c) * a * 1.5;
@@ -169,7 +277,8 @@ function baueFigur(outfit, opt) {
   }
   return {
     wurzel: wurzel, huefte: huefte, gelenke: G, material: M,
-    setzeOutfit: setzeOutfit, setzePose: setzePose, gehe: gehe, bewege: bewege,
+    setzeOutfit: setzeOutfit, setzePose: setzePose, gehe: gehe, bewege: bewege, spiele: spiele,
+    spielt: function () { return !!mcClip; },
     setzeHelm: function (an) { helm.visible = !!an; },
     setzeHoehe: function (y, sofort) { hoeheZiel = y; if (sofort) { hoeheIst = y; huefte.position.y = y; } }
   };
