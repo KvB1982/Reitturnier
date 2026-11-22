@@ -180,6 +180,7 @@ WELTEN.hof = (function () {
     ['#e84393', '#1f6fd0', '#27ae60', '#f1c40f', '#8e44ad', '#f5f5f5'].forEach(function (f, k) {
       thekeAlt.push(BAU.kasten(0.45, 0.3, 0.3, f, szene, 2.2 + k * 0.72, 1.17, 5.7));
     });
+    STUBEN.baue(szene, waende, kreise);          // Einrichtung für Vorratsraum und Reitladen (js/stuben.js)
     MODELLE3D.setze('theke', szene, { x: 4, z: 5.78, dreh: Math.PI / 2, masse: [1.3, 2.3, 4.3], statt: thekeAlt, schatten: false });
     // Dach (wird ausgeblendet, wenn man im Stall ist)
     dach = new THREE.Group(); szene.add(dach);
@@ -367,11 +368,13 @@ WELTEN.hof = (function () {
       meinZeichen = new THREE.Group(); szene.add(meinZeichen);
       var GOLD = new THREE.MeshStandardMaterial({ color: 0xf2c230, emissive: 0xf2a500, emissiveIntensity: 0.35, roughness: 0.4 });
       // goldener Rahmen um die Tür, goldene Schwelle, Wimpel
-      [-0.86, 0.86].forEach(function (x) { BAU.kasten(0.1, 2.25, 0.1, GOLD, meinZeichen, x, 1.12, 0.06).castShadow = false; });
-      BAU.kasten(1.82, 0.1, 0.1, GOLD, meinZeichen, 0, 2.25, 0.06).castShadow = false;
-      var sw = BAU.netz(new THREE.PlaneGeometry(1.9, 0.9), GOLD, meinZeichen, 0, 0.03, 0.5); sw.rotation.x = -Math.PI / 2; sw.castShadow = false;
-      for (i = 0; i < 9; i++) { var w = BAU.netz(new THREE.ConeGeometry(0.11, 0.24, 3), [0xe84393, 0xf2c230, 0x3f8fd6][i % 3], meinZeichen, -1.76 + i * 0.44, 2.36 - Math.sin(i / 8 * Math.PI) * 0.12, 0.1); w.rotation.x = Math.PI; w.scale.z = 0.15; w.castShadow = false; }
-      meinZeichen.userData.stern = BAU.netz(new THREE.OctahedronGeometry(0.2), GOLD, meinZeichen, 0, 2.62, 0.1); meinZeichen.userData.stern.scale.z = 0.35; meinZeichen.userData.stern.castShadow = false;
+      // Wichtig: Nichts davon darf genau in einer anderen Fläche liegen (Boden, Wand, Schild) – sonst weiß die Grafikkarte
+      // nicht, was vorn ist, und es flackert. Deshalb steht der Rahmen ein Stück vor der Wand und die Schwelle ist ein flaches Brett.
+      [-0.86, 0.86].forEach(function (x) { BAU.kasten(0.1, 2.2, 0.12, GOLD, meinZeichen, x, 1.1, 0.17).castShadow = false; });
+      BAU.kasten(1.82, 0.1, 0.12, GOLD, meinZeichen, 0, 2.25, 0.17).castShadow = false;
+      BAU.kasten(1.9, 0.03, 0.8, GOLD, meinZeichen, 0, 0.05, 0.63).castShadow = false;
+      for (i = 0; i < 9; i++) { var w = BAU.netz(new THREE.ConeGeometry(0.11, 0.24, 3), [0xe84393, 0xf2c230, 0x3f8fd6][i % 3], meinZeichen, -1.76 + i * 0.44, 2.36 - Math.sin(i / 8 * Math.PI) * 0.12, 0.17); w.rotation.x = Math.PI; w.scale.z = 0.15; w.castShadow = false; }
+      meinZeichen.userData.stern = BAU.netz(new THREE.OctahedronGeometry(0.2), GOLD, meinZeichen, 0, 2.62, 0.45); meinZeichen.userData.stern.scale.z = 0.35; meinZeichen.userData.stern.castShadow = false;
       meinStern = BAU.schwebeText('⭐', 0.42, { grund: null, schrift: 90 }); szene.add(meinStern);
     }
     meinZeichen.position.set(b.xc, 0, b.zVorn); meinZeichen.rotation.y = b.v < 0 ? 0 : Math.PI;
@@ -412,7 +415,7 @@ WELTEN.hof = (function () {
       P.schildText = text;
       if (P.schild) { szene.remove(P.schild); P.schild.material.map.dispose(); P.schild.material.dispose(); }
       P.schild = BAU.schwebeText(text, mein ? 0.95 : 0.5, mein ? { schrift: 40, grund: 'rgba(255,236,160,0.96)' } : { schrift: 36 });
-      P.schild.position.set(b.xc, mein ? 2.95 : 2.7, b.zVorn);
+      P.schild.position.set(b.xc, mein ? 3.45 : 2.7, b.zVorn);      // das gelbe Schild hängt über Stern und Wimpeln, damit sich nichts durchdringt
       szene.add(P.schild);
     }
     P.schild.visible = !P.versteckt;
