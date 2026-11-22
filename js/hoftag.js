@@ -24,7 +24,7 @@ var HOFTAG = (function () {
   function neueAufgaben() {
     var pool = TAGESAUFGABEN.filter(function (a) { return !(a[0] === 'fohlen' && d.fohlen && d.fohlen.wuchs >= 1); });
     function nimm(id) { for (var i = 0; i < pool.length; i++) if (pool[i][0] === id) return pool.splice(i, 1)[0]; }
-    var wahl = [nimm('fuettern'), nimm(Math.random() < 0.5 ? 'box' : 'mist')];
+    var wahl = [nimm('fuettern'), nimm(Math.random() < 0.5 ? 'box' : 'mist'), nimm('fohlenRein')];       // das Fohlen muss jeden Abend in seine Box
     while (wahl.length < 5 && pool.length) wahl.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
     d.aufgaben = { tag: d.tag, bonus: false, liste: wahl.map(function (a) {
       var ziel = a[2] + Math.floor(Math.random() * (a[3] - a[2] + 1));
@@ -113,6 +113,7 @@ var HOFTAG = (function () {
   }
   function fragSchlafen(art) {
     if (S.fuehrt) { KERN.meldung('Bring erst ' + S.fuehrt.def.name + ' in die Box!', 'knapp'); return; }
+    if (HOFLEBEN.fuehrtFohlen()) { KERN.meldung('Bring erst das Fohlen in seine Box!', 'knapp'); return; }
     var offen = d.aufgaben.liste.length - geschafft();
     if (art === 'bett' && d.stunde < 18) {
       C.karte('<h2>🛏️ Dein Bett</h2><div class="details">Es ist erst ' + WETTER.uhr() + ' Uhr, du bist noch gar nicht müde. Schlafen kannst du ab 18 Uhr.' +

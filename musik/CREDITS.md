@@ -9,6 +9,11 @@ weich ein- und ausgeblendet, alle gleich laut gemacht (ffmpeg) und als MP3 mit 8
 |---|---|---|---|---|
 | `menue.mp3` | Hauptmenü | Nodens (Field Song) | axtoncrolley | https://freesound.org/s/172707/ |
 | `hof.mp3` | Pferdehof | calm_happy_rpgTownBackground | SciCodeDev | https://freesound.org/s/442911/ |
+| `hof2.mp3` | Pferdehof (wechselt durch) | Acoustic Guitar and Keys - Plains Soundtrack | TheWandermiles | https://freesound.org/s/449812/ |
+| `hof3.mp3` | Pferdehof (wechselt durch) | Blue Sky | Sergmusic | https://freesound.org/s/639933/ |
+| `hof4.mp3` | Pferdehof (wechselt durch) | TownTheme1 | NuclearCaveman | https://freesound.org/s/546724/ |
+| `abend.mp3` | Pferdehof am Abend (ab 19 Uhr) | Evening Chores | mochadaddy | https://freesound.org/s/712772/ |
+| `regen.mp3` | Pferdehof bei Regen und Gewitter | Calming Piano Loop 60bpm | Seth_Makes_Sounds | https://freesound.org/s/679738/ |
 | `zimmer.mp3` | im Haus | Music Box – J. Brahms – Opus 39 – Waltz no 3 | Flying_Deer_Fx | https://freesound.org/s/369405/ |
 | `ausritt.mp3` | Ausritt | After Afternoon | mochadaddy | https://freesound.org/s/718119/ |
 | `springen.mp3` | Springen | Cute Happy Background Music | Seth_Makes_Sounds | https://freesound.org/s/666720/ |
@@ -16,6 +21,8 @@ weich ein- und ausgeblendet, alle gleich laut gemacht (ffmpeg) und als MP3 mit 8
 | `gelaende.mp3` | Military | Medieval March | G-14 | https://freesound.org/s/646460/ |
 | `voltigieren.mp3` | Voltigieren | Another Baroque Heaven | younoise | https://freesound.org/s/673524/ |
 | `dressur.mp3` | Dressur | J.S.Bach BWV 816 Gavotte | tootoos24 | https://freesound.org/s/737895/ |
+
+Die fünf Stücke `hof2` bis `regen` kamen am 22.11.2026 dazu (gleich zugeschnitten).
 
 Die Kür in der Dressur macht ihre Musik weiter selbst (im Takt von Schritt, Trab und Galopp).
 

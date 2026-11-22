@@ -8,7 +8,13 @@
 // ============================================================
 var MUSIKLISTE = {
   menue:       { datei: 'musik/menue.mp3',       laut: 0.9 },   // Hauptmenü: ein ruhiges Lied vom Feld
-  hof:         { datei: 'musik/hof.mp3',         laut: 0.8 },   // Pferdehof: fröhlich und gemütlich
+  // Auf dem Pferdehof wechselt die Musik: Ist ein Stück zu Ende, kommt das nächste aus "folge" dran.
+  hof:         { datei: 'musik/hof.mp3',         laut: 0.8, folge: ['hof', 'hof2', 'hof3', 'hof4'] },   // Pferdehof: fröhlich und gemütlich
+  hof2:        { datei: 'musik/hof2.mp3',        laut: 0.8 },   // Pferdehof: Gitarre und Klavier
+  hof3:        { datei: 'musik/hof3.mp3',        laut: 0.8 },   // Pferdehof: „Blauer Himmel“
+  hof4:        { datei: 'musik/hof4.mp3',        laut: 0.8 },   // Pferdehof: ein Lied vom Dorf
+  abend:       { datei: 'musik/abend.mp3',       laut: 0.8 },   // Pferdehof ab 19 Uhr: Feierabend im Stall
+  regen:       { datei: 'musik/regen.mp3',       laut: 0.8 },   // Pferdehof bei Regen und Gewitter: ein ruhiges Klavier
   zimmer:      { datei: 'musik/zimmer.mp3',      laut: 0.8 },   // im Haus: eine Spieluhr spielt einen Walzer von Brahms
   ausritt:     { datei: 'musik/ausritt.mp3',     laut: 0.8 },   // Ausritt: eine Gitarre am Nachmittag
   springen:    { datei: 'musik/springen.mp3',    laut: 0.8 },   // Springen: munter
