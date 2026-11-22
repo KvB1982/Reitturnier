@@ -217,7 +217,7 @@ var SOUND = (function () {
   // ============================================================
   var MUSIK_LAUT = 0.5;                 // Musik insgesamt leiser als die Geräusche, damit man die Hufe noch hört
   var MUSIK = typeof MUSIKLISTE !== 'undefined' ? MUSIKLISTE : {};
-  var M = { wunsch: null, seit: 0, jetzt: null, quelle: null, regler: null, element: null, elementLaut: 0, puffer: {}, reihe: [], laedt: {}, ohneNetz: false };
+  var M = { wunsch: null, seit: 0, jetzt: null, quelle: null, regler: null, element: null, elementLaut: 0, puffer: {}, reihe: [], laedt: {}, ohneNetz: false, folgeNr: {}, basis: null, start: 0, dauer: 0 };
   // Welches Stück passt gerade?
   function musikWunsch() {
     if (!STUFEN[stufe].musik || !entsperrt) return null;
@@ -227,13 +227,33 @@ var SOUND = (function () {
     if (welt.musik) return typeof welt.musik === 'function' ? welt.musik() : welt.musik;
     if (welt === WELTEN.hof) {
       var s = welt.spielerin ? welt.spielerin() : null;
-      return s && typeof HOFTAG !== 'undefined' && HOFTAG.imHaus && HOFTAG.imHaus(s.x, s.z) ? 'zimmer' : 'hof';
+      if (s && typeof HOFTAG !== 'undefined' && HOFTAG.imHaus && HOFTAG.imHaus(s.x, s.z)) return 'zimmer';
+      // bei Regen und am Abend klingt der Hof anders
+      if (typeof WETTER !== 'undefined' && WETTER.regnet() && MUSIK.regen) return 'regen';
+      if (typeof STAND !== 'undefined' && STAND.daten.stunde >= 19 && MUSIK.abend) return 'abend';
+      return 'hof';
     }
     for (var name in WELTEN) if (WELTEN[name] === welt) return name;
     return null;
   }
   // gibt es das Stück nicht, nimmt man ein ähnliches
   function musikName(n) { while (n && MUSIK[n] && MUSIK[n].wie) n = MUSIK[n].wie; return n && MUSIK[n] ? n : null; }
+  // Hat ein Ort mehrere Stücke ("folge"), kommt eins nach dem anderen dran
+  function musikAusFolge(n) {
+    var f = n && MUSIK[n] ? MUSIK[n].folge : null;
+    if (!f || !f.length) return n;
+    var st = f[(M.folgeNr[n] || 0) % f.length];
+    return MUSIK[st] ? st : n;
+  }
+  // Ist das Stück gleich zu Ende? Dann ist das nächste aus der Folge dran.
+  function musikWeiter() {
+    var b = M.basis, f = b && MUSIK[b] ? MUSIK[b].folge : null;
+    if (!f || f.length < 2 || M.wechselt || f.indexOf(M.jetzt) < 0) return;      // läuft gerade etwas anderes (Menü, Regen), wird nicht weitergezählt
+    var rest = 99;
+    if (M.quelle && M.dauer) rest = M.dauer - (ctx.currentTime - M.start) % M.dauer;
+    else if (M.element && M.element.duration) rest = M.element.duration - M.element.currentTime;
+    if (rest < 1.6) { M.folgeNr[b] = (M.folgeNr[b] || 0) + 1; M.dauer = 0; M.wechselt = true; if (M.element) M.element.loop = false; }
+  }
   function musikLaden(name, fertig) {
     if (M.puffer[name]) { fertig(M.puffer[name]); return; }
     if (M.laedt[name] || M.ohneNetz) return;
@@ -259,7 +279,7 @@ var SOUND = (function () {
   }
   function musikStart(name) {
     musikStopp();
-    M.jetzt = name;
+    M.jetzt = name; M.wechselt = false;
     if (!name) return;
     var laut = (MUSIK[name].laut || 1) * MUSIK_LAUT;
     if (M.ohneNetz) {
@@ -275,6 +295,7 @@ var SOUND = (function () {
         M.quelle = ctx.createBufferSource(); M.regler = ctx.createGain();
         M.quelle.buffer = p; M.quelle.loop = true;
         M.regler.gain.value = 0; M.regler.gain.setTargetAtTime(laut, ctx.currentTime + 0.3, 0.5);
+        M.start = ctx.currentTime; M.dauer = p.duration;
         M.quelle.connect(M.regler); M.regler.connect(haupt);
         M.quelle.start(0);
       } catch (e) { M.quelle = null; }
@@ -282,7 +303,9 @@ var SOUND = (function () {
   }
   function pflegeMusik() {
     if (!ctx) return;
-    var w = musikName(musikWunsch()), jetzt = ctx.currentTime;
+    musikWeiter();
+    var basis = musikName(musikWunsch()), w = musikName(musikAusFolge(basis)), jetzt = ctx.currentTime;
+    M.basis = basis;
     if (w !== M.wunsch) { M.wunsch = w; M.seit = jetzt; }
     if (w !== M.jetzt && (jetzt - M.seit > 0.4 || ctx.state !== 'running')) musikStart(w);
     else if (w && M.ohneNetz && !M.element && !M.quelle) musikStart(w);          // Laden über das Netz ging nicht: zweiter Versuch mit <audio>

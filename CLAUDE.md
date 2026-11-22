@@ -16,16 +16,18 @@ Repository: https://github.com/KvB1982/Reitturnier · läuft auf GitHub Pages un
 
 - Jeder Spielmodus ist eine „Welt“ in `WELTEN.<name>` (`js/hof.js`, `js/ausritt.js`, `js/rennen.js`, `js/dressur.js`, `js/voltigieren.js`, `js/gelaende.js`), Ablauf und Menü in `js/spiel.js` (`KERN`).
 - Personen: `baueFigur(outfit, opt)` in `js/figur.js` (Gelenke, Posen `FIGUR_POSEN`, Mixamo-Bewegungen `MOCAP` aus `js/bewegungen.js`). Zu sehen ist ein Mensch aus MakeHuman (`js/mensch.js`, `modelle/menschen/`, Anleitung `tools/figur/LIESMICH.md`). Die eigene Reiterin sitzt in `js/pferd.js` (`reitFigur`).
+- Hofkinder (`js/hofkinder.js`, `HOFKINDER`): Emma, Jonas, Hanna, Ben, Lina und Paul kommen morgens gegen 7 Uhr, holen ihr Pflegepferd aus der Box (`P.ort = 'kind'`, `P.kindArt`), reiten und springen auf Trainings- und Turnierplatz (Hindernisse stehen auf einem Oval, `PLATZ`; Sprung über `P.hoch`, `P.nick`, `P.sprungQ`), longieren, Schrittmaschine, Weide, Putzplatz, Ausritt durchs Südtor. Jedes Kind arbeitet eine Liste von Schritten ab (`K.plan`), Wege über Wegpunkte (`KNOTEN`, `KANTEN`). Bei Regen und Gewitter (`soll` = `'regen'`) bringen alle die Pferde in die Box und warten im Stallgang, ab 19 Uhr (`'abend'`) bringen sie die Pferde weg und fahren mit dem Rad heim. Durch die Hindernisse kann niemand laufen (`hindKreise` in `js/hof.js`).
+- Fohlenbox (`js/hofleben.js`, `FB`): westlich am Stall. Das Fohlen ist auf der `weide`, an der `leine` oder in der `box` (`d.fohlen.ort`). Ab 17 Uhr oder bei Regen: anleinen und in die Box bringen (Tagesaufgabe `fohlenRein`, jeden Tag dabei). Kümmert sich niemand, hilft Lotte.
 - Pferde: `js/pferd.js` (eigenes Pferd), `js/herde.js` (alle anderen), Modelle in `modelle/`.
 - Gebäude, Bäume, Möbel: `js/modelle3d.js` lädt `modelle/umwelt/<name>.js` bei Bedarf.
 - Spielstand: `js/stand.js` (`STAND`, localStorage `reitturnier_hof`). Einstellbares: `js/config.js`.
 - Dressur (`js/dressur.js`): sechs Aufgaben von Klasse E bis Grand Prix (`AUFGABEN`), gebaut mit einer kleinen Zeichen-Sprache (`Bauer`: `bahn`, `kreis`, `seit`, `wechsel`, `lek` …), besondere Lektionen in `SPEZ`, Notenbogen in `fertig`, Lexikon `WISSEN`. Was nachgeschlagen ist und was nicht: `docs/dressur.md`. Prüfen ohne Bild: `node tools/dressur.mjs` (malt `tools/dressur.svg`).
-- Musik: MP3-Dateien in `musik/`, Liste `MUSIKLISTE` in `musik/musik.js`, abgespielt in `js/sound.js` (`musikWunsch` sucht das Stück zur Welt; eine Welt kann mit `musik` selbst eins nennen). Der Ton-Knopf hat vier Stufen: laut mit Musik, leise mit Musik, nur Geräusche, aus. Nur CC0, Quellen in `musik/CREDITS.md`. Angehört hat die Stücke noch niemand.
+- Musik: MP3-Dateien in `musik/`, Liste `MUSIKLISTE` in `musik/musik.js`, abgespielt in `js/sound.js` (`musikWunsch` sucht das Stück zur Welt; eine Welt kann mit `musik` selbst eins nennen). Der Ton-Knopf hat vier Stufen: laut mit Musik, leise mit Musik, nur Geräusche, aus. Auf dem Hof wechseln vier Stücke durch (`folge` in `musik/musik.js`, `musikWeiter`), bei Regen und ab 19 Uhr läuft je ein eigenes. Nur CC0, Quellen in `musik/CREDITS.md`. Angehört hat die Stücke noch niemand.
 - Tempo-Wächter (`tempoPruefen` in `js/spiel.js`, abgeschaut vom Rennspiel): Dauert ein Bild zu lange, malt das Spiel mit weniger Bildpunkten.
 - App: Capacitor in `ios/`, `npm run sync` kopiert nach `www/` (`scripts/copy-web.mjs`, neue Ordner dort in `FILES`). Anleitung `APP-ANLEITUNG.md`.
 
 ## Testen
 
-Playwright ohne Fenster (`--use-gl=swiftshader --allow-file-access-from-files`), `file:///…/index.html` öffnen. Vorher im localStorage `reitturnier_hof` = `{"neuigkeiten6":true}` setzen,
-sonst liegt eine Karte über dem Spiel. Welt starten: Knopf mit dem Namen des Modus, dann `#modusStart`. `SPIEL.vor(sek)` spult vor.
+Playwright ohne Fenster (`--use-gl=swiftshader --allow-file-access-from-files`), `file:///…/index.html` öffnen. Vorher im localStorage `reitturnier_hof` = `{"neuigkeiten6":true,"neuigkeiten7":true}` setzen,
+sonst liegt eine Karte über dem Spiel. Welt starten: Knopf mit dem Namen des Modus, dann `#modusStart`. `SPIEL.vor(sek)` spult vor (Uhr und Wetter laufen dabei nicht mit: `WETTER.setze(stunde, wetter)`).
 Die Menschen-Modelle brauchen im Test-Browser bis zu 20 Sekunden zum Laden. `?ohnemenschen` zeigt die alten Figuren aus Klötzen.

@@ -211,7 +211,8 @@ var TAGESAUFGABEN = [
   ['ritt', 'Reite # Mal (Training, Turnier, Rennen, Gelände oder Ausritt)', 1, 2, 6],
   ['moehre', 'Gib # Pferden eine Möhre', 2, 3, 3],
   ['katze', 'Streichle # Mal die Hofkatze Minka', 1, 1, 3],
-  ['fohlen', 'Kümmere dich # Mal um das Fohlen', 1, 2, 4]
+  ['fohlen', 'Kümmere dich # Mal um das Fohlen', 1, 2, 4],
+  ['fohlenRein', 'Leine das Fohlen an und bring es in seine Box (abends ab 17 Uhr oder bei Regen)', 1, 1, 6]
 ];
 
 // Muenzen fuer Siege: [1. Platz, 2. Platz, 3. Platz]

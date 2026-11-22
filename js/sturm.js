@@ -150,7 +150,8 @@ var STURM = (function () {
     var schild = BAU.schwebeText('🚒 Löschschlauch', 0.32, { schrift: 40 }); schild.position.set(rolle[0], 2.0, rolle[1]); szene.add(schild);
     schlauch = { rolle: rolle, duese: duese, linie: linie, wasser: wasser, inHand: false, spritzt: 0, schild: schild };
   }
-  function draussen() { return H.pferde.filter(function (P) { return P.ort !== 'box'; }); }
+  // Pferde, die noch draußen sind (um ihre eigenen kümmern sich die Hofkinder selbst)
+  function draussen() { return H.pferde.filter(function (P) { return P.ort !== 'box' && P.ort !== 'kind'; }); }
   function zuende(B, wer) {
     B.f.visible = false; B.licht.intensity = 0;
     feuer = null;
@@ -207,7 +208,7 @@ var STURM = (function () {
     // Beginn und Ende des Gewitters
     if (gewitter() && !lauf) {
       lauf = { t: 0, start: draussen().length, feuerBei: Math.random() < 0.75 ? 30 + Math.random() * 18 : 1e9, belohnt: false, schreck: 6 };
-      KERN.meldung('⛈️ Ein Gewitter zieht auf! Bring die Pferde in den Stall.', 'rot');
+      KERN.meldung('⛈️ Ein Gewitter zieht auf! Alle bringen ihre Pferde in den Stall.', 'rot');
       KERN.ton(180, 0.5, 'sawtooth', 0.1); donner(0.5, 0.6);
       ballen.forEach(function (B) { B.mat.color.copy(stroh); });
     } else if (!gewitter() && lauf) {

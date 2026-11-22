@@ -54,6 +54,11 @@ var HOFLEBEN = (function () {
   ];
   var HILFE = ['🍯 Hustensaft und nasses Heu ohne Staub', '🧊 Bein kühlen und einen Verband anlegen', '🫖 Bauch massieren, im Schritt führen, Kräutertee'];
   var arzt = null, schmied = null, fohlen = null, glut = null;
+  // Die Fohlenbox: ein kleiner Anbau westlich am Stall, die Tür zeigt zur Weide
+  var FB = { x0: -16, x1: -12.2, z0: 2, z1: 6.2, tuer: 4.1 };
+  var fohlenDach = null, fohlenStrick = null, regenZeit = 0, trockenZeit = 0, schildZeit = 0;
+  // Tierärztin und Schmied: wo sie sonst stehen und wo sie sich bei Regen unterstellen (unter dem Dach der Schmiede)
+  var LEUTE = [];
   var hv = new THREE.Vector3();
 
   function esc(t) { return KERN.esc(t); }
@@ -77,6 +82,7 @@ var HOFLEBEN = (function () {
     arzt = baueFigur({ jacke: '#ffffff', hose: '#3a7bd5', stiefel: '#2a1c12', haare: '#7a4a2a', frisur: 'dutt', art: 'frau' }, { helm: false });
     arzt.wurzel.position.set(ARZT[0] + 1.2, 0, ARZT[1] - 0.6); arzt.wurzel.rotation.y = -0.6; s.add(arzt.wurzel);
     var n1 = BAU.schwebeText('Dr. Sommer', 0.3, { schrift: 40 }); n1.position.y = 1.95; arzt.wurzel.add(n1);
+    LEUTE.push({ figur: arzt, x: ARZT[0] + 1.2, z: ARZT[1] - 0.6, heim: [ARZT[0] + 1.2, ARZT[1] - 0.6, -0.6], regen: [SCHMIED[0] + 3.6, SCHMIED[1] - 0.5, -1.2], phase: 0 });
     BAU.kasten(0.5, 0.35, 0.3, 0x8a5a33, s, ARZT[0] + 1.3, 0.18, ARZT[1] + 0.6);
 
     // Schmiede: offener Unterstand mit Esse und Amboss
@@ -92,6 +98,7 @@ var HOFLEBEN = (function () {
     schmied = baueFigur({ jacke: '#5a3a1e', hose: '#3d4046', stiefel: '#2a1c12', haare: '#2a1c12', frisur: 'kurz', art: 'mann' }, { helm: false });
     schmied.wurzel.position.set(SCHMIED[0] + 0.9, 0, SCHMIED[1] + 0.9); schmied.wurzel.rotation.y = -0.8; s.add(schmied.wurzel);
     var n2 = BAU.schwebeText('Meister Eisen', 0.3, { schrift: 40 }); n2.position.y = 1.95; schmied.wurzel.add(n2);
+    LEUTE.push({ figur: schmied, x: SCHMIED[0] + 0.9, z: SCHMIED[1] + 0.9, heim: [SCHMIED[0] + 0.9, SCHMIED[1] + 0.9, -0.8], regen: [SCHMIED[0] + 1.3, SCHMIED[1] - 0.6, -0.8], phase: 0 });
 
     // Schwarzes Brett fuer die Reitabzeichen
     var br = new THREE.Group(); br.position.set(BRETT[0], 0, BRETT[1]); s.add(br);
@@ -257,13 +264,73 @@ var HOFLEBEN = (function () {
     var fu = [];
     for (var i = 0; i < 6; i++) { var st = BAU.netz(new THREE.OctahedronGeometry(0.045), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffffff : 0xfff39a }), H.szene, 0, -5, 0); st.castShadow = false; fu.push(st); }
     fohlen.flasche = fl; fohlen.milch = milch; fohlen.buerste = bu; fohlen.funken = fu;
+    // durch die kleine Stange kann man nicht hindurchlaufen
+    [-1, 0, 1].forEach(function (v) { H.kreise.push([sx, sz + v, 0.4, 0, 0]); });
+    baueFohlenbox();
+    fohlenStrick = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0x3a2a1c }));
+    fohlenStrick.frustumCulled = false; fohlenStrick.visible = false; H.szene.add(fohlenStrick);
+    fohlen.ort = 'weide';
+    if (f.ort === 'box') inDieBox();
     zeigeFohlen();
   }
+  // ---------- Die Fohlenbox ----------
+  function baueFohlenbox() {
+    var s = H.szene, HOLZ = 0x9a6b3f, HOLZ_D = 0x7a4a2a, x0 = FB.x0, x1 = FB.x1, z0 = FB.z0, z1 = FB.z1, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    function w(ax, az, bx, bz) {
+      BAU.kasten(Math.max(0.14, Math.abs(bx - ax)), 1.35, Math.max(0.14, Math.abs(bz - az)), HOLZ, s, (ax + bx) / 2, 0.675, (az + bz) / 2);
+      H.waende.push([Math.min(ax, bx) - 0.09, Math.min(az, bz) - 0.09, Math.max(ax, bx) + 0.09, Math.max(az, bz) + 0.09]);
+    }
+    w(x0, z0, x1, z0); w(x0, z1, x1, z1); w(x0, z0, x0, FB.tuer - 0.75); w(x0, FB.tuer + 0.75, x0, z1);
+    var stroh = BAU.netz(new THREE.PlaneGeometry(x1 - x0, z1 - z0), 0xe8cf6e, s, mx, 0.05, mz); stroh.rotation.x = -Math.PI / 2; stroh.castShadow = false;
+    // Pfosten, Türrahmen und ein schräges Dach (es verschwindet, wenn man davorsteht, damit man hineinsehen kann)
+    [[x0, z0], [x0, z1], [x0, FB.tuer - 0.75], [x0, FB.tuer + 0.75]].forEach(function (p) { BAU.kasten(0.16, 2.3, 0.16, HOLZ_D, s, p[0], 1.15, p[1]); });
+    fohlenDach = new THREE.Group(); s.add(fohlenDach);
+    var dach = BAU.kasten(x1 - x0 + 0.9, 0.12, z1 - z0 + 0.7, 0xa9432f, fohlenDach, mx - 0.25, 2.62, mz); dach.rotation.z = 0.13;
+    BAU.kasten(0.12, 0.3, z1 - z0, HOLZ_D, fohlenDach, x0, 2.2, mz);
+    var schild = BAU.tafel('🐴 Fohlenbox', 0.36, { farbe: '#7a3b12' }); schild.position.set(x0 - 0.1, 1.95, FB.tuer); schild.rotation.y = -Math.PI / 2; s.add(schild);
+    // Wassereimer und ein Häufchen Heu
+    BAU.walze(0.2, 0.16, 0.34, 0x2f6fb5, s, x1 - 0.5, 0.17, z0 + 0.5, 10);
+    var heu = BAU.netz(new THREE.DodecahedronGeometry(0.4, 0), 0xcdb65a, s, x1 - 0.6, 0.2, z1 - 0.6); heu.scale.y = 0.5;
+  }
+  function fohlenName(mitten) { return STAND.daten.fohlen.name || (mitten ? 'das Fohlen' : 'Das Fohlen'); }   // mitten = mitten im Satz
+  // Das Fohlen darf abends und bei Regen in seine Box. Tagsüber gehört es auf die Weide.
+  function darfRein() { return STAND.daten.stunde >= 17 || WETTER.regnet(); }
+  function anDerBox() { var S = H.S; return S.x > FB.x0 - 2.4 && S.x < FB.x1 && S.z > FB.z0 - 0.6 && S.z < FB.z1 + 0.6; }
+  function leineAn() {
+    var F = fohlen;
+    if (H.S.fuehrt || H.S.reitet) return;
+    HOFTAG.loslassen(); STURM.loslassen();
+    F.ort = 'leine'; F.tobt = 0; F.sprung = 0; F.ziel = null; F.warte = 0;
+    KERN.ton(660, 0.1, 'triangle', 0.15);
+    KERN.meldung('🪢 ' + fohlenName() + ' ist angeleint und kommt mit.', 'gut');
+    zeigeFohlen();
+  }
+  // wer = 'ich': Die Spielerin hat es selbst hineingebracht (Aufgabe und Münzen). Sonst war es Lotte.
+  function inDieBox(wer) {
+    var F = fohlen;
+    F.ort = 'box'; F.x = (FB.x0 + FB.x1) / 2; F.z = (FB.z0 + FB.z1) / 2; F.kurs = -Math.PI / 2; F.tempo = 0; F.tobt = 0; F.sprung = 0; F.ziel = null; F.warte = 4;
+    STAND.daten.fohlen.ort = 'box';
+    if (wer === 'ich') {
+      HOFTAG.zaehle('fohlenRein', 1); STAND.daten.muenzen += 3;
+      herz('💕'); KERN.klang('gut');
+      KERN.meldung('🏠 ' + fohlenName() + ' ist in seiner Box' + (WETTER.regnet() ? ' und bleibt trocken' : '. Schlaf gut, Kleines') + '!  +3 🪙', 'perfekt');
+    }
+    STAND.speichere();
+    if (F.schild) zeigeFohlen();
+  }
+  function aufDieWeide(wer) {
+    var F = fohlen, W = H.ORT.weide.platz;
+    F.ort = 'weide'; F.x = W[2] - 4; F.z = H.ORT.weide.tor[1]; F.kurs = -Math.PI / 2; F.ziel = null; F.warte = 1; F.tobPause = 3;
+    STAND.daten.fohlen.ort = 'weide'; STAND.speichere();
+    if (wer === 'ich') { herz('🌿'); KERN.meldung('🌿 ' + fohlenName() + ' springt auf die Weide!', 'perfekt'); SOUND.spiel('wiehern', 0.5, 1.4, 0.3); }
+    zeigeFohlen();
+  }
+
   function zeigeFohlen() {
     var f = fohlenDaten(), s = 0.46 + 0.54 * f.wuchs;
     fohlen.gross = s;
     fohlen.tier.wurzel.scale.setScalar(s);
-    var text = (f.name || 'Fohlen') + '\n' + stufe(f.wuchs) + (f.wuchs < 1 ? ' · ' + Math.round(f.wuchs * 100) + ' %' : ' 💕');
+    var text = (f.name || 'Fohlen') + '\n' + stufe(f.wuchs) + (f.wuchs < 1 ? ' · ' + Math.round(f.wuchs * 100) + ' %' : ' 💕') + (fohlen.ort === 'box' && STAND.daten.stunde >= 20.5 ? '\n💤 schläft' : '');
     if (text !== fohlen.schildText) {
       fohlen.schildText = text;
       if (fohlen.schild) { H.szene.remove(fohlen.schild); fohlen.schild.material.map.dispose(); fohlen.schild.material.dispose(); }
@@ -280,10 +347,19 @@ var HOFLEBEN = (function () {
     var F = fohlen, S = H.S, W = H.ORT.weide.platz, f = STAND.daten.fohlen;
     var imGatter = S.x > W[0] && S.x < W[2] && S.z > W[1] && S.z < W[3];
     var dS = Math.hypot(S.x - F.x, S.z - F.z), soll = 0, zx, zz;
-    F.tobPause -= dt;
+    if (F.ort === 'weide') F.tobPause -= dt;
     if (F.nah) {                            // Nahansicht: steht still und lässt sich versorgen
       zx = F.x; zz = F.z; soll = 0; F.tobt = 0;
       F.blick += ((F.nahKopf || 0) - F.blick) * Math.min(1, dt * 5);
+    } else if (F.ort === 'leine') {         // geht am Strick neben der Spielerin her
+      zx = S.x; zz = S.z; soll = Math.max(0, Math.min(5, (dS - 1.6) * 3));
+      F.blick += (0 - F.blick) * Math.min(1, dt * 3);
+    } else if (F.ort === 'box') {           // in der Fohlenbox: ein paar Schritte, abends döst es
+      var schlaf = STAND.daten.stunde >= 20.5;
+      F.warte -= dt;
+      if (!F.ziel || F.warte <= 0) { F.warte = 5 + Math.random() * 7; F.ziel = [FB.x0 + 1.1 + Math.random() * (FB.x1 - FB.x0 - 2.2), FB.z0 + 1.1 + Math.random() * (FB.z1 - FB.z0 - 2.2)]; }
+      zx = F.ziel[0]; zz = F.ziel[1]; soll = !schlaf && Math.hypot(zx - F.x, zz - F.z) > 0.35 ? 0.8 : 0;
+      F.blick += ((schlaf ? 0.85 : 0) - F.blick) * Math.min(1, dt * 2);
     } else if (F.tobt > 0) {                // tobt fröhlich über die Weide: Galopp, Bocksprünge, über die Stange
       F.tobt -= dt;
       if (!F.ziel || Math.hypot(F.ziel[0] - F.x, F.ziel[1] - F.z) < 1.6) {
@@ -317,7 +393,7 @@ var HOFLEBEN = (function () {
       F.kurs += df * Math.min(1, dt * 3);
       F.x += Math.sin(F.kurs) * F.tempo * dt; F.z += Math.cos(F.kurs) * F.tempo * dt;
     }
-    F.x = Math.max(W[0] + 1, Math.min(W[2] - 1, F.x)); F.z = Math.max(W[1] + 1, Math.min(W[3] - 1, F.z));
+    if (F.ort === 'weide') { F.x = Math.max(W[0] + 1, Math.min(W[2] - 1, F.x)); F.z = Math.max(W[1] + 1, Math.min(W[3] - 1, F.z)); }
     var gang = F.tempo < 0.15 ? 'steh' : F.tempo < 2.2 ? 'schritt' : F.tempo < 4.6 ? 'trab' : 'galopp';
     F.phase += F.tempo * dt * Math.PI * 2 / ((gang === 'galopp' ? 4.19 : gang === 'trab' ? 2.9 : 1.9) * F.gross);
     F.huepf = Math.max(0, F.huepf - dt * 1.6);
@@ -331,6 +407,15 @@ var HOFLEBEN = (function () {
     F.tier.wurzel.position.set(F.x, hoch, F.z);
     F.tier.wurzel.rotation.set(0, F.kurs, 0); F.tier.koerper.rotation.x = nick;
     if (F.nah) bewegeNah(dt, zeit);
+    // der Strick von der Hand zum Halfter
+    fohlenStrick.visible = F.ort === 'leine';
+    if (F.ort === 'leine') {
+      var pos = fohlenStrick.geometry.attributes.position, kopf = F.tier.knochen.jaw001 || F.tier.knochen.skull;
+      if (kopf) kopf.getWorldPosition(hv); else hv.set(F.x, 1.1 * F.gross, F.z);
+      pos.setXYZ(0, S.x + Math.sin(S.kurs + 0.9) * -0.25, 0.95, S.z + Math.cos(S.kurs + 0.9) * -0.25);
+      pos.setXYZ(1, hv.x, hv.y - 0.05, hv.z);
+      pos.needsUpdate = true;
+    }
     F.tier.setzeKopfTief(F.blick);
     F.tier.bewege(gang, F.phase, 1, -1, dt);
     F.schild.position.set(F.x, 2.3 * F.gross + 0.5, F.z);
@@ -503,24 +588,85 @@ var HOFLEBEN = (function () {
 
   // ---------- Was kann man hier tun? (von findeAktion in hof.js aufgerufen) ----------
   function aktionen(vor, S, P) {
-    if (P) {
+    if (P && STAND.daten.stunde >= 20) {
+      if (Math.hypot(S.x - ARZT[0], S.z - ARZT[1]) < 3.2 || Math.hypot(S.x - SCHMIED[0], S.z - SCHMIED[1]) < 3.2) vor(S.x, S.z, 9, null, null, 'Tierärztin und Hufschmied haben Feierabend. Morgen früh sind sie wieder da.');
+    } else if (P) {
       vor(ARZT[0], ARZT[1], 3.2, '🩺 ' + P.def.name + ' untersuchen lassen', function () { zeigeArzt(P); });
       vor(SCHMIED[0], SCHMIED[1], 3.2, '🔨 Zum Hufschmied', function () { zeigeSchmied(P); });
     } else {
       vor(ARZT[0], ARZT[1], 3.2, null, null, 'Die Tierärztin hilft kranken Pferden. Führe ein Pferd hierher.');
       vor(SCHMIED[0], SCHMIED[1], 3.2, null, null, 'Der Hufschmied macht neue Hufeisen. Führe ein Pferd hierher.');
-      if (fohlen) vor(fohlen.x, fohlen.z, 2.4, '🐴 ' + (STAND.daten.fohlen.name || 'Fohlen') + ' versorgen', zeigeFohlenKarte);
+      if (STAND.daten.stunde >= 20 && (Math.hypot(S.x - ARZT[0], S.z - ARZT[1]) < 3.2 || Math.hypot(S.x - SCHMIED[0], S.z - SCHMIED[1]) < 3.2)) vor(S.x, S.z, 9, null, null, 'Tierärztin und Hufschmied haben Feierabend. Morgen früh sind sie wieder da.');
+      if (fohlen && fohlen.ort === 'leine') {
+        // mit dem Fohlen am Strick: in die Box oder auf die Weide
+        var wt = H.ORT.weide.tor;
+        if (anDerBox()) vor(S.x, S.z, 9, '🏠 ' + fohlenName() + ' in die Fohlenbox bringen', function () { inDieBox('ich'); });
+        else if (Math.hypot(S.x - wt[0], S.z - wt[1]) < 3) vor(S.x, S.z, 9, '🌿 ' + fohlenName() + ' auf die Weide lassen', function () { aufDieWeide('ich'); });
+      } else if (fohlen) vor(fohlen.x, fohlen.z, 2.4, '🐴 ' + (STAND.daten.fohlen.name || 'Fohlen') + ' versorgen', zeigeFohlenKarte);
     }
     vor(BRETT[0], BRETT[1] + 1.2, 2.2, '🎖️ Reitabzeichen ansehen', zeigeBrett);
+  }
+
+  // zweiter Knopf rechts unten: das Fohlen anleinen
+  function zweit() {
+    var F = fohlen, S = H ? H.S : null;
+    if (!F || F.nah || S.fuehrt || S.reitet || F.ort === 'leine') return [];
+    var nacht = STAND.daten.stunde >= 21;
+    if (F.ort === 'weide' && darfRein() && Math.hypot(S.x - F.x, S.z - F.z) < 3.2) return [{ text: '🪢 Fohlen anleinen', tun: leineAn }];
+    if (F.ort === 'box' && !darfRein() && !nacht && anDerBox()) return [{ text: '🪢 Fohlen anleinen', tun: leineAn }];
+    return [];
+  }
+  function hinweis() {
+    var F = fohlen, S = H ? H.S : null, st = STAND.daten.stunde;
+    if (!F || F.nah) return null;
+    if (F.ort === 'leine') return darfRein() ? '🪢 Führe ' + fohlenName(1) + ' in die Fohlenbox: westlich am Stall, gleich neben dem Tor zur Weide.' : '🪢 Führe ' + fohlenName(1) + ' durch das Tor auf die Weide.';
+    if (HOFTAG.schiebt() || HOFTAG.hatGabel() || S.fuehrt || S.reitet || S.traegt || STURM.hatSchlauch()) return null;
+    if (F.ort === 'weide' && WETTER.regnet()) return '🌧️ ' + fohlenName() + ' steht im Regen! Geh auf die Weide, leine es an (Knopf rechts unten) und bring es in die Fohlenbox am Stall.';
+    if (F.ort === 'weide' && st >= 18.5 && st < 21) return '🌆 ' + fohlenName() + ' muss abends in seine Box. Geh auf die Weide und leine es an (Knopf rechts unten).';
+    if (F.ort === 'box' && !darfRein() && anDerBox()) return 'Hier schläft ' + fohlenName(1) + '. Tagsüber darf es auf die Weide: anleinen (Knopf rechts unten) und durch das Tor führen.';
+    return null;
+  }
+  // Wenn sich niemand kümmert, hilft Lotte: bei Regen holt sie das Fohlen herein, am Vormittag bringt sie es hinaus.
+  function lotteHilft(dt) {
+    var F = fohlen, S = H.S, st = STAND.daten.stunde, weit = Math.hypot(S.x - F.x, S.z - F.z) > 14;
+    if (F.ort === 'weide' && WETTER.regnet()) {
+      regenZeit += dt;
+      if (regenZeit > 75 && weit && !F.nah) { inDieBox(); KERN.meldung('Lotte hat ' + fohlenName(1) + ' aus dem Regen in die Fohlenbox geholt.', 'knapp'); }
+    } else regenZeit = 0;
+    if (F.ort === 'box' && !WETTER.regnet() && st >= 9.5 && st < 17) {
+      trockenZeit += dt;
+      if (trockenZeit > 25 && weit && !F.nah) aufDieWeide();
+    } else trockenZeit = 0;
+    schildZeit -= dt;
+    if (schildZeit <= 0) { schildZeit = 4; if (!F.nah) zeigeFohlen(); }
+    // das Dach der Fohlenbox verschwindet, wenn man davorsteht
+    if (fohlenDach) fohlenDach.visible = !F.nah && !(S.x > FB.x0 - 4 && S.x < FB.x1 + 0.5 && S.z > FB.z0 - 3 && S.z < FB.z1 + 3);
+  }
+  // Tierärztin und Schmied: bei Regen unter das Dach der Schmiede, abends nach Hause
+  function bewegeLeute(dt) {
+    var regen = WETTER.regnet(), feierabend = STAND.daten.stunde >= 20;
+    LEUTE.forEach(function (L) {
+      var f = L.figur, z = regen ? L.regen : L.heim, dx = z[0] - L.x, dz = z[1] - L.z, dist = Math.hypot(dx, dz);
+      f.wurzel.visible = !feierabend;
+      if (feierabend) { L.x = L.heim[0]; L.z = L.heim[1]; return; }
+      if (dist > 0.15) {
+        var v = 2.6;
+        L.x += dx / dist * Math.min(dist, v * dt); L.z += dz / dist * Math.min(dist, v * dt); L.phase += v * dt * 4.2;
+        f.wurzel.rotation.y = Math.atan2(dx, dz); f.gehe(L.phase, 0.9);
+      } else { f.wurzel.rotation.y = z[2]; f.gehe(L.phase, 0); }
+      f.wurzel.position.set(L.x, 0, L.z);
+    });
   }
 
   function schritt(dt, zeit) {
     if (!H) return;
     pruefeGesundheit(dt);
-    if (fohlen) bewegeFohlen(dt, zeit);
+    if (fohlen) { bewegeFohlen(dt, zeit); lotteHilft(dt); }
+    bewegeLeute(dt);
     if (glut) glut.material.color.setHSL(0.06 + Math.sin(zeit * 7) * 0.01, 1, 0.5 + Math.sin(zeit * 11) * 0.06);
     // der Schmied haemmert, die Tieraerztin winkt, wenn man in die Naehe kommt
     var S = H.S;
+    schmied.bewege(dt);
     schmied.gelenke.armR.rotation.x = -1.2 + Math.max(0, Math.sin(zeit * 6)) * 0.9;
     schmied.gelenke.ellR.rotation.x = -0.6;
     var nah = Math.hypot(S.x - ARZT[0], S.z - ARZT[1]) < 5;
@@ -539,7 +685,13 @@ var HOFLEBEN = (function () {
   }
 
   return {
-    baue: baue, aktionen: aktionen, schritt: schritt, krank: krank, zeichen: zeichen, nachRitt: nachRitt, tipp: tipp,
+    baue: baue, aktionen: aktionen, schritt: schritt, zweit: zweit, hinweis: hinweis,
+    fuehrtFohlen: function () { return !!(fohlen && fohlen.ort === 'leine'); },
+    // nachts (oder wenn man schlafen geht) bringt Lotte das Fohlen in die Box; true = sie musste es tun
+    fohlenHeim: function () { if (!fohlen || fohlen.ort === 'box') return false; inDieBox(); return true; },
+    // die Spielerin verlässt den Hof mit dem Fohlen am Strick: Es kommt dahin, wo es gerade hingehört
+    fohlenLos: function () { if (fohlen && fohlen.ort === 'leine') { if (darfRein()) inDieBox(); else aufDieWeide(); } },
+    krank: krank, zeichen: zeichen, nachRitt: nachRitt, tipp: tipp,
     zeigeBrett: zeigeBrett, zeigeArzt: zeigeArzt, zeigeSchmied: zeigeSchmied, zeigeFohlenKarte: zeigeFohlenKarte,
     fohlen: function () { return fohlen; },
     // das grosse Fohlen als Begleitpferd fuer den Ausritt
