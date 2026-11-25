@@ -73,6 +73,7 @@ var TECHNIK = (function () {
       z.push('   ' + zahl(W.aufrufe) + ' Aufrufe, ' + zahl(W.dreiecke) + ' Dreiecke, ' + zahl(W.formen) + ' Formen, ' + zahl(W.texturen) + ' Bilder, kleinste Schärfe ' + W.schaerfeMin);
     });
     if (typeof SOUND !== 'undefined' && SOUND.musikStand) { var ms = SOUND.musikStand(); z.push('', 'Musik: ' + (ms.jetzt || 'keine') + ', Weg ' + (ms.weg || '–') + (ms.alt ? ' (alter Weg eingestellt)' : '') + (ms.imSpeicher.length ? ', ausgepackt im Speicher: ' + ms.imSpeicher.join(', ') : '')); }
+    if (typeof SPEICHER !== 'undefined') z.push('', SPEICHER.info() + (typeof KALENDER !== 'undefined' ? ', ' + KALENDER.text() + ', ' + Math.round(KALENDER.wach()) + ' Spielstunden wach' : ''));
     var P = protokoll();
     z.push('', 'Fehler-Protokoll: ' + (P.length ? P.length + ' Einträge' : 'leer'));
     P.forEach(function (p) { z.push('   ' + p.wann + ' [' + p.wo + '] ' + p.was + (p.spur ? '\n      ' + p.spur.replace(/\n/g, '\n      ') : '')); });

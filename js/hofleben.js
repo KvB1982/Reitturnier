@@ -231,12 +231,15 @@ var HOFLEBEN = (function () {
 
   // ---------- Fohlen ----------
   var STUFEN = [[0.34, 'Fohlen'], [0.67, 'Jährling'], [1, 'Jungpferd'], [9, 'großes Pferd']];
+  var FOHLEN_WUCHS = 0.0013, FOHLEN_PAUSE = 2;      // Wachsen je Spielstunde; so viele Spielstunden Pause zwischen zwei Fläschchen
   function fohlenDaten() {
     var d = STAND.daten;
-    if (!d.fohlen) d.fohlen = { name: '', wuchs: 0, zeit: Date.now(), flasche: 0, buerste: 0, gross: false };
-    var f = d.fohlen, jetzt = Date.now();
-    var stunden = Math.max(0, Math.min(240, (jetzt - (f.zeit || jetzt)) / 3600000));
-    f.wuchs = Math.min(1, f.wuchs + stunden * 0.004); f.zeit = jetzt;
+    // Alle Zeiten sind Spielstunden (KALENDER.wach). Von allein wächst das Fohlen an einem Spieltag etwa 2 %.
+    var jetzt = KALENDER.wach();
+    if (!d.fohlen) d.fohlen = { name: '', wuchs: 0, zeit: jetzt, flasche: -9, buerste: -9, gross: false };
+    var f = d.fohlen;
+    if (typeof f.zeit !== 'number' || f.zeit > jetzt) f.zeit = jetzt;
+    f.wuchs = Math.min(1, f.wuchs + Math.min(240, jetzt - f.zeit) * FOHLEN_WUCHS); f.zeit = jetzt;
     return f;
   }
   function stufe(w) { for (var i = 0; i < STUFEN.length; i++) if (w < STUFEN[i][0]) return STUFEN[i][1]; return 'großes Pferd'; }
@@ -495,9 +498,9 @@ var HOFLEBEN = (function () {
     }
   }
   function zeigeFohlenKarte() {
-    var f = fohlenDaten(), jetzt = Date.now(), name = esc(f.name || 'Fohlen');
+    var f = fohlenDaten(), jetzt = KALENDER.wach(), name = esc(f.name || 'Fohlen');
     geheNah();
-    function rest(wann) { return Math.max(0, Math.ceil((wann + 120000 - jetzt) / 1000)); }
+    function rest(wann) { return typeof wann !== 'number' || wann > jetzt ? 0 : Math.max(0, Math.ceil((wann + FOHLEN_PAUSE - jetzt) * UHR.sekProStunde)); }
     var rF = rest(f.flasche), rB = rest(f.buerste), klein = f.wuchs < 1;
     var html = '<h2>🐴 ' + name + '</h2><div class="details">' + stufe(f.wuchs) + (klein ? ' · gewachsen: ' + REITEN.messer(f.wuchs) +
       '<br><small>Mit Milch, Bürsten und Streicheln wächst es schneller. Es wächst auch von allein, jeden Tag ein Stück.</small>' : '<br>Dein großes Pferd kommt beim Ausritt mit.') +
@@ -509,7 +512,7 @@ var HOFLEBEN = (function () {
         merkeName();
         KERN.schliesseKarte();
         fohlen.tat = { art: art, t: 0, dauer: dauer, takt: 0, fertig: function () {
-          if (feld) f[feld] = Date.now();
+          if (feld) f[feld] = KALENDER.wach();
           f.wuchs = Math.min(1, f.wuchs + plus);
           STAND.merke('fohlenPflege', (STAND.daten.leistung.fohlenPflege || 0) + 1);
           HOFTAG.zaehle('fohlen', 1);

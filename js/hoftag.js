@@ -60,7 +60,7 @@ var HOFTAG = (function () {
   function zeigeAufgaben() {
     if (!C || schlaeft) return;
     var alle = geschafft() === d.aufgaben.liste.length;
-    C.karte('<div class="klein">Tag ' + d.tag + ' · ' + WETTER.uhr() + ' Uhr</div><h2>📋 Aufgaben für heute</h2>' + aufgabenHtml() +
+    C.karte('<div class="klein">' + KALENDER.text() + ' · ' + WETTER.uhr() + ' Uhr</div><h2>📋 Aufgaben für heute</h2>' + aufgabenHtml() +
       '<div class="details">' + (alle ? '⭐ Alles geschafft! Morgen früh gibt es neue Aufgaben.' : 'Wenn du alle schaffst, gibt es <b>15 🪙</b> extra und einen <b>Tagesstern ⭐</b>. Morgen früh gibt es neue Aufgaben.') +
       '<br>Deine Tagessterne: <b>⭐ ' + d.sterne + '</b></div>', [{ text: 'Alles klar', aktion: C.frei }], true);
   }
@@ -103,7 +103,7 @@ var HOFTAG = (function () {
       if (!SOUND.spiel('hahn', 0.6, 1, 0.4)) [523, 659, 784].forEach(function (f, i) { KERN.ton(f, 0.3, 'triangle', 0.14, 0.4 + i * 0.16); });
       setTimeout(function () {
         schlaeft = false;
-        C.karte('<div class="klein">Tag ' + d.tag + ' · 7:00 Uhr · ' + WETTER.NAME[d.wetter] + '</div><h2>☀️ Guten Morgen!</h2>' +
+        C.karte('<div class="klein">' + KALENDER.text() + ' · 7:00 Uhr · ' + WETTER.NAME[d.wetter] + '</div><h2>☀️ Guten Morgen!</h2>' +
           '<div class="details">' + (art === 'rad' ? 'Du bist wieder auf dem Hof.' : 'Du hast gut geschlafen.') + ' Gestern hast du <b>' + gestern + ' von ' + anzahl + '</b> Aufgaben geschafft.' +
           (heim.length ? '<br>Lotte hat ' + heim.join(' und ') + ' in den Stall gebracht.' : '') + (frueh ? '<br><b>+3 🪙</b> fürs frühe Schlafengehen.' : '') +
           '<br>Die Pferde haben Hunger, und die Boxen müssen gemistet werden.</div><h3 style="margin:8px 0 0;color:#7a3b12">📋 Deine Aufgaben heute</h3>' + aufgabenHtml(),

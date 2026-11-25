@@ -1,7 +1,7 @@
 // ============================================================
 //  WETTER  -  Tageszeiten und Wetter fuer alle Welten
-//  Die Uhr laeuft, solange man auf dem Pferdehof ist: ein Tag (7 bis 21 Uhr)
-//  dauert gut 9 Minuten. Nachts muss man schlafen gehen (hoftag.js). Das Wetter wechselt
+//  Die Uhr laeuft, solange man auf dem Pferdehof ist: eine Minute in echt
+//  ist eine Stunde im Spiel (UHR in config.js), ein Tag von 7 bis 22 Uhr dauert also 15 Minuten. Nachts muss man schlafen gehen (hoftag.js). Das Wetter wechselt
 //  alle paar Minuten: Sonne, Wolken, Regen, morgens manchmal Nebel.
 // ============================================================
 var WETTER = (function () {
@@ -9,7 +9,7 @@ var WETTER = (function () {
   var d = STAND.daten;
   if (typeof d.stunde !== 'number') d.stunde = 9;
   if (!d.wetter) { d.wetter = 'sonne'; d.wetterRest = 150; }
-  var SEK_PRO_STUNDE = { tag: 40, nacht: 25 };
+  var SEK_PRO_STUNDE = typeof UHR !== 'undefined' && UHR.sekProStunde > 0 ? UHR.sekProStunde : 60;
   var BILD = { sonne: '☀️', wolken: '⛅', regen: '🌧️', nebel: '🌫️', gewitter: '⛈️' };
   var NAME = { sonne: 'Sonne', wolken: 'Wolken', regen: 'Regen', nebel: 'Nebel', gewitter: 'Gewitter' };
   // Stimmung im Tageslauf: [Stunde, Himmel, Sonnenfarbe, Sonnenstaerke, Helligkeit]
@@ -54,7 +54,7 @@ var WETTER = (function () {
     if (w === 'gewitter' && (h < 8.5 || h > 19 || d.gewitterTag === d.tag || d.wetter === 'regen')) w = 'regen';
     if (w === 'gewitter') d.gewitterTag = d.tag;
     if (w === d.wetter) w = w === 'sonne' ? 'wolken' : 'sonne';
-    d.wetter = w; d.wetterRest = w === 'gewitter' ? 120 : 110 + Math.random() * 130;
+    d.wetter = w; d.wetterRest = w === 'gewitter' ? 120 : 165 + Math.random() * 195;
   }
 
   // Regen: Striche, die rund um die Kamera fallen
@@ -96,7 +96,9 @@ var WETTER = (function () {
     var aufHof = typeof WELTEN !== 'undefined' && welt === WELTEN.hof;
     if (aufHof) {
       // um Mitternacht bleibt die Uhr stehen: dann wird geschlafen (siehe hoftag.js)
-      d.stunde = Math.min(23.99, d.stunde + dt / (istNacht(d.stunde) ? SEK_PRO_STUNDE.nacht : SEK_PRO_STUNDE.tag));
+      var neu = Math.min(23.99, d.stunde + dt / SEK_PRO_STUNDE);
+      d.wach = (d.wach || 0) + (neu - d.stunde);      // die Uhr für Hunger, Schmutz und Wachsen (siehe KALENDER in stand.js)
+      d.stunde = neu;
       d.wetterRest -= dt;
       if (d.wetterRest <= 0) neuesWetter();
     }

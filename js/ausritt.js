@@ -689,6 +689,7 @@ WELTEN.ausritt = (function () {
     ORTE.forEach(function (o) {
       if (gefunden[o[0]] || Math.hypot(x - o[2], z - o[3]) > 10) return;
       gefunden[o[0]] = true;
+      STAND.daten.orte = STAND.daten.orte || {}; STAND.daten.orte[o[0]] = true;      // fürs Leben gemerkt, nicht nur für diesen Ausritt
       var n = Object.keys(gefunden).length;
       muenzen += 3; STAND.daten.muenzen += 3;
       STAND.merke('ausritt', n);
@@ -875,6 +876,7 @@ WELTEN.ausritt = (function () {
   function sieh(art) {
     if (gesehen[art]) return;
     gesehen[art] = true;
+    STAND.daten.tierbuch = STAND.daten.tierbuch || {}; STAND.daten.tierbuch[art] = true;     // fürs Leben gemerkt, nicht nur für diesen Ausritt
     var n = Object.keys(gesehen).length, alleT = Object.keys(TIERNAMEN).length;
     lohn(2, TIERNAMEN[art] + ' entdeckt! (' + n + ' von ' + alleT + ' Tieren)');
     if (n === alleT) setTimeout(function () { lohn(12, '🔭 Alle Tiere beobachtet!'); KERN.klang('fanfare'); }, 1800);
