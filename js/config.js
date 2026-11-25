@@ -118,7 +118,10 @@ var HOF_PFERDE = [
 ];
 
 // Wie schnell Pferde schmutzig und hungrig werden (Anteil pro Stunde, auch wenn das Spiel zu ist)
-var HOF_REGELN = { schmutzProStunde: 0.03, hungerProStunde: 0.06, mistProStunde: 0.05 };
+// Die Uhr im Spiel: So viele echte Sekunden dauert eine Spielstunde (60 = eine Minute in echt ist eine Stunde im Spiel).
+var UHR = { sekProStunde: 60 };
+// So schnell wird dein Pferd tagsüber schmutzig und hungrig, je Spielstunde. Über Nacht kommt in hoftag.js noch etwas dazu.
+var HOF_REGELN = { schmutzProStunde: 0.01, hungerProStunde: 0.02, mistProStunde: 0.02 };
 
 // Reitladen: art = gamaschen | ohren (Fliegenhaube) | schleife (Maehnenschleifen) | decke (Satteldecke) | putz (Putzzeug)
 var LADEN = [
