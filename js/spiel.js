@@ -44,12 +44,9 @@
 
   // ---------- Hilfen ----------
   var el = function (id) { return document.getElementById(id); };
-  function lade(name, ersatz) {
-    try { var v = localStorage.getItem(name); return v ? JSON.parse(v) : ersatz; } catch (e) { return ersatz; }
-  }
-  function speichere(name, wert) {
-    try { localStorage.setItem(name, JSON.stringify(wert)); } catch (e) { /* egal */ }
-  }
+  // Was zum Profil gehört (Mitspieler, Bestwerte, Menü-Wahl), landet im Spielstand, der Rest beim Gerät: siehe js/speicher.js
+  function lade(name, ersatz) { return SPEICHER.hol(name, ersatz); }
+  function speichere(name, wert) { SPEICHER.setz(name, wert); }
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function kopie(o) { var n = {}; for (var k in o) n[k] = o[k]; return n; }
   function gauss() { return (Math.random() + Math.random() + Math.random() + Math.random() - 2) * 1.73; }
@@ -61,7 +58,7 @@
     return n;
   }
   var spieler = lade('reitturnier_spieler', null);
-  if (!spieler || !spieler.length) spieler = [{ name: 'Spieler 1', outfit: lade('reitturnier_outfit', {}), siege: 0 }];
+  if (!spieler || !spieler.length) spieler = [{ name: SPEICHER.ich().name, outfit: {}, siege: 0 }];
   spieler.forEach(function (s) { s.outfit = volleOutfit(s.outfit); s.siege = s.siege || 0; });
   var aktiv = 0;
   function speichereSpieler() { speichere('reitturnier_spieler', spieler); }
@@ -978,8 +975,112 @@
   }
   el('modusStart').addEventListener('click', function () { if (WELTEN[spielModus] && HERDE.bereit()) WELTEN[spielModus].start({}); });
 
+  // ---------- Wer spielt? Jedes Kind hat sein eigenes Profil mit eigenem Hof (js/speicher.js) ----------
+  function baueProfilZeile() {
+    var zeile = el('profilZeile');
+    zeile.innerHTML = '';
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'wahl aktiv'; b.textContent = '👤 ' + SPEICHER.ich().name;
+    b.addEventListener('click', zeigeProfile);
+    zeile.appendChild(b);
+    var w = document.createElement('button');
+    w.type = 'button'; w.className = 'wahl'; w.textContent = 'wechseln · sichern';
+    w.addEventListener('click', zeigeProfile);
+    zeile.appendChild(w);
+  }
+  function profilEingabe(id, wert, platz) {
+    return '<div class="details"><input id="' + id + '" type="text" maxlength="16" value="' + esc(wert) + '" placeholder="' + platz + '" style="font:inherit;padding:6px 10px;border-radius:10px;border:2px solid #d9cbb0;width:60%;text-align:center"></div>';
+  }
+  function zeigeProfile() {
+    var liste = SPEICHER.profile(), ich = SPEICHER.ich();
+    var html = '<h2>👤 Wer spielt?</h2><div class="details">Jedes Kind hat seinen eigenen Hof, seine eigenen Münzen und sein eigenes Fohlen.<br>Gerade spielt <b>' + esc(ich.name) + '</b>. Hier kannst du den Namen ändern:</div>' +
+      profilEingabe('profilName', ich.name, 'Dein Name');
+    function merkeName() {
+      var e = el('profilName');
+      if (e && SPEICHER.benenne(ich.id, e.value)) {
+        // heißt der erste Reiter noch wie das Profil vorher, bekommt er den neuen Namen gleich mit
+        if (spieler[0] && spieler[0].name === ich.name) { spieler[0].name = SPEICHER.ich().name; speichereSpieler(); }
+      }
+    }
+    var kn = [];
+    liste.forEach(function (p) {
+      if (!p.aktiv) kn.push({ text: '▶ ' + p.name + ' spielt', aktion: function () { merkeName(); SPEICHER.wechsle(p.id); } });
+    });
+    if (liste.length < SPEICHER.HOECHSTENS) kn.push({ text: '＋ Neues Kind', klasse: 'zweit', aktion: function () { merkeName(); zeigeProfilNeu(); } });
+    kn.push({ text: '💾 Alles als Datei sichern', klasse: 'zweit', aktion: function () { merkeName(); sichereDatei(); } });
+    kn.push({ text: '📂 Sicherung laden', klasse: 'zweit', aktion: function () { ladeDatei(); } });
+    if (liste.length > 1) kn.push({ text: '🗑️ Ein Profil löschen', klasse: 'zweit', aktion: function () { merkeName(); zeigeProfilWeg(); } });
+    kn.push({ text: 'Fertig', klasse: 'zweit', aktion: function () { merkeName(); schliesseKarte(); baueMenue(); } });
+    zeigeKarte('mitte', html, kn);
+  }
+  function zeigeProfilNeu() {
+    zeigeKarte('mitte', '<h2>＋ Neues Kind</h2><div class="details">Wie heißt du? Du bekommst einen eigenen, frischen Hof.<br>Der Hof von ' + esc(SPEICHER.ich().name) + ' bleibt, wie er ist.</div>' +
+      profilEingabe('profilNeu', '', 'Dein Name'), [
+      { text: '🐴 Los geht\'s', aktion: function () { var id = SPEICHER.neu(el('profilNeu').value); if (id) SPEICHER.wechsle(id); else zeigeProfile(); } },
+      { text: 'Zurück', klasse: 'zweit', aktion: zeigeProfile }]);
+  }
+  function zeigeProfilWeg() {
+    var kn = [];
+    SPEICHER.profile().forEach(function (p) {
+      if (p.aktiv) return;
+      kn.push({ text: '🗑️ ' + p.name, klasse: 'zweit', aktion: function () {
+        zeigeKarte('mitte', '<h2>🗑️ ' + esc(p.name) + ' löschen?</h2><div class="details">Der Hof von <b>' + esc(p.name) + '</b> mit allen Münzen, Pferden und Abzeichen ist dann weg.<br>Das kann man nicht rückgängig machen.</div>', [
+          { text: 'Nein, behalten', aktion: zeigeProfile },
+          { text: 'Ja, löschen', klasse: 'zweit', aktion: function () { SPEICHER.loesche(p.id); zeigeProfile(); } }]);
+      } });
+    });
+    kn.push({ text: 'Zurück', aktion: zeigeProfile });
+    zeigeKarte('mitte', '<h2>🗑️ Ein Profil löschen</h2><div class="details">Welches Profil soll weg? Das Profil, das gerade spielt, kann man nicht löschen.</div>', kn);
+  }
+  // Alle Profile zusammen als eine Datei: auf iPad und iPhone über „Teilen“, sonst als Datei zum Herunterladen
+  function sichereDatei() {
+    var tag = new Date(), zwei = function (n) { return (n < 10 ? '0' : '') + n; };
+    var name = 'reitturnier-sicherung-' + tag.getFullYear() + '-' + zwei(tag.getMonth() + 1) + '-' + zwei(tag.getDate()) + '.json';
+    var text = JSON.stringify(SPEICHER.paket());
+    try {
+      var datei = new File([text], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [datei] }) && /iPad|iPhone|Android/i.test(navigator.userAgent + (navigator.maxTouchPoints > 1 ? 'iPad' : ''))) {
+        navigator.share({ files: [datei], title: 'Reitturnier – Sicherung' }).catch(function () {});
+        return;
+      }
+    } catch (fehler) { /* dann eben als Datei */ }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    meldung('Sicherung gespeichert: ' + name, 'gut');
+  }
+  function ladeDatei() {
+    var wahl = document.createElement('input');
+    wahl.type = 'file'; wahl.accept = '.json,application/json';
+    wahl.addEventListener('change', function () {
+      var f = wahl.files && wahl.files[0];
+      if (!f) return;
+      var leser = new FileReader();
+      leser.onload = function () { zeigeSicherung(String(leser.result)); };
+      leser.readAsText(f);
+    });
+    wahl.click();
+  }
+  // Erst zeigen, was in der Datei steckt, dann fragen: Das Laden ersetzt alle Profile auf diesem Gerät.
+  function zeigeSicherung(text) {
+    var p = null;
+    try { p = JSON.parse(text); } catch (fehler) { /* unten */ }
+    var gut = p && p.art === 'reitturnier-sicherung' && p.profile && Array.isArray(p.profile.liste);
+    if (!gut) { zeigeKarte('mitte', '<h2>📂 Das hat nicht geklappt</h2><div class="details">Das ist keine Sicherung vom Reitturnier.</div>', [{ text: 'Zurück', aktion: zeigeProfile }]); return; }
+    var namen = p.profile.liste.map(function (e) { return esc(e && e.name); }).join(', ');
+    zeigeKarte('mitte', '<h2>📂 Sicherung laden?</h2><div class="details">In der Datei vom <b>' + esc(new Date(p.wann).toLocaleDateString('de-DE')) + '</b> sind die Profile: <b>' + namen + '</b>.' +
+      '<br>Alle Profile, die jetzt auf diesem Gerät sind, werden dadurch ersetzt.</div>', [
+      { text: 'Nein, lieber nicht', aktion: zeigeProfile },
+      { text: 'Ja, laden', klasse: 'zweit', aktion: function () {
+        var fehlerText = SPEICHER.einspielen(p);
+        if (fehlerText) zeigeKarte('mitte', '<h2>📂 Das hat nicht geklappt</h2><div class="details">' + esc(fehlerText) + '</div>', [{ text: 'Zurück', aktion: zeigeProfile }]);
+      } }]);
+  }
+
   function baueMenue() {
     if (aktiv >= spieler.length) aktiv = 0;
+    baueProfilZeile();
     baueModusWahl();
     // --- Spieler-Reiter ---
     var tabs = el('spielerTabs');
@@ -1527,6 +1628,7 @@
     speichereSpieler: speichereSpieler, baueMenue: function () { baueMenue(); }
   };
   TECHNIK.start(renderer, window.KERN);
+  if (SPEICHER.gerettet()) TECHNIK.merke(new Error('Der Spielstand war nicht lesbar. Die Sicherungskopie vom letzten Start wurde geladen.'), 'Spielstand');
   window.addEventListener('wheel', function (e) { if (welt && welt.rad && !foto.an && e.target === renderer.domElement) welt.rad(e.deltaY); }, { passive: true });
   renderer.domElement.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });

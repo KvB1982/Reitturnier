@@ -1,12 +1,11 @@
 // ============================================================
 //  STAND  -  was gespeichert wird: Muenzen, die Pferde im Stall,
-//  gekaufte Ausruestung.  Liegt im Browser (localStorage).
+//  gekaufte Ausruestung.  Wo das liegt und wem es gehoert, weiss SPEICHER (js/speicher.js).
 // ============================================================
 var STAND = (function () {
   'use strict';
-  var NAME = 'reitturnier_hof';
-  function lade() { try { return JSON.parse(localStorage.getItem(NAME)) || {}; } catch (e) { return {}; } }
-  var d = lade();
+  var d = SPEICHER.hof;
+  if (typeof d.wach !== 'number' || isNaN(d.wach)) d.wach = 0;      // so viele Spielstunden war man schon wach auf dem Hof (zählt nur, während gespielt wird)
   d.muenzen = d.muenzen || 0;
   d.besitz = d.besitz || {};          // gekaufte Dinge: { kennung: true }
   d.pferde = d.pferde || {};          // je Pferd: { schmutz, hunger, mist, stroh, hufe, zeit, ausruestung, fit }
@@ -30,19 +29,20 @@ var STAND = (function () {
     p.hufe = Math.min(p.hufe, 0.1); p.krank = null; p.eisen = Math.min(p.eisen || 0, 0.3);
     return p;
   }
-  function speichere() { try { localStorage.setItem(NAME, JSON.stringify(d)); } catch (e) { /* egal */ } }
+  function speichere() { SPEICHER.sichere(); }
 
-  // Zustand eines Pferdes holen. Schmutz und Hunger wachsen mit der Zeit (auch wenn das Spiel zu ist).
+  // Zustand eines Pferdes holen. Schmutz und Hunger wachsen mit der Uhr im Spiel. Ist das Spiel zu, steht die Uhr.
   function pferd(id) {
     var p = d.pferde[id];
-    var jetzt = Date.now();
+    var jetzt = d.wach;
     if (!p) {
       var z = Math.abs(Math.sin(id.length * 12.9 + id.charCodeAt(0) * 4.1));
       p = d.pferde[id] = { schmutz: 0.35 + z * 0.4, hunger: 0.3 + (1 - z) * 0.4, mist: 0.6, stroh: 0.5, hufe: 0.6, zeit: jetzt, ausruestung: {}, fit: 0.3 };
     }
-    var stunden = Math.max(0, Math.min(72, (jetzt - (p.zeit || jetzt)) / 3600000));
+    if (typeof p.zeit !== 'number' || p.zeit > jetzt) p.zeit = jetzt;
+    var stunden = Math.max(0, Math.min(72, jetzt - p.zeit));
     if (stunden > 0.01) {
-      var S = typeof HOF_REGELN !== 'undefined' ? HOF_REGELN : { schmutzProStunde: 0.03, hungerProStunde: 0.06, mistProStunde: 0.05 };
+      var S = typeof HOF_REGELN !== 'undefined' ? HOF_REGELN : { schmutzProStunde: 0.01, hungerProStunde: 0.02, mistProStunde: 0.02 };
       p.schmutz = Math.min(1, p.schmutz + stunden * S.schmutzProStunde);
       p.hunger = Math.min(1, p.hunger + stunden * S.hungerProStunde);
       p.mist = Math.min(1, p.mist + stunden * S.mistProStunde);
@@ -85,5 +85,33 @@ var STAND = (function () {
     meins: function () { return d.meins; }, istMeins: function (id) { return id === d.meins; },
     daten: d, speichere: speichere, pferd: pferd, laune: laune, belohne: belohne,
     zahle: function (preis) { if (d.muenzen < preis) return false; d.muenzen -= preis; speichere(); return true; }
+  };
+})();
+
+// ============================================================
+//  KALENDER  -  die eine Uhr im Spiel
+//  Es gibt nur Spieltag und Uhrzeit (STAND.daten.tag und .stunde).
+//  Eine Minute in echt ist eine Stunde im Spiel, und die Uhr läuft
+//  nur, solange man auf dem Hof spielt. Wochentag, Woche und
+//  Jahreszeit rechnen wir daraus aus. Tag 1 ist ein Montag im Frühling.
+// ============================================================
+var KALENDER = (function () {
+  'use strict';
+  var d = STAND.daten;
+  var TAGE = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  var ZEITEN = ['Frühling', 'Sommer', 'Herbst', 'Winter'];
+  var TAGE_JE_JAHRESZEIT = 7;            // eine Jahreszeit dauert eine Woche, ein Jahr also 28 Spieltage
+  function tag() { return Math.max(1, Math.floor(d.tag || 1)); }
+  return {
+    TAGE_JE_JAHRESZEIT: TAGE_JE_JAHRESZEIT,
+    tag: tag,
+    stunde: function () { return typeof d.stunde === 'number' ? d.stunde : 7; },
+    wach: function () { return d.wach || 0; },                 // Spielstunden, die man schon wach war (läuft nie rückwärts)
+    wochentag: function () { return TAGE[(tag() - 1) % 7]; },
+    woche: function () { return Math.floor((tag() - 1) / 7) + 1; },
+    wochenende: function () { return (tag() - 1) % 7 >= 5; },
+    jahreszeit: function () { return ZEITEN[Math.floor((tag() - 1) / TAGE_JE_JAHRESZEIT) % 4]; },
+    jahr: function () { return Math.floor((tag() - 1) / (TAGE_JE_JAHRESZEIT * 4)) + 1; },
+    text: function () { return TAGE[(tag() - 1) % 7] + ', Tag ' + tag(); }
   };
 })();
