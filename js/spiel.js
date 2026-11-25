@@ -127,7 +127,11 @@
   }
 
   function baueParcours(nr) {
-    if (parcoursGruppe) szene.remove(parcoursGruppe);
+    if (parcoursGruppe) {
+      // Die alten Hindernisse auch von der Grafikkarte nehmen, sonst sammeln sie sich dort bei jedem Besuch im Menü
+      parcoursGruppe.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
+      szene.remove(parcoursGruppe);
+    }
     parcoursGruppe = new THREE.Group();
     szene.add(parcoursGruppe);
     hindernisse = [];
@@ -1089,8 +1093,22 @@
   //  ruht das Springreiten.  Die Welten stehen in WELTEN (eigene Dateien).
   // ============================================================
   var welt = null;
+  // ---------- Aufräumen: Eine verlassene Welt gibt ihren Platz auf der Grafikkarte frei ----------
+  // Der Hof bleibt, weil man von überall dorthin zurückkommt. Alles andere wird beim nächsten Besuch
+  // von selbst wieder zur Grafikkarte geschickt (das dauert einen Augenblick, dafür wird der Speicher nicht voll).
+  var WELT_BLEIBT = ['hof'];
+  function raeumeWelt(alt, neu) {
+    if (!alt || alt === neu || !alt.szene) return;
+    for (var i = 0; i < WELT_BLEIBT.length; i++) if (WELTEN[WELT_BLEIBT[i]] === alt) return;
+    var behalte = [szene];
+    if (neu && neu.szene) behalte.push(neu.szene);
+    WELT_BLEIBT.forEach(function (n) { if (WELTEN[n] && WELTEN[n].szene) behalte.push(WELTEN[n].szene); });
+    try { TECHNIK.raeume(alt.szene, behalte); } catch (fehler) { TECHNIK.merke(fehler, 'aufräumen'); }
+  }
   function betreteWelt(w) {
+    var alt = welt;
     if (welt && welt !== w && welt.verlaesst) welt.verlaesst();
+    raeumeWelt(alt, w);
     clearTimeout(wartenTimer);
     schliesseKarte();
     el('countdown').textContent = '';
@@ -1110,6 +1128,7 @@
     var w = welt; welt = null;
     if (w.verlaesst) w.verlaesst();
     szene.add(pferd.wurzel);                 // das Reitpferd gehoert wieder auf den Springplatz
+    raeumeWelt(w, null);
     pferd.wurzel.scale.setScalar(1);
     pferd.setzeGang('galopp');
     pferd.setzeReiterin(true);
@@ -1452,25 +1471,42 @@
     if (neu !== TEMPO.punkte) { TEMPO.punkte = neu; renderer.setPixelRatio(neu); renderer.setSize(window.innerWidth, window.innerHeight); }
   }
 
-  var letzte = performance.now();
+  var letzte = performance.now(), angehalten = false;
+  // Wie heißt die Welt, die gerade läuft? (für Messanzeige und Fehler-Protokoll)
+  function weltName() {
+    if (!welt) return Z.modus === 'menue' ? 'menue' : 'springen';
+    for (var n in WELTEN) if (WELTEN[n] === welt) return n;
+    return 'welt';
+  }
   function bild(jetzt) {
     var dt = Math.min(0.05, (jetzt - letzte) / 1000);
     if (!foto.an) tempoPruefen((jetzt - letzte) / 1000);
+    var vorher = letzte;
     letzte = jetzt;
     if (foto.an) { fotoBild(); requestAnimationFrame(bild); return; }
+    requestAnimationFrame(bild);                 // zuerst das nächste Bild bestellen: Dann läuft das Spiel auch nach einem Fehler weiter
+    var roh = (jetzt - vorher) / 1000;
     if (welt) {
       Z.zeit += dt;
-      try { welt.schritt(dt, Z.zeit); WETTER.schritt(dt, welt); } catch (fehler) { console.error(fehler); }
-      renderer.render(welt.szene, welt.kamera);
-      requestAnimationFrame(bild);
+      // Geht in einer Welt etwas schief, schreibt TECHNIK es auf. Passiert es immer wieder, kommt eine Karte mit „Zurück zum Menü“.
+      try {
+        if (!angehalten) { welt.schritt(dt, Z.zeit); WETTER.schritt(dt, welt); TECHNIK.bildGut(); }
+      } catch (fehler) { angehalten = TECHNIK.weltFehler(fehler, weltName()); }
+      if (angehalten && !el('karte').classList.contains('offen')) angehalten = false;      // Karte ist zu: weiter versuchen
+      TECHNIK.sparen(welt && welt.szene, roh);
+      try { if (welt) renderer.render(welt.szene, welt.kamera); } catch (fehler2) { TECHNIK.merke(fehler2, weltName() + ' (malen)'); }
+      TECHNIK.bild(roh, weltName(), TEMPO.punkte);
       return;
     }
-    schritt(dt);
-    bewegeFallTeile(dt);
-    platz.stadion.bewege(dt, Z.zeit);
-    bewegeKamera(dt);
-    renderer.render(szene, kamera);
-    requestAnimationFrame(bild);
+    try {
+      schritt(dt);
+      bewegeFallTeile(dt);
+      platz.stadion.bewege(dt, Z.zeit);
+      bewegeKamera(dt);
+      TECHNIK.sparen(szene, roh);
+      renderer.render(szene, kamera);
+    } catch (fehler3) { TECHNIK.merke(fehler3, weltName()); }
+    TECHNIK.bild(roh, weltName(), TEMPO.punkte);
   }
   requestAnimationFrame(bild);
 
@@ -1490,6 +1526,7 @@
     stoppeFinger: function () { for (var id in finger) { finger[id].lenk = 0; finger[id].hoch = 0; finger[id].achse = 'aus'; } wischLenkung(); },
     speichereSpieler: speichereSpieler, baueMenue: function () { baueMenue(); }
   };
+  TECHNIK.start(renderer, window.KERN);
   window.addEventListener('wheel', function (e) { if (welt && welt.rad && !foto.an && e.target === renderer.domElement) welt.rad(e.deltaY); }, { passive: true });
   renderer.domElement.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   el('weltZurueck').addEventListener('click', function () { if (welt && welt.zurueck) welt.zurueck(); else insMenue(); });
@@ -1499,7 +1536,7 @@
   window.SPIEL = {
     zustand: Z, wisch: wisch, hindernisse: function () { return hindernisse; }, springen: springen, timing: TIMING,
     foto: foto, fotoStart: fotoStart, fotoEnde: fotoEnde, fotoAufnahme: fotoAufnahme,
-    info: function () { return renderer.info; },
+    info: function () { return renderer.info; }, weltName: weltName, raeumeWelt: raeumeWelt,
     turnier: function () { return T; }, taste: taste, ueberspringe: ueberspringe, pferd: pferd,
     // Zeit vorspulen (fuer Tests): rechnet sek Sekunden in kleinen Schritten
     vor: function (sek) { for (var t = 0; t < sek; t += 0.04) { Z.zeit += welt ? 0.04 : 0; if (welt) welt.schritt(0.04, Z.zeit); else { schritt(0.04); bewegeFallTeile(0.04); } } }

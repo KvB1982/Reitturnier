@@ -217,7 +217,16 @@ var SOUND = (function () {
   // ============================================================
   var MUSIK_LAUT = 0.5;                 // Musik insgesamt leiser als die Geräusche, damit man die Hufe noch hört
   var MUSIK = typeof MUSIKLISTE !== 'undefined' ? MUSIKLISTE : {};
-  var M = { wunsch: null, seit: 0, jetzt: null, quelle: null, regler: null, element: null, elementLaut: 0, puffer: {}, reihe: [], laedt: {}, ohneNetz: false, folgeNr: {}, basis: null, start: 0, dauer: 0 };
+  // Drei Wege, ein Stück abzuspielen:
+  //  'strom'  = Das Gerät spielt die MP3-Datei Stück für Stück ab (wie ein Radio). Braucht kaum Speicher. So ist es gedacht.
+  //  'datei'  = wie 'strom', aber ohne den Lautstärke-Regler von WebAudio. Nur wenn das Spiel per Doppelklick geöffnet wurde.
+  //  'puffer' = Die ganze Datei wird ausgepackt in den Speicher gelegt (etwa 30 MB je Stück). Der alte Weg, nur noch als Ersatz,
+  //             wenn 'strom' bei einem Stück nicht geht – oder wenn man es im Messbericht so einstellt.
+  var MUSIK_WEG_NAME = 'reitturnier_musikweg';
+  var M = { wunsch: null, seit: 0, jetzt: null, weg: null, quelle: null, regler: null, puffer: {}, reihe: [], laedt: {}, folgeNr: {}, basis: null, start: 0, dauer: 0,
+    spieler: null, dran: null, stromAus: {}, pufferAus: {}, alt: false };
+  try { M.alt = /[?&]altemusik/.test(location.search) || localStorage.getItem(MUSIK_WEG_NAME) === 'alt'; } catch (e) { /* egal */ }
+  var NUR_DATEI = location.protocol === 'file:';        // per Doppelklick geöffnet: Der Browser gibt die Musik dann nicht an WebAudio weiter
   // Welches Stück passt gerade?
   function musikWunsch() {
     if (!STUFEN[stufe].musik || !entsperrt) return null;
@@ -249,48 +258,116 @@ var SOUND = (function () {
   function musikWeiter() {
     var b = M.basis, f = b && MUSIK[b] ? MUSIK[b].folge : null;
     if (!f || f.length < 2 || M.wechselt || f.indexOf(M.jetzt) < 0) return;      // läuft gerade etwas anderes (Menü, Regen), wird nicht weitergezählt
-    var rest = 99;
+    var rest = 99, sp = M.dran;
     if (M.quelle && M.dauer) rest = M.dauer - (ctx.currentTime - M.start) % M.dauer;
-    else if (M.element && M.element.duration) rest = M.element.duration - M.element.currentTime;
-    if (rest < 1.6) { M.folgeNr[b] = (M.folgeNr[b] || 0) + 1; M.dauer = 0; M.wechselt = true; if (M.element) M.element.loop = false; }
+    else if (sp && sp.el.duration) {
+      var stelle = sp.el.currentTime;
+      rest = sp.el.ended ? 0 : sp.el.duration - stelle;
+      // Das Ende verpasst (das Gerät war gerade beschäftigt) und das Stück hat schon wieder von vorn begonnen? Zählt auch.
+      if (sp.stelle > sp.el.duration - 4 && stelle < sp.stelle - 1) rest = 0;
+      sp.stelle = stelle;
+    }
+    if (rest < 1.6) { M.folgeNr[b] = (M.folgeNr[b] || 0) + 1; M.dauer = 0; M.wechselt = true; if (sp) sp.el.loop = false; }
   }
+
+  // ---------- Weg 'strom' und 'datei': zwei Abspieler, damit das alte Stück ausklingen kann, während das neue beginnt ----------
+  // Ein winziges Stück Stille. Damit werden die Abspieler beim ersten Tippen „aufgeweckt“:
+  // iPad und iPhone erlauben einem Abspieler nur dann, später von selbst loszuspielen, wenn er einmal bei einem Tipp gespielt hat.
+  function stille() {
+    var n = 800, b = new Uint8Array(44 + n), d = new DataView(b.buffer), t = '';
+    [[0, 0x52494646], [8, 0x57415645], [12, 0x666d7420], [36, 0x64617461]].forEach(function (e) { d.setUint32(e[0], e[1]); });      // "RIFF", "WAVE", "fmt ", "data"
+    d.setUint32(4, 36 + n, true); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+    d.setUint32(24, 8000, true); d.setUint32(28, 8000, true); d.setUint16(32, 1, true); d.setUint16(34, 8, true); d.setUint32(40, n, true);
+    for (var i = 44; i < b.length; i++) b[i] = 128;
+    for (i = 0; i < b.length; i++) t += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(t);
+  }
+  function abspieler() {
+    if (M.spieler) return M.spieler;
+    M.spieler = [0, 1].map(function () {
+      var el = new Audio(), sp = { el: el, name: null, regler: null, laut: 0, ziel: 0, aus: 0, wach: false, marke: 0 };
+      el.preload = 'auto'; el.setAttribute('playsinline', '');
+      if (!NUR_DATEI) {
+        try { sp.regler = ctx.createGain(); sp.regler.gain.value = 0; ctx.createMediaElementSource(el).connect(sp.regler); sp.regler.connect(haupt); } catch (e) { sp.regler = null; }
+      }
+      // Das Stück lässt sich nicht abspielen (Datei fehlt, kein Netz): für dieses Stück den Ersatz-Weg nehmen
+      el.addEventListener('error', function () { if (sp.name) stromFehler(sp, sp.name); });
+      return sp;
+    });
+    return M.spieler;
+  }
+  function wecken() {
+    if (!ctx || (M.alt && !NUR_DATEI)) return;
+    var leise = null;
+    abspieler().forEach(function (sp) {
+      if (sp.wach || sp.name) return;
+      try {
+        leise = leise || stille();
+        var marke = ++sp.marke;
+        sp.el.src = leise; sp.el.loop = false;
+        var v = sp.el.play();
+        if (v && v.then) v.then(function () { sp.wach = true; if (sp.marke === marke) sp.el.pause(); }, function () { /* noch nicht erlaubt: beim nächsten Tipp wieder */ });
+      } catch (e) { /* egal */ }
+    });
+  }
+  ['touchend', 'click', 'keydown'].forEach(function (ev) { window.addEventListener(ev, wecken, true); });
+  function stromFehler(sp, name) {
+    if (sp.name !== name) return;
+    sp.name = null; sp.ziel = 0; if (M.dran === sp) M.dran = null;
+    M.stromAus[name] = (M.stromAus[name] || 0) + 1;
+    if (M.jetzt === name) { M.jetzt = null; M.weg = null; }       // pflegeMusik startet das Stück gleich noch einmal, dann über den Ersatz-Weg
+  }
+  function stromStart(name, laut) {
+    var frei = abspieler().filter(function (sp) { return sp !== M.dran; });
+    var sp = frei.filter(function (x) { return !x.name; })[0] || frei[0], marke = ++sp.marke;
+    sp.name = name; sp.laut = laut; sp.ziel = laut; sp.aus = 0; sp.stelle = 0;
+    try {
+      sp.el.loop = true; sp.el.src = MUSIK[name].datei;
+      if (sp.regler) { sp.el.volume = 1; sp.regler.gain.cancelScheduledValues(ctx.currentTime); sp.regler.gain.setValueAtTime(0, ctx.currentTime); sp.regler.gain.setTargetAtTime(laut, ctx.currentTime + 0.3, 0.5); }
+      else { try { sp.el.volume = 0; } catch (e) { /* egal */ } }
+      var v = sp.el.play();
+      if (v && v.catch) v.catch(function (f) { if (sp.marke === marke && (!f || f.name !== 'AbortError')) stromFehler(sp, name); });
+    } catch (e) { stromFehler(sp, name); return; }
+    M.dran = sp; M.weg = sp.regler ? 'strom' : 'datei';
+  }
+  function stromStopp() {
+    var sp = M.dran;
+    if (!sp) return;
+    M.dran = null; sp.ziel = 0; sp.name = null;
+    // Nach anderthalb Sekunden ist auf jeden Fall Schluss – auch auf Geräten, die sich die Lautstärke nicht verstellen lassen (iPad, iPhone).
+    sp.aus = Date.now() + 1500;
+    if (sp.regler) { try { sp.regler.gain.cancelScheduledValues(ctx.currentTime); sp.regler.gain.setTargetAtTime(0, ctx.currentTime, 0.35); } catch (e) { /* egal */ } }
+  }
+  function stromPflege() {
+    if (!M.spieler) return;
+    var jetzt = Date.now();
+    M.spieler.forEach(function (sp) {
+      if (!sp.regler) { try { sp.el.volume = Math.max(0, Math.min(1, sp.el.volume + (sp.ziel * STUFEN[stufe].laut - sp.el.volume) * 0.15)); } catch (e) { /* egal */ } }
+      if (sp.aus && jetzt >= sp.aus) { sp.aus = 0; if (!sp.name) { sp.marke++; try { sp.el.pause(); } catch (e) { /* egal */ } } }
+    });
+  }
+
+  // ---------- Weg 'puffer' (Ersatz): die ganze Datei auspacken ----------
   function musikLaden(name, fertig) {
     if (M.puffer[name]) { fertig(M.puffer[name]); return; }
-    if (M.laedt[name] || M.ohneNetz) return;
+    if (M.laedt[name]) return;
     M.laedt[name] = true;
-    var fehler = function () { M.laedt[name] = false; M.ohneNetz = true; };      // per Doppelklick geöffnet: dann spielt ein <audio> die Datei
+    // Ging es nicht, wird es nach einer halben Minute noch einmal versucht. (Früher war die Musik nach EINEM Fehler für immer umgestellt.)
+    var fehler = function () { M.laedt[name] = false; M.pufferAus[name] = Date.now() + 30000; if (M.jetzt === name) { M.jetzt = null; M.weg = null; } };
     try {
       fetch(MUSIK[name].datei).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(function (roh) {
         ctx.decodeAudioData(roh, function (p) {
           M.laedt[name] = false; M.puffer[name] = p; M.reihe.push(name);
-          if (M.reihe.length > 3) { var weg = M.reihe.shift(); if (weg !== M.jetzt) delete M.puffer[weg]; else M.reihe.push(weg); }   // höchstens 3 Stücke im Speicher
+          if (M.reihe.length > 2) { var weg = M.reihe.shift(); if (weg !== M.jetzt) delete M.puffer[weg]; else M.reihe.push(weg); }   // höchstens 2 Stücke im Speicher
           fertig(p);
         }, fehler);
       }).catch(fehler);
     } catch (e) { fehler(); }
   }
-  function musikStopp() {
-    if (M.quelle) {
-      var q = M.quelle, r = M.regler;
-      try { r.gain.setTargetAtTime(0, ctx.currentTime, 0.35); q.stop(ctx.currentTime + 1.6); } catch (e) { /* egal */ }
-      M.quelle = null; M.regler = null;
-    }
-    if (M.element) { var el = M.element; M.element = null; var t = setInterval(function () { el.volume = Math.max(0, el.volume - 0.06); if (el.volume <= 0.01) { el.pause(); clearInterval(t); } }, 60); }
-  }
-  function musikStart(name) {
-    musikStopp();
-    M.jetzt = name; M.wechselt = false;
-    if (!name) return;
-    var laut = (MUSIK[name].laut || 1) * MUSIK_LAUT;
-    if (M.ohneNetz) {
-      try {
-        M.element = new Audio(MUSIK[name].datei); M.element.loop = true; M.element.volume = 0; M.elementLaut = laut;
-        var v = M.element.play(); if (v && v.catch) v.catch(function () { /* egal */ });
-      } catch (e) { M.element = null; }
-      return;
-    }
+  function pufferStart(name, laut) {
+    M.weg = 'puffer';
     musikLaden(name, function (p) {
-      if (M.jetzt !== name || M.quelle) return;
+      if (M.jetzt !== name || M.quelle || M.weg !== 'puffer') return;
       try {
         M.quelle = ctx.createBufferSource(); M.regler = ctx.createGain();
         M.quelle.buffer = p; M.quelle.loop = true;
@@ -301,16 +378,41 @@ var SOUND = (function () {
       } catch (e) { M.quelle = null; }
     });
   }
+  function musikStopp() {
+    if (M.quelle) {
+      var q = M.quelle, r = M.regler;
+      try { r.gain.setTargetAtTime(0, ctx.currentTime, 0.35); q.stop(ctx.currentTime + 1.6); } catch (e) { /* egal */ }
+      M.quelle = null; M.regler = null;
+    }
+    stromStopp();
+  }
+  // Geht dieses Stück gerade über den Strom? (nicht, wenn es dort schon zweimal gescheitert ist)
+  function stromGeht(name) { return (NUR_DATEI || !M.alt) && !(M.stromAus[name] >= 2); }
+  function musikStart(name) {
+    musikStopp();
+    M.jetzt = name; M.wechselt = false; M.weg = null;
+    if (!name) return;
+    var laut = (MUSIK[name].laut || 1) * MUSIK_LAUT;
+    if (stromGeht(name)) stromStart(name, laut);
+    else if (!NUR_DATEI) pufferStart(name, laut);
+  }
   function pflegeMusik() {
     if (!ctx) return;
     musikWeiter();
     var basis = musikName(musikWunsch()), w = musikName(musikAusFolge(basis)), jetzt = ctx.currentTime;
     M.basis = basis;
     if (w !== M.wunsch) { M.wunsch = w; M.seit = jetzt; }
-    if (w !== M.jetzt && (jetzt - M.seit > 0.4 || ctx.state !== 'running')) musikStart(w);
-    else if (w && M.ohneNetz && !M.element && !M.quelle) musikStart(w);          // Laden über das Netz ging nicht: zweiter Versuch mit <audio>
-    if (M.element) M.element.volume += (M.elementLaut * STUFEN[stufe].laut - M.element.volume) * 0.15;
+    // Ein Stück, das gerade nicht geladen werden konnte, wird erst nach einer Pause wieder versucht
+    var gesperrt = w && !stromGeht(w) && (NUR_DATEI || M.pufferAus[w] > Date.now());
+    if (w !== M.jetzt && !gesperrt && (jetzt - M.seit > 0.4 || ctx.state !== 'running')) musikStart(w);
+    stromPflege();
   }
+  // Fenster weg oder App im Hintergrund: Die Abspieler machen Pause (WebAudio hält weiter oben schon selbst an)
+  document.addEventListener('visibilitychange', function () {
+    var sp = M.dran;
+    if (!sp) return;
+    try { if (document.hidden) sp.el.pause(); else { var v = sp.el.play(); if (v && v.catch) v.catch(function () { /* egal */ }); } } catch (e) { /* egal */ }
+  });
 
   // ---------- Knöpfe klicken, Münzen klimpern ----------
   document.addEventListener('click', function (e) {
@@ -331,7 +433,13 @@ var SOUND = (function () {
 
   return {
     kontext: kontext, ausgang: ausgang, an: an, weiter: weiter, bild: function () { return STUFEN[stufe].bild; }, text: function () { return STUFEN[stufe].text; },
-    musikLaeuft: function () { return !!(M.quelle || (M.element && !M.element.paused)); }, musikJetzt: function () { return M.jetzt; },
+    musikLaeuft: function () { return !!(M.quelle || (M.dran && !M.dran.el.paused)); }, musikJetzt: function () { return M.jetzt; },
+    // für Tests und den Messbericht: Was läuft gerade, und auf welchem Weg?
+    musikStand: function () { var sp = M.dran; return { jetzt: M.jetzt, weg: M.weg, alt: M.alt, stelle: sp ? sp.el.currentTime : (M.quelle ? ctx.currentTime - M.start : 0), laut: sp && sp.regler ? sp.regler.gain.value : (sp ? sp.el.volume : (M.regler ? M.regler.gain.value : 0)), pause: sp ? sp.el.paused : !M.quelle, imSpeicher: Object.keys(M.puffer), gescheitert: M.stromAus }; },
+    // für Tests: an eine Stelle kurz vor dem Ende spulen (rest = so viele Sekunden bleiben)
+    musikSpule: function (rest) { var sp = M.dran; if (sp && sp.el.duration) sp.el.currentTime = Math.max(0, sp.el.duration - rest); },
+    // Musik-Weg umstellen: true = der alte Weg (ganze Datei im Speicher), false = Datenstrom. Wird gemerkt.
+    musikAlt: function (alt) { if (alt !== undefined) { M.alt = !!alt; try { localStorage.setItem(MUSIK_WEG_NAME, M.alt ? 'alt' : 'strom'); } catch (e) { /* egal */ } musikStopp(); M.jetzt = null; M.puffer = {}; M.reihe = []; } return M.alt; },
     spiel: spiel, schleife: schleife, huf: huf, applaus: applaus, klang: klang,
     // der Hof meldet jedes Bild, wie sehr man drinnen ist (0..1): dann klingt draußen gedämpft
     setzeDrinnen: function (w) { drinnen = w; if (ctx) drinnenZeit = ctx.currentTime; },

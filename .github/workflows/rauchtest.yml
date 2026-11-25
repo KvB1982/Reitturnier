@@ -1,0 +1,19 @@
+# Läuft bei jedem Pull Request: startet jede Welt des Spiels in einem Test-Browser
+# und meldet Fehler und zu hohe Zahlen (Zeichenaufrufe, Dreiecke, Speicher). Siehe tools/rauch.mjs.
+name: Rauchtest
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  rauchtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test-Browser holen
+        run: npm i --no-save playwright && npx playwright install --with-deps chromium
+      - name: Jede Welt starten
+        run: node tools/rauch.mjs
