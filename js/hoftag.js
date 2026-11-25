@@ -608,7 +608,7 @@ var HOFTAG = (function () {
     if (zimmerTeile.z_aquarium && zimmerTeile.z_aquarium.visible) G.fische.forEach(function (f) { var w = z * 0.9 + f.p; f.m.position.set(9.42 + Math.sin(w * 2) * 0.08, f.y + Math.sin(w * 1.3) * 0.04 + (G.futter > 0 ? 0.06 : 0), -18.75 + Math.sin(w) * 0.17); f.m.rotation.y = Math.cos(w) > 0 ? 0 : Math.PI; });
     if (G.futter > 0) G.futter -= dt;
     if (G.schaukel) { G.schubs = Math.max(0, G.schubs - dt * 0.25); G.schaukel.rotation.x = Math.sin(z * 3.2) * 0.22 * G.schubs; }
-    if (zimmerTeile.lampeMat) { zimmerTeile.lampeMat.emissiveIntensity = 0.5 + an; zimmerTeile.lampeLicht.intensity = zimmerTeile.z_lampe.visible ? 1.5 + an * 6 : 0; }
+    if (zimmerTeile.lampeMat) { zimmerTeile.lampeMat.emissiveIntensity = 0.5 + an; zimmerTeile.lampeLicht.intensity = zimmerTeile.z_lampe.visible ? 1.5 + an * 6 : 0; zimmerTeile.lampeLicht.visible = zimmerTeile.lampeLicht.intensity > 0; }
     if (zimmerTeile.sterneMat) zimmerTeile.sterneMat.emissiveIntensity = 0.3 + an * 1.4 + Math.sin(z * 2) * 0.1;
   }
   function zeigeZimmer() {
@@ -879,7 +879,9 @@ var HOFTAG = (function () {
     // Abendlicht: Fenster und Laternen
     var h = d.stunde, an = Math.max(0, Math.min(1, (h - 18.8) / 1.5));
     fenster.forEach(function (m) { m.emissiveIntensity = an * 0.9; });
-    lampen.forEach(function (l) { l.m.emissiveIntensity = an * 1.6; l.l.intensity = an * 14; });
+    // Am Tag sind die Lampen ganz aus (unsichtbar): Sonst rechnet die Grafikkarte sie bei jedem Bildpunkt mit, obwohl sie nichts beleuchten.
+    var lampenAn = an > 0.02;
+    lampen.forEach(function (l) { l.m.emissiveIntensity = an * 1.6; l.l.intensity = an * 14; l.l.visible = lampenAn; });
     bewegeGemuetlich(dt, z, an);
     if (zimmerTeile.lichterMat) zimmerTeile.lichterMat.forEach(function (m, i) { m.emissiveIntensity = 0.5 + an + Math.sin(z * 3 + i * 1.6) * 0.3; });
     // der Abend kommt

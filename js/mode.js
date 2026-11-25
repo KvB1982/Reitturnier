@@ -15,7 +15,11 @@ var MODE = (function () {
     eltern.add(n);
     return n;
   }
-  function leere(g) { while (g.children.length) g.remove(g.children[0]); }
+  // Alte Teile wegnehmen und ihre Formen freigeben (sonst bleiben sie für immer auf der Grafikkarte liegen)
+  function leere(g) {
+    g.traverse(function (o) { if (o !== g && o.geometry) o.geometry.dispose(); });
+    while (g.children.length) g.remove(g.children[0]);
+  }
   function kapsel(r, lang) { return new THREE.CapsuleGeometry(r, Math.max(0.001, lang - 2 * r), 4, 8); }
   function sternForm(aussen, innen, zacken) {
     var s = new THREE.Shape();
