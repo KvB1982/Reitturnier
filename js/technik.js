@@ -19,6 +19,8 @@ var TECHNIK = (function () {
   var messAn = false, kasten = null;
   // m = die laufende halbe Sekunde, welten = was je Welt zusammenkam
   var m = { zeit: 0, bilder: 0, schlimm: 0 }, welten = {}, weltJetzt = '', weltSeit = 0;
+  // Ruckler: Bilder, die länger als RUCK_AB Sekunden gedauert haben (höchstens RUCK_MAX werden gemerkt)
+  var RUCK_AB = 0.1, RUCK_MAX = 20, ruckler = [], ruckVoll = false, vorF = 0, vorB = 0, vorP = 0;
   try { messAn = /[?&]messen/.test(location.search) || localStorage.getItem(MESS_NAME) === '1'; } catch (e) { /* egal */ }
 
   function zahl(n) { return n >= 1e6 ? (n / 1e6).toFixed(2).replace('.', ',') + ' Mio.' : String(Math.round(n)).replace(/\B(?=(\d{3})+$)/g, '.'); }
@@ -44,6 +46,15 @@ var TECHNIK = (function () {
     if (name !== weltJetzt) { weltJetzt = name; weltSeit = 0; }
     weltSeit += roh;
     if (!(roh > 0) || roh > 1) return;                 // Fenster war weg: nicht mitzählen
+    // Ruckler aufschreiben: Was ist in dem Bild passiert, das so lange gedauert hat?
+    var Iv = renderer.info, jetztF = Iv.memory.geometries, jetztB = Iv.memory.textures, jetztP = Iv.programs ? Iv.programs.length : 0;
+    if (roh > RUCK_AB && weltSeit > 3) {
+      // Ist die Liste voll, fliegt der kürzeste Ruckler raus (wenn der neue länger ist)
+      if (ruckler.length >= RUCK_MAX) { ruckVoll = true; var kl = 0; ruckler.forEach(function (r, i) { if (r.ms < ruckler[kl].ms) kl = i; }); if (ruckler[kl].ms < roh * 1000) ruckler.splice(kl, 1); }
+      if (ruckler.length < RUCK_MAX) ruckler.push({ welt: name, ms: Math.round(roh * 1000), nach: Math.round(weltSeit), uhr: typeof KALENDER !== 'undefined' ? KALENDER.stunde() : -1,
+        wetter: typeof STAND !== 'undefined' ? STAND.daten.wetter || '' : '', formen: jetztF - vorF, bilder: jetztB - vorB, programme: jetztP - vorP });
+    }
+    vorF = jetztF; vorB = jetztB; vorP = jetztP;
     m.zeit += roh; m.bilder++; if (roh > m.schlimm) m.schlimm = roh;
     if (m.zeit < 0.5) return;
     var I = renderer.info, fps = m.bilder / m.zeit;
@@ -72,7 +83,16 @@ var TECHNIK = (function () {
       z.push(n + ': ' + Math.round(W.bilder / W.zeit) + ' Bilder/s im Schnitt, längstes Bild ' + Math.round(W.schlimm * 1000) + ' ms, gemessen ' + Math.round(W.zeit) + ' s');
       z.push('   ' + zahl(W.aufrufe) + ' Aufrufe, ' + zahl(W.dreiecke) + ' Dreiecke, ' + zahl(W.formen) + ' Formen, ' + zahl(W.texturen) + ' Bilder, kleinste Schärfe ' + W.schaerfeMin);
     });
+    if (ruckler.length) {
+      z.push('', 'Ruckler (Bilder über ' + Math.round(RUCK_AB * 1000) + ' ms): ' + (ruckVoll ? 'die ' + ruckler.length + ' längsten' : ruckler.length));
+      ruckler.forEach(function (r) {
+        var uhr = r.uhr >= 0 ? Math.floor(r.uhr) + ':' + ('0' + Math.floor(r.uhr % 1 * 60)).slice(-2) + ' Uhr' : '';
+        var neu = [r.formen > 0 ? '+' + r.formen + ' Formen' : '', r.bilder > 0 ? '+' + r.bilder + ' Bilder' : '', r.programme > 0 ? '+' + r.programme + ' Malprogramme' : ''].filter(Boolean).join(', ');
+        z.push('   ' + r.welt + ', ' + r.ms + ' ms, nach ' + r.nach + ' s, ' + uhr + (r.wetter ? ', ' + r.wetter : '') + ': ' + (neu || 'nichts Neues auf der Grafikkarte'));
+      });
+    }
     if (typeof SOUND !== 'undefined' && SOUND.musikStand) { var ms = SOUND.musikStand(); z.push('', 'Musik: ' + (ms.jetzt || 'keine') + ', Weg ' + (ms.weg || '–') + (ms.alt ? ' (alter Weg eingestellt)' : '') + (ms.imSpeicher.length ? ', ausgepackt im Speicher: ' + ms.imSpeicher.join(', ') : '')); }
+    if (typeof EREIGNISSE !== 'undefined') z.push('', EREIGNISSE.info() + (typeof PFERDE !== 'undefined' ? ', ' + PFERDE.alle().length + ' Pferde im Register' : ''));
     if (typeof SPEICHER !== 'undefined') z.push('', SPEICHER.info() + (typeof KALENDER !== 'undefined' ? ', ' + KALENDER.text() + ', ' + Math.round(KALENDER.wach()) + ' Spielstunden wach' : ''));
     var P = protokoll();
     z.push('', 'Fehler-Protokoll: ' + (P.length ? P.length + ' Einträge' : 'leer'));
@@ -84,7 +104,7 @@ var TECHNIK = (function () {
     if (navigator.share) knoepfe.push({ text: '📤 Teilen', klasse: 'zweit', aktion: function () { navigator.share({ title: 'Reitturnier – Messbericht', text: text }).catch(function () { /* abgebrochen */ }); } });
     else if (navigator.clipboard && navigator.clipboard.writeText) knoepfe.push({ text: '📋 Kopieren', klasse: 'zweit', aktion: function () { navigator.clipboard.writeText(text).then(function () { kern.meldung('Kopiert', 'knapp'); }, function () { /* egal */ }); } });
     if (typeof SOUND !== 'undefined' && SOUND.musikAlt) knoepfe.push({ text: SOUND.musikAlt() ? '🎵 Musik: alter Weg' : '🎵 Musik: Datenstrom', klasse: 'zweit', aktion: function () { SOUND.musikAlt(!SOUND.musikAlt()); zeigeBericht(); } });
-    knoepfe.push({ text: 'Protokoll leeren', klasse: 'zweit', aktion: function () { protokollLeeren(); welten = {}; kern.schliesseKarte(); } });
+    knoepfe.push({ text: 'Protokoll leeren', klasse: 'zweit', aktion: function () { protokollLeeren(); welten = {}; ruckler = []; ruckVoll = false; kern.schliesseKarte(); } });
     knoepfe.push({ text: 'Messanzeige aus', klasse: 'zweit', aktion: function () { messSchalten(false); kern.schliesseKarte(); } });
     knoepfe.push({ text: 'Schließen', aktion: function () { kern.schliesseKarte(); } });
     kern.zeigeKarte('mitte', '<h2>📏 Messbericht</h2><pre style="text-align:left;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:46vh;overflow:auto;user-select:text;-webkit-user-select:text">' + kern.esc(text) + '</pre>', knoepfe);

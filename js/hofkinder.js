@@ -60,32 +60,13 @@ var HOFKINDER = (function () {
     ['kreuz', 'trainTor'], ['trainTor', 'trainIn'], ['kreuz', 'turnTor'], ['turnTor', 'turnIn'], ['kreuz', 'longeVor'], ['longeVor', 'longeTor'], ['longeTor', 'longeMitte'],
     ['kreuz', 'maschVor'], ['maschVor', 'maschTor'], ['kreuz', 'suedTor'], ['suedTor', 'draussen'], ['wegN', 'putzVor'], ['putzVor', 'putz'],
     ['westTor', 'weideTor'], ['weideTor', 'weideIn'], ['ostTor', 'ostHof'], ['ostHof', 'rad']];
-  var nachbarn = null;
+  // Das Netz selbst (kürzester Weg von Punkt zu Punkt) rechnet PERSONEN.netz in js/personen.js
+  var netz = null;
   function baueNetz() {
     H.boxen.forEach(function (b) { KNOTEN['box' + b.nr] = [b.xc - 0.9, b.v * 3.3]; KANTEN.push(['box' + b.nr, 'g' + (b.nr % 3)]); });
-    nachbarn = {};
-    KANTEN.forEach(function (k) { (nachbarn[k[0]] = nachbarn[k[0]] || []).push(k[1]); (nachbarn[k[1]] = nachbarn[k[1]] || []).push(k[0]); });
+    netz = PERSONEN.netz(KNOTEN, KANTEN);
   }
-  function weite(a, b) { return Math.hypot(KNOTEN[a][0] - KNOTEN[b][0], KNOTEN[a][1] - KNOTEN[b][1]); }
-  // der kürzeste Weg von Punkt zu Punkt (Liste der Namen, der Start steht vorn)
-  function route(von, nach) {
-    var lang = {}, her = {}, offen = [von], fertig = {};
-    lang[von] = 0;
-    while (offen.length) {
-      offen.sort(function (a, b) { return lang[a] - lang[b]; });
-      var n = offen.shift();
-      if (n === nach) break;
-      if (fertig[n]) continue;
-      fertig[n] = true;
-      (nachbarn[n] || []).forEach(function (m) {
-        var l = lang[n] + weite(n, m);
-        if (lang[m] === undefined || l < lang[m]) { lang[m] = l; her[m] = n; offen.push(m); }
-      });
-    }
-    var weg = [nach];
-    while (weg[0] !== von && her[weg[0]]) weg.unshift(her[weg[0]]);
-    return weg;
-  }
+  function route(von, nach) { return netz.route(von, nach); }
 
   // Wo man im Stall steht, wenn es regnet (Platz 6 und 7 sind für Lotte und Mia)
   function stallPlatz(nr) { return [-9 + nr * 2, nr % 2 ? 0.95 : -0.95]; }
@@ -113,6 +94,11 @@ var HOFKINDER = (function () {
       f.wurzel.visible = false;
       H.szene.add(f.wurzel);
       kinder.push(K);
+      // anmelden, damit man das Kind ansprechen kann (js/reden.js) und Geschichten es finden (js/ereignisse.js)
+      PERSONEN.melde(name, (function (K) { return {
+        wo: function () { return { x: K.x, z: K.z, da: K.da && K.figur.wurzel.visible && K.lage !== 'fort', frei: !K.reitet && !K.modus && (K.lage === 'frei' || K.lage === 'hand' || K.lage === 'putz') }; },
+        halte: function (sek) { K.halt = sek; }
+      }; })(K));
       // mitten am Tag geladen: Die Kinder sind schon da
       if (h > K.kommt + 0.3 && h < K.geht) {
         var p = PAUSEN[i % PAUSEN.length];
@@ -443,7 +429,11 @@ var HOFKINDER = (function () {
       }
       if (!K.plan.length) nimmPlan(K, neuerPlan(K));
       K.laeuft = 0;
-      tu(K, dt);
+      if (K.halt > 0 && !was) {
+        // Jemand spricht mit dem Kind: stehen bleiben und hinschauen
+        K.halt -= dt;
+        if (!K.reitet) { K.kurs = Math.atan2(H.S.x - K.x, H.S.z - K.z); K.gruss = Math.min(K.gruss, 0); if (K.blase) K.blasZeit = 0; }
+      } else { K.halt = 0; tu(K, dt); }
       if (!K.da) return;
       P = K.pferd;
       // Gruß, wenn die Spielerin vorbeikommt
