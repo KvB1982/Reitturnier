@@ -19,7 +19,7 @@ import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Wer spricht mit welcher Stimme? (von Kristian am 27.11.2026 ausgesucht)
-export const STIMMEN = { emma: 'Laura', jonas: 'Will', lotte: 'Lily' };
+export const STIMMEN = { emma: 'Laura', jonas: 'Will', lotte: 'Lily', hanna: 'Sarah', lina: 'Jessica', mia: 'Matilda', ben: 'Liam', paul: 'Chris' };
 // Das Pflegepferd jeder Person, so wie es am Anfang heißt
 const PFLEGEPFERD = { emma: 'Blitz', jonas: 'Sternchen', hanna: 'Donner', ben: 'Karamell', lina: 'Flocke', paul: 'Krümel' };
 
