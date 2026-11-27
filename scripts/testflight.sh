@@ -4,7 +4,17 @@
 #
 # Ablauf: Spiel nach www/ kopieren, cap sync, Build-Nummer um 1 erhöhen,
 # archivieren, hochladen. Geht etwas schief, wird die alte Build-Nummer
-# wiederhergestellt. Voraussetzung: In Xcode ist das Apple-Konto angemeldet.
+# wiederhergestellt.
+#
+# Anmeldung bei Apple: mit einem App-Store-Connect-API-Schlüssel (derselbe wie beim
+# Rennspiel, er gilt für das ganze Team). Das Skript sucht außerhalb des Repositorys
+# zuerst ~/.appstoreconnect/reitturnier.env, sonst ~/.appstoreconnect/rennspiel.env:
+#   ASC_KEY_ID=…        Schlüssel-ID
+#   ASC_ISSUER_ID=…     Issuer-ID
+#   ASC_KEY_PATH=…      Pfad zur Datei AuthKey_….p8 (fehlt die Angabe: ~/.appstoreconnect/private_keys/AuthKey_<Schlüssel-ID>.p8)
+# Gibt es keine der Dateien, nimmt xcodebuild das Konto, das in Xcode angemeldet ist
+# (das ist für xcodebuild manchmal nicht sichtbar, dann scheitert der Upload).
+# Der Schlüssel selbst gehört nie ins Repository.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,6 +42,27 @@ trap aufraeumen EXIT
 
 echo "==> Version $VERSION, Build $ALT -> $NEU"
 
+# Anmeldung: API-Schlüssel, wenn es die Datei gibt, sonst das Konto aus Xcode
+ANMELDUNG=()
+for DATEI in "$HOME/.appstoreconnect/reitturnier.env" "$HOME/.appstoreconnect/rennspiel.env"; do
+  if [ -f "$DATEI" ]; then
+    # shellcheck disable=SC1090
+    . "$DATEI"
+    break
+  fi
+done
+if [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ]; then
+  SCHLUESSEL="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8}"
+  if [ ! -f "$SCHLUESSEL" ]; then
+    echo "FEHLER: API-Schlüssel nicht gefunden: $SCHLUESSEL" >&2
+    exit 1
+  fi
+  ANMELDUNG=(-authenticationKeyPath "$SCHLUESSEL" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+  echo "==> Anmeldung: App-Store-Connect-API-Schlüssel $ASC_KEY_ID"
+else
+  echo "==> Anmeldung: Konto aus Xcode"
+fi
+
 if [ ! -d node_modules ]; then
   echo "==> npm install"
   npm install
@@ -50,6 +81,7 @@ xcodebuild archive \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIV" \
   -allowProvisioningUpdates \
+  ${ANMELDUNG[@]+"${ANMELDUNG[@]}"} \
   -quiet
 
 echo "==> Hochladen zu App Store Connect"
@@ -57,7 +89,8 @@ xcodebuild -exportArchive \
   -archivePath "$ARCHIV" \
   -exportOptionsPlist "$EXPORT_OPTIONS" \
   -exportPath "$EXPORT_DIR" \
-  -allowProvisioningUpdates
+  -allowProvisioningUpdates \
+  ${ANMELDUNG[@]+"${ANMELDUNG[@]}"}
 
 fertig=1
 echo "==> Fertig: Version $VERSION, Build $NEU ist hochgeladen."
