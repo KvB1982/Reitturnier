@@ -12,6 +12,10 @@
 //        { text: 'Ich mag Regen.', herz: 1, dann: 'Du bist lustig!' },   // herz = Freundschaft, dann = Antwort der Person
 //        { text: 'Tschüs!' } ] }
 //
+//  Mehr geht auch: einmal: true = kommt nur ein einziges Mal. folge: 'name' bei einer
+//  Antwort = danach geht es mit dem Gespräch 'name' weiter. nurFolge: true = dieses
+//  Gespräch kommt nie von allein, nur als Folge. merker: 'name' = das Spiel merkt sich etwas.
+//
 //  In den Texten wird ersetzt: {ich} = dein Name, {pferd} = das Pflegepferd
 //  der Person, {meins} = dein Pferd, {fohlen} = das Fohlen.
 //
@@ -19,8 +23,9 @@
 //  es je Person nur einmal am Tag, sonst könnte man sie sich erreden.
 //
 //  Vorlesen: Schalter 🔈 in der Sprechblase (gilt für das Gerät). Gibt es
-//  zu einem Satz eine Aufnahme (Liste SPRACHE), wird sie abgespielt,
-//  sonst liest die Stimme des Geräts vor.
+//  zu einem Satz eine Aufnahme (Liste SPRACHE in sprache/sprache.js,
+//  gebaut mit tools/sprache.mjs), wird sie abgespielt, sonst liest die
+//  Stimme des Geräts vor.
 // ============================================================
 var REDEN = (function () {
   'use strict';
@@ -42,7 +47,21 @@ var REDEN = (function () {
         { text: 'Ich auch!', herz: 1, dann: 'Echt? Dann sind wir schon zwei.' },
         { text: 'Tief atmen hilft.', herz: 1, dann: 'Das probiere ich. Ein … aus … Ja, besser!' }] },
       { id: 'emma_geheim', wenn: { herzen: 3 }, einmal: true, text: 'Ich verrate dir was: Hinter der Mühle am Bach wachsen die besten Äpfel für Pferde.', antworten: [
-        { text: 'Das merke ich mir!', herz: 1, merker: 'geheimnis_aepfel', dann: 'Aber nicht weitersagen, ja?' }] }
+        { text: 'Das merke ich mir!', herz: 1, merker: 'geheimnis_aepfel', dann: 'Aber nicht weitersagen, ja?' }] },
+      { id: 'emma_koppel', wenn: { wetter: 'trocken' }, text: 'Warst du schon auf der großen Koppel? Da kann man ohne Sattel galoppieren!', antworten: [
+        { text: 'Ohne Sattel? Echt?', herz: 1, dann: 'Ja! Stell dich neben ein Pferd und steig einfach auf. Halt dich gut an der Mähne fest.' },
+        { text: 'Bin ich schon!', herz: 1, dann: 'Und? Bist du über den Baumstamm gesprungen? Das kribbelt so schön im Bauch.' },
+        { text: 'Tschüs!' }] },
+      { id: 'emma_stange', text: 'Gestern habe ich eine Stange gerissen. Es hat richtig laut gescheppert!', antworten: [
+        { text: 'Das passiert jedem mal.', herz: 1, dann: 'Sagt meine Reitlehrerin auch. Einfach weiterreiten und zum nächsten Sprung schauen.' },
+        { text: 'Hast du dich erschrocken?', herz: 1, dann: 'Ein bisschen. Aber mein Pferd ist ganz ruhig geblieben.' }] },
+      { id: 'emma_traum', wenn: { herzen: 2 }, text: 'Wenn ich groß bin, reite ich bei einem ganz großen Turnier mit. Mit Fernsehen und allem!', antworten: [
+        { text: 'Dann schaue ich zu!', herz: 1, dann: 'Abgemacht! Du bekommst den besten Platz ganz vorne.' },
+        { text: 'Und was, wenn du aufgeregt bist?', dann: 'Dann denke ich an den Hof. Hier bin ich nie aufgeregt.', weiterText: 'Das ist schön.', folge: 'emma_traum2' }] },
+      { id: 'emma_traum2', nurFolge: true, text: 'Und du? Was willst du mal werden?', antworten: [
+        { text: 'Reiterin, so wie du!', herz: 1, dann: 'Dann reiten wir zusammen. Das wird toll!' },
+        { text: 'Tierärztin für Pferde.', herz: 1, dann: 'Oh ja! Dann kommst du zu meinem Pferd, wenn es Bauchweh hat.' },
+        { text: 'Das weiß ich noch nicht.', dann: 'Macht nichts. Du hast ja noch viel Zeit.' }] }
     ],
     jonas: [
       { id: 'jonas_wald', text: 'Im Wald habe ich gestern ein Reh gesehen. Ganz nah!', antworten: [
@@ -51,7 +70,17 @@ var REDEN = (function () {
         { text: 'Tschüs!' }] },
       { id: 'jonas_weg', wenn: { herzen: 2 }, text: 'Soll ich dir meinen Lieblingsweg verraten? Durch den Bach und dann links den Hügel hoch.', antworten: [
         { text: 'Den reite ich mal!', herz: 1, dann: 'Oben sieht man den ganzen Hof. Lohnt sich!' },
-        { text: 'Ist der Bach nicht tief?', dann: 'Nein, nur bis zu den Fesseln. {pferd} planscht da gern.' }] }
+        { text: 'Ist der Bach nicht tief?', dann: 'Nein, nur bis zu den Fesseln. {pferd} planscht da gern.' }] },
+      { id: 'jonas_spuren', text: 'Ich kann Spuren lesen. Ein Reh hat zwei spitze Zehen, ein Pferd einen runden Huf.', antworten: [
+        { text: 'Und ein Fuchs?', herz: 1, dann: 'Der hat kleine Pfoten wie ein Hund. Und er läuft schnurgerade, wie auf einer Linie.' },
+        { text: 'Zeigst du mir mal welche?', herz: 1, dann: 'Klar! Nach dem Regen sieht man sie am besten, im weichen Boden.' },
+        { text: 'Tschüs!' }] },
+      { id: 'jonas_bach', wenn: { wetter: 'trocken' }, text: 'Auf der Koppel fließt ein kleiner Bach. Im Galopp spritzt das Wasser bis zu den Ohren!', antworten: [
+        { text: 'Das probiere ich aus!', herz: 1, dann: 'Mach das! Aber danach musst du die Beine von deinem Pferd abtrocknen.' },
+        { text: 'Wird das Pferd da nicht nass?', dann: 'Doch, klar. Aber Pferde mögen das. Die meisten jedenfalls.' }] },
+      { id: 'jonas_nacht', wenn: { herzen: 3 }, einmal: true, text: 'Nachts ist der Wald ganz anders. Dann rufen die Eulen, und alles raschelt.', antworten: [
+        { text: 'Warst du schon mal nachts dort?', herz: 1, merker: 'jonas_nacht', dann: 'Einmal, mit meinem Papa und einer Taschenlampe. Das war das Beste überhaupt!' },
+        { text: 'Das klingt gruselig.', dann: 'Nur am Anfang. Dann merkt man, dass es bloß die Tiere sind.' }] }
     ],
     hanna: [
       { id: 'hanna_dressur', text: 'Ich übe gerade Zirkel reiten. Der soll ganz rund werden, wie ein Teller.', antworten: [
@@ -60,7 +89,17 @@ var REDEN = (function () {
         { text: 'Tschüs!' }] },
       { id: 'hanna_ruhe', wenn: { herzen: 2 }, text: '{pferd} merkt sofort, wenn ich hibbelig bin. Pferde sind wie ein Spiegel.', antworten: [
         { text: 'Das kenne ich von {meins}.', herz: 1, dann: 'Siehst du! Dann seid ihr ein gutes Team.' },
-        { text: 'Wie ein Spiegel?', dann: 'Bin ich ruhig, ist {pferd} ruhig. Bin ich wild, wird {pferd} wild.' }] }
+        { text: 'Wie ein Spiegel?', dann: 'Bin ich ruhig, ist {pferd} ruhig. Bin ich wild, wird {pferd} wild.' }] },
+      { id: 'hanna_buchstaben', text: 'Kennst du die Buchstaben am Dressurplatz? A, K, E, H, C, M, B, F. Ich kann sie im Schlaf.', antworten: [
+        { text: 'Wie merkst du dir die?', herz: 1, dann: 'Mit einem Satz: Alte Kühe essen Heu, Clowns mögen bunte Federn. Lustig, oder?' },
+        { text: 'Wozu sind die gut?', herz: 1, dann: 'Sie sagen dir, wo du abbiegen oder antraben sollst. Wie Schilder an der Straße.' },
+        { text: 'Tschüs!' }] },
+      { id: 'hanna_putzen', wenn: { abStunde: 7, bisStunde: 11 }, text: 'Morgens putze ich am liebsten. Da ist es noch ganz still im Stall.', antworten: [
+        { text: 'Ich mag die Ruhe auch.', herz: 1, dann: 'Dann hören wir zusammen zu, wie die Pferde ihr Heu kauen.' },
+        { text: 'Ich bin morgens noch müde.', dann: 'Das Putzen macht wach. Versprochen!' }] },
+      { id: 'hanna_fehler', wenn: { herzen: 2 }, text: 'Früher habe ich geweint, wenn eine Lektion nicht geklappt hat. Jetzt übe ich sie einfach noch einmal.', antworten: [
+        { text: 'Das ist viel klüger.', herz: 1, dann: 'Finde ich auch. Und mein Pferd ist nie böse mit mir.' },
+        { text: 'Mir geht es manchmal auch so.', herz: 1, dann: 'Dann denk daran: Jeder Reiter hat mal klein angefangen.' }] }
     ],
     ben: [
       { id: 'ben_moehre', text: 'Pssst. Ich habe drei Möhren in der Tasche. Eine ist für {pferd}.', antworten: [
@@ -69,7 +108,17 @@ var REDEN = (function () {
         { text: 'Tschüs!' }] },
       { id: 'ben_hunger', wenn: { abStunde: 11, bisStunde: 14 }, text: 'Ist bald Mittag? Mein Bauch knurrt lauter als {pferd}.', antworten: [
         { text: 'Meiner auch!', herz: 1, dann: 'Dann essen wir gleich zusammen ein Brot auf der Bank.' },
-        { text: 'Erst die Pferde, dann wir.', herz: 1, dann: 'Stimmt. Erst füttern, dann futtern!' }] }
+        { text: 'Erst die Pferde, dann wir.', herz: 1, dann: 'Stimmt. Erst füttern, dann futtern!' }] },
+      { id: 'ben_heu', text: 'Rate mal, wie viel Heu ein Pferd am Tag frisst!', antworten: [
+        { text: 'Einen Eimer voll?', dann: 'Viel mehr! Ungefähr so viel, wie in eine ganze Schubkarre passt.' },
+        { text: 'Eine Schubkarre voll?', herz: 1, dann: 'Genau! Woher weißt du das? Du bist ja ein Profi.' },
+        { text: 'Tschüs!' }] },
+      { id: 'ben_apfel', wenn: { jahreszeit: 'Herbst' }, text: 'Im Herbst fallen die Äpfel von den Bäumen. Das ist die beste Zeit im Jahr!', antworten: [
+        { text: 'Für dich oder für die Pferde?', herz: 1, dann: 'Für uns alle! Ich teile gerecht. Meistens.' },
+        { text: 'Aber nicht zu viele füttern!', dann: 'Nein, nein. Zwei am Tag, mehr nicht. Ehrenwort.' }] },
+      { id: 'ben_witz', wenn: { herzen: 2 }, text: 'Kennst du den? Was ist klein, braun und galoppiert über die Wiese? Ein Pony-Keks!', antworten: [
+        { text: 'Haha, der ist gut!', herz: 1, dann: 'Ich habe noch mehr. Aber die erzähle ich dir morgen.' },
+        { text: 'Oh nein, Ben!', herz: 1, dann: 'Na gut, der war nicht so toll. Aber du hast gelacht!' }] }
     ],
     lina: [
       { id: 'lina_turnen', text: 'Guck mal, ich kann auf einem Bein stehen. Auf dem Pferd ist das viel schwerer!', antworten: [
@@ -77,7 +126,17 @@ var REDEN = (function () {
         { text: 'Hast du keine Angst?', herz: 1, dann: 'Nur ein bisschen. Das Pferd geht ja ganz ruhig im Kreis.' },
         { text: 'Tschüs!' }] },
       { id: 'lina_tipp', wenn: { herzen: 2 }, text: 'Mein Tipp fürs Voltigieren: Immer im Takt vom Pferd bleiben. Wie beim Tanzen!', antworten: [
-        { text: 'Danke, das probiere ich!', herz: 1, dann: 'Sag mir, ob es geklappt hat!' }] }
+        { text: 'Danke, das probiere ich!', herz: 1, dann: 'Sag mir, ob es geklappt hat!' }] },
+      { id: 'lina_fahne', text: 'Die Fahne ist meine Lieblingsübung. Ein Arm nach vorn, ein Bein nach hinten, und dann ganz lang machen!', antworten: [
+        { text: 'Wackelt das nicht?', herz: 1, dann: 'Doch, am Anfang sehr. Man muss den Bauch fest anspannen.' },
+        { text: 'Das will ich auch können.', herz: 1, dann: 'Üb erst auf dem Boden. Dann auf dem Holzpferd. Dann klappt es auch oben.' },
+        { text: 'Tschüs!' }] },
+      { id: 'lina_musik', wenn: { herzen: 1 }, text: 'Beim Voltigieren läuft Musik. Welche würdest du nehmen?', antworten: [
+        { text: 'Etwas Schnelles!', herz: 1, dann: 'Hui, dann muss das Pferd aber flott galoppieren!' },
+        { text: 'Etwas Ruhiges.', herz: 1, dann: 'Schön. Dann sehen die Übungen aus wie ein Tanz.' }] },
+      { id: 'lina_gruppe', wenn: { herzen: 3 }, einmal: true, text: 'Wir suchen noch jemanden für unsere Voltigiergruppe. Hättest du Lust?', antworten: [
+        { text: 'Ja, unbedingt!', herz: 1, merker: 'lina_gruppe', dann: 'Super! Komm zur Voltigierhalle und zeig, was du kannst.' },
+        { text: 'Ich überlege es mir.', dann: 'Kein Problem. Der Platz bleibt für dich frei.' }] }
     ],
     paul: [
       { id: 'paul_hufe', text: 'Wusstest du, dass ein Huf wächst wie ein Fingernagel? Darum kommt der Schmied.', antworten: [
@@ -85,7 +144,17 @@ var REDEN = (function () {
         { text: 'Das wusste ich nicht!', herz: 1, dann: 'Ich weiß noch mehr. Frag mich ruhig öfter!' },
         { text: 'Tschüs!' }] },
       { id: 'paul_eisen', wenn: { herzen: 2 }, text: 'Ein Hufeisen über der Tür bringt Glück. Aber nur, wenn die Öffnung nach oben zeigt!', antworten: [
-        { text: 'Warum nach oben?', herz: 1, dann: 'Sonst fällt das Glück heraus. Sagt mein Opa.' }] }
+        { text: 'Warum nach oben?', herz: 1, dann: 'Sonst fällt das Glück heraus. Sagt mein Opa.' }] },
+      { id: 'paul_zaehne', text: 'Am Gebiss kann man sehen, wie alt ein Pferd ist. Die Zähne werden immer länger und schräger.', antworten: [
+        { text: 'Putzen Pferde ihre Zähne?', herz: 1, dann: 'Nein. Aber einmal im Jahr kommt der Pferdezahnarzt und feilt sie glatt.' },
+        { text: 'Du weißt aber viel!', herz: 1, dann: 'Ich lese jeden Abend in meinem Pferdebuch. Es hat dreihundert Seiten.' },
+        { text: 'Tschüs!' }] },
+      { id: 'paul_schlaf', text: 'Wusstest du, dass Pferde im Stehen schlafen können? Sie stellen ihre Knie einfach fest.', antworten: [
+        { text: 'Legen sie sich nie hin?', herz: 1, dann: 'Doch, zum Träumen. Aber nur, wenn sie sich ganz sicher fühlen.' },
+        { text: 'Das würde ich auch gern können.', herz: 1, dann: 'Ich auch! Dann könnte ich in der Schule schlafen.' }] },
+      { id: 'paul_traktor', wenn: { herzen: 2 }, text: 'Der Traktor hinter dem Hofplatz hat vier Zylinder. Ich durfte schon mal auf dem Sitz sitzen!', antworten: [
+        { text: 'Bist du auch gefahren?', herz: 1, dann: 'Nein, dafür bin ich noch zu klein. Aber ich weiß schon, wo die Bremse ist.' },
+        { text: 'Pferde oder Traktoren?', dann: 'Pferde. Aber ganz knapp!' }] }
     ],
     lotte: [
       { id: 'lotte_fohlen', wenn: { fohlen: true }, text: '{fohlen} wächst so schnell! Hast du heute schon nach ihm geschaut?', antworten: [
@@ -93,12 +162,31 @@ var REDEN = (function () {
         { text: 'Mache ich gleich.', dann: 'Es steht meistens auf der Weide hinter dem Stall.' }] },
       { id: 'lotte_hof', text: 'Ich wohne hier auf dem Hof. Morgens wecken mich die Pferde mit ihrem Wiehern.', antworten: [
         { text: 'Das ist bestimmt schön!', herz: 1, dann: 'Ja. Nur am Sonntag könnten sie länger schlafen.' },
-        { text: 'Tschüs!' }] }
+        { text: 'Tschüs!' }] },
+      { id: 'lotte_flasche', wenn: { fohlen: true }, text: 'Beim Fläschchen musst du die Flasche schön schräg halten. Dann schluckt das Fohlen keine Luft.', antworten: [
+        { text: 'Danke für den Tipp!', herz: 1, dann: 'Gern. Und danach kraulst du es am Hals, das mag es am liebsten.' },
+        { text: 'Trinkt es immer alles aus?', dann: 'Meistens. Wenn nicht, ist es einfach satt. Das ist nicht schlimm.' }] },
+      { id: 'lotte_abend', wenn: { abStunde: 17 }, text: 'Abends gehe ich noch einmal durch den Stall und sage allen Pferden gute Nacht.', antworten: [
+        { text: 'Darf ich mal mitkommen?', herz: 1, dann: 'Na klar. Aber leise, die ersten dösen dann schon.' },
+        { text: 'Antworten sie dir?', herz: 1, dann: 'Manche schnauben. Ich glaube, das heißt gute Nacht.' }] },
+      { id: 'lotte_herde', wenn: { wetter: 'trocken' }, text: 'Hast du gesehen? Wenn einer auf der Koppel losgaloppiert, rennen alle anderen mit.', antworten: [
+        { text: 'Warum machen sie das?', herz: 1, dann: 'Pferde sind Herdentiere. Zusammen fühlen sie sich sicher. Und es macht ihnen Spaß!' },
+        { text: 'Sogar das Fohlen!', herz: 1, dann: 'Ja! Es ist noch wackelig, aber es will immer vorne dabei sein.' }] },
+      { id: 'lotte_ferien', wenn: { herzen: 2 }, text: 'Bald kommen wieder Ferienkinder auf den Hof. Dann ist hier richtig was los!', antworten: [
+        { text: 'Ich freue mich schon!', herz: 1, dann: 'Ich mich auch. Vielleicht findest du ja neue Freunde.' },
+        { text: 'Wo schlafen die denn?', dann: 'Im Heuhotel über dem Stall. Das ist das Gemütlichste, was es gibt.' }] }
     ],
     mia: [
       { id: 'mia_rad', text: 'Ich komme jeden Tag mit dem Rad. Bergauf ist es anstrengend, aber heim geht es von allein!', antworten: [
         { text: 'Wie weit ist es denn?', herz: 1, dann: 'Drei Kilometer. Dafür bin ich abends richtig müde.' },
-        { text: 'Tschüs!' }] }
+        { text: 'Tschüs!' }] },
+      { id: 'mia_ausritt', text: 'Am liebsten reite ich aus. Einfach los, ohne Plan, und schauen, wohin der Weg führt.', antworten: [
+        { text: 'Verirrst du dich nie?', herz: 1, dann: 'Einmal fast. Aber Pferde finden immer nach Hause. Die riechen ihren Stall!' },
+        { text: 'Das mache ich auch gern.', herz: 1, dann: 'Dann treffen wir uns bestimmt mal an der Mühle.' },
+        { text: 'Tschüs!' }] },
+      { id: 'mia_picknick', wenn: { herzen: 2, wetter: 'trocken' }, text: 'Am See gibt es eine Stelle, die ist wie gemacht für ein Picknick. Mit Blick aufs Wasser!', antworten: [
+        { text: 'Was packst du ein?', herz: 1, dann: 'Brote für mich und Möhren für mein Pferd. Jeder bekommt, was er mag.' },
+        { text: 'Die suche ich mal.', herz: 1, dann: 'Reite einfach am Ufer entlang. Du erkennst sie an der großen Weide.' }] }
     ],
     '*': [
       { id: 'alle_regen', wenn: { wetter: 'regen' }, text: 'So ein Wetter! Die Pferde stehen lieber trocken. Ich auch.', antworten: [
@@ -113,6 +201,15 @@ var REDEN = (function () {
       { id: 'alle_meins', text: 'Wie geht es {meins}? Ihr zwei seid oft zusammen unterwegs.', antworten: [
         { text: 'Gut! Wir üben fleißig.', herz: 1, dann: 'Das sieht man. {meins} schaut dir schon hinterher.' },
         { text: 'Und wie geht es {pferd}?', herz: 1, dann: 'Prima! Danke, dass du fragst.' },
+        { text: 'Tschüs!' }] },
+      { id: 'alle_morgen', wenn: { bisStunde: 9, wetter: 'trocken' }, text: 'Guten Morgen! So früh riecht der Hof nach frischem Heu.', antworten: [
+        { text: 'Guten Morgen! Gut geschlafen?', herz: 1, dann: 'Wie ein Murmeltier. Und jetzt freue ich mich auf die Pferde.' },
+        { text: 'Ich bin noch müde.', dann: 'Das vergeht gleich. Spätestens beim Ausmisten!' }] },
+      { id: 'alle_gewitter', wenn: { wetter: 'gewitter' }, text: 'Hast du den Donner gehört? Gut, dass die Pferde im Stall sind.', antworten: [
+        { text: 'Haben sie Angst?', herz: 1, dann: 'Ein bisschen. Darum bleiben wir bei ihnen und reden ruhig mit ihnen.' },
+        { text: 'Ich mag Gewitter nicht.', herz: 1, dann: 'Hier drin kann uns nichts passieren. Es zieht bald vorbei.' }] },
+      { id: 'alle_koppel', wenn: { wetter: 'trocken', abStunde: 10, bisStunde: 17 }, text: 'Die Pferde stehen heute auf der großen Koppel. Da haben sie richtig viel Platz zum Toben.', antworten: [
+        { text: 'Da gehe ich gleich hin!', herz: 1, dann: 'Folge einfach dem Wegweiser neben dem Stall.' },
         { text: 'Tschüs!' }] },
       { id: 'alle_hallo', text: 'Hallo {ich}! Schön, dass du da bist.', antworten: [
         { text: 'Hallo! Was machst du gerade?', herz: 1, dann: 'Ich kümmere mich um {pferd}. Es gibt immer etwas zu tun.' },
@@ -143,9 +240,12 @@ var REDEN = (function () {
   }
 
   // ---------- Platzhalter in den Texten ----------
+  // Wer gerade kein Pflegepferd hat (Lotte, Mia oder das Kind, dessen Pferd jetzt dir gehört),
+  // erzählt vom Schulpony Mücke. Ein Name passt in jeden Satz, "mein Pferd" nicht ("mit mein Pferd").
+  var OHNE_PFERD = 'Mücke';
   function pflegePferd(wer) {
     var b = PERSONEN.brief(wer), liste = PFERDE.alle(function (p) { return p.imStall && b && p.besitzer === b.name; });
-    return liste.length ? liste[0].name : 'mein Pferd';
+    return liste.length ? liste[0].name : OHNE_PFERD;
   }
   function fuelle(text, wer) {
     var ich = typeof SPEICHER !== 'undefined' && SPEICHER.ich() ? SPEICHER.ich().name : 'du';
@@ -159,7 +259,7 @@ var REDEN = (function () {
   function waehle(wer) {
     var s = PERSONEN.stand(wer);
     s.gehoert = s.gehoert || {};
-    function kandidaten(liste) { return (liste || []).filter(function (g) { return passt(g.wenn, wer) && !(g.einmal && s.gehoert[g.id]); }); }
+    function kandidaten(liste) { return (liste || []).filter(function (g) { return passt(g.wenn, wer) && !g.nurFolge && !(g.einmal && s.gehoert[g.id]); }); }
     var eigene = kandidaten(GESPRAECHE[wer]), alle = kandidaten(GESPRAECHE['*']);
     // Der einfache Gruß 'alle_hallo' ist nur der Notnagel
     var pool = eigene.concat(alle.filter(function (g) { return g.id !== 'alle_hallo'; }));
@@ -184,10 +284,23 @@ var REDEN = (function () {
   function liesVor(text, schluessel, wer) {
     stumm();
     if (!vorlesen || !text) return;
-    var datei = typeof SPRACHE !== 'undefined' && SPRACHE && SPRACHE[schluessel];
-    if (datei) {
-      try { ton = new Audio(datei); ton.play().catch(function () { /* egal */ }); return; } catch (e) { /* dann die Gerätestimme */ }
+    // Gibt es eine Aufnahme mit genau diesem Satz? (Heißt ein Pferd inzwischen anders, passt sie nicht mehr.)
+    // Mit ~ am Ende: derselbe Satz noch einmal für Kinder ohne Pflegepferd (dann mit "Mücke").
+    var name = wer + '/' + schluessel, L = typeof SPRACHE !== 'undefined' && SPRACHE ? SPRACHE : {};
+    if (L[name] !== text && L[name + '~'] === text) name += '~';
+    if (L[name] === text) {
+      try {
+        var t = ton = new Audio('sprache/' + name + '.mp3');
+        t.onerror = function () { if (ton === t) { ton = null; stimme(text, wer); } };      // Datei fehlt: dann liest das Gerät
+        var p = t.play();
+        if (p && p.catch) p.catch(function () { /* egal */ });
+        return;
+      } catch (e) { /* dann die Gerätestimme */ }
     }
+    stimme(text, wer);
+  }
+  // Die Stimme des Geräts (klingt je nach Gerät anders)
+  function stimme(text, wer) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
     try {
       var u = new SpeechSynthesisUtterance(text.replace(/[^\wäöüÄÖÜß .,!?:;'-]/g, ' '));
@@ -249,7 +362,7 @@ var REDEN = (function () {
     if (neuesHerz) { KERN.meldung('❤️ Ein neues Herz bei ' + (PERSONEN.brief(L.wer) || { name: L.wer }).name + '!', 'knapp'); KERN.klang('gut'); }
     if (a.tun) { try { a.tun(); } catch (e2) { if (typeof TECHNIK !== 'undefined') TECHNIK.merke(e2, 'Gespräch ' + (g && g.id)); } }
     STAND.speichere();
-    if (a.dann) { L.letzte = a; zeige(a.dann, (g && g.id) + '_' + nr, [{ text: a.weiterText || 'Bis später!' }]); return; }
+    if (a.dann) { L.letzte = a; zeige(a.dann, (g && g.id) + '_' + nr, [{ text: a.weiterText || (a.folge ? 'Und dann?' : 'Bis später!'), folge: a.folge }]); return; }
     if (a.folge) { var n = finde(a.folge); if (n) { L.gespraech = n; zeige(n.text, n.id, n.antworten); return; } }
     ende(L.letzte || a);
   }
@@ -304,6 +417,7 @@ var REDEN = (function () {
   return {
     GESPRAECHE: GESPRAECHE, starte: starte, ende: function () { ende(); }, schritt: schritt, passt: passt, fuelle: fuelle, waehle: waehle,
     offen: function () { return !!laeuft; }, mit: function () { return laeuft ? laeuft.wer : null; },
+    liesVor: liesVor,
     vorlesen: function (an) { if (an !== undefined) { vorlesen = !!an; try { localStorage.setItem(VOR_NAME, vorlesen ? '1' : '0'); } catch (e) { /* egal */ } } return vorlesen; },
     // zum Testen: Antwort Nummer n wählen
     waehleAntwort: function (n) { if (laeuft && laeuft.knoepfe[n]) laeuft.knoepfe[n](); }
