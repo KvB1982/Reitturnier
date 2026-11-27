@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'www');
 // sw.js fehlt absichtlich: Die App braucht keinen Offline-Speicher des Browsers.
-const FILES = ['index.html', 'manifest.webmanifest', 'css', 'js', 'modelle', 'sounds', 'musik', 'icons'];
+const FILES = ['index.html', 'manifest.webmanifest', 'css', 'js', 'modelle', 'sounds', 'musik', 'sprache', 'icons'];
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
