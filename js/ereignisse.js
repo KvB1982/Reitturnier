@@ -49,7 +49,43 @@ var EREIGNISSE = (function () {
             { text: 'Hier, bitte schön!', weiter: true, dann: 'Danke, danke, danke! Jetzt kann ich {pferd} endlich die Hufe machen.' },
             { text: 'Er lag am Putzplatz.', weiter: true, dann: 'Wusste ich es doch! Danke, {ich}. Du hast was gut bei mir.' }] }
       ],
-      lohn: { muenzen: 5, herz: { emma: 3 }, text: 'Emma hat ihren Hufkratzer wieder.' } }
+      lohn: { muenzen: 5, herz: { emma: 3 }, text: 'Emma hat ihren Hufkratzer wieder.' } },
+    // Ferienkinder (js/ferienkinder.js). "gast" = dieses Kind ist gerade zu Besuch. Reist es ab, hört die Geschichte auf und kann beim nächsten Besuch neu anfangen.
+    { id: 'ferien_rucksack', titel: 'Der vergessene Rucksack', welt: 'hof',
+      wenn: { gast: 'tom', gastTag: [2, 3], abStunde: 9, bisStunde: 14, wetter: 'trocken' }, pause: 8,
+      schritte: [
+        { art: 'rede', wer: 'tom', hinweis: '❗ Tom schaut sich suchend um. Geh zu ihm und sprich ihn an (Knopf „💬 Reden“).',
+          text: 'Mein Rucksack ist weg! Der blaue, mit der Decke obendrauf. Beim Springen hatte ich ihn noch.',
+          antworten: [
+            { text: 'Ich schaue am Trainingsplatz nach!', weiter: true, dann: 'Danke, {ich}! Da war ich am Zaun, gleich beim Tor.' },
+            { text: 'Was ist denn drin?', weiter: true, dann: 'Mein Kuscheltier! Aber sag das bitte keinem. Schaust du am Trainingsplatz nach?' },
+            { text: 'Jetzt gerade nicht.', dann: 'Schade. Dann suche ich allein weiter.' }] },
+        { art: 'ort', x: -21.9, z: 17.2, r: 2.0, hinweis: '🔎 Such am Zaun vom Trainingsplatz nach Toms blauem Rucksack. Das ❗ zeigt dir die Stelle.',
+          aktion: '🎒 Rucksack aufheben', meldung: 'Da lehnt er ja am Zaun!' },
+        { art: 'rede', wer: 'tom', hinweis: '🎁 Bring Tom seinen Rucksack zurück.',
+          text: 'Hast du ihn gefunden?',
+          antworten: [
+            { text: 'Hier ist er!', weiter: true, dann: 'Juhu! Und mein Kuscheltier ist auch noch drin. Du bist ein echter Freund.' },
+            { text: 'Er lehnte am Zaun.', weiter: true, dann: 'Da habe ich ihn abgestellt! Ich verliere einfach alles. Danke, {ich}!' }] }
+      ],
+      lohn: { muenzen: 5, herz: { tom: 3 }, text: 'Tom hat seinen Rucksack wieder. Und sein Kuscheltier.' } },
+    { id: 'ferien_fohlen', titel: 'Carlas Frage Nummer eins', welt: 'hof',
+      wenn: { gast: 'carla', gastTag: [1, 2], abStunde: 10, bisStunde: 15, wetter: 'trocken', fohlen: true }, pause: 8,
+      schritte: [
+        { art: 'rede', wer: 'carla', hinweis: '❗ Carla blättert in ihrem Heft. Geh zu ihr und sprich sie an (Knopf „💬 Reden“).',
+          text: 'Alle reden von einem Fohlen, aber ich finde es nicht. Schaust du für mich nach, wo es gerade ist?',
+          antworten: [
+            { text: 'Klar, ich schaue an der Koppel nach!', weiter: true, dann: 'Super! Ich warte hier und schreibe solange die Frage in mein Heft.' },
+            { text: 'Jetzt gerade nicht.', dann: 'Na gut. Dann suche ich erst mal weiter.' }] },
+        { art: 'ort', x: -17.4, z: -3.4, r: 2.4, hinweis: '🐴 Geh zum Tor der Koppel westlich vom Stall und schau nach dem Fohlen. Das ❗ zeigt dir die Stelle.',
+          meldung: 'Da ist es ja!' },
+        { art: 'rede', wer: 'carla', hinweis: '💬 Erzähl Carla, wo das Fohlen ist.',
+          text: 'Und? Hast du es gefunden?',
+          antworten: [
+            { text: 'Tagsüber ist es auf der Koppel hinter dem Stall.', weiter: true, dann: 'Hinter dem Stall! Das schreibe ich auf. Antwort Nummer eins: gefunden.' },
+            { text: 'Abends wohnt es in der Fohlenbox am Stall.', weiter: true, dann: 'Eine eigene Box, wie ein Kinderzimmer! Das schreibe ich auf.' }] }
+      ],
+      lohn: { muenzen: 4, herz: { carla: 3 }, text: 'Carla weiß jetzt, wo das Fohlen wohnt.' } }
   ];
   function finde(id) { for (var i = 0; i < GESCHICHTEN.length; i++) if (GESCHICHTEN[i].id === id) return GESCHICHTEN[i]; return null; }
   // Eine Geschichte dazunehmen (zum Beispiel aus einer anderen Datei)

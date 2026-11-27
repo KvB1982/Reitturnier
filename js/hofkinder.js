@@ -54,12 +54,14 @@ var HOFKINDER = (function () {
     longeVor: [-10, 22.6], longeTor: [-10, 26.4], longeMitte: [-10, 34],
     maschVor: [12, 22.8], maschTor: [12, 27.4], suedTor: [0, 44.5], draussen: [0, 63],
     putzVor: [-4.2, 16.2], putz: [-11.8, 15.2], weideTor: [-16.6, -1.6], weideIn: [-21.5, -2],
-    ostHof: [16, -0.6], rad: [19.6, -10.2]
+    ostHof: [16, -0.6], rad: [19.6, -10.2],
+    haus: [13, -12.6], zufahrt: [21.3, -16], bus: [19.3, -24.6]          // für die Ferienkinder (js/ferienkinder.js): Wohnhaus, Zufahrt, Bushalt
   };
   var KANTEN = [['westTor', 'g0'], ['g0', 'g1'], ['g1', 'g2'], ['g2', 'gO'], ['gO', 'ostTor'], ['ostTor', 'hofSO'], ['hofSO', 'wegN'], ['wegN', 'kreuz'],
     ['kreuz', 'trainTor'], ['trainTor', 'trainIn'], ['kreuz', 'turnTor'], ['turnTor', 'turnIn'], ['kreuz', 'longeVor'], ['longeVor', 'longeTor'], ['longeTor', 'longeMitte'],
     ['kreuz', 'maschVor'], ['maschVor', 'maschTor'], ['kreuz', 'suedTor'], ['suedTor', 'draussen'], ['wegN', 'putzVor'], ['putzVor', 'putz'],
-    ['westTor', 'weideTor'], ['weideTor', 'weideIn'], ['ostTor', 'ostHof'], ['ostHof', 'rad']];
+    ['westTor', 'weideTor'], ['weideTor', 'weideIn'], ['ostTor', 'ostHof'], ['ostHof', 'rad'],
+    ['ostHof', 'haus'], ['rad', 'haus'], ['rad', 'zufahrt'], ['zufahrt', 'bus']];
   // Das Netz selbst (kürzester Weg von Punkt zu Punkt) rechnet PERSONEN.netz in js/personen.js
   var netz = null;
   function baueNetz() {
@@ -522,6 +524,6 @@ var HOFKINDER = (function () {
     baue: baue, schritt: schritt, hindernisse: hindernisse, alleHeim: alleHeim, fuehre: fuehre, belegt: belegt,
     // wer longiert gerade? (damit die Spielerin nicht in denselben Zirkel geht)
     werLongiert: function () { var K = kinder.filter(function (k) { return k.da && k.platz === 'longe'; })[0]; return K ? K.name : null; },
-    kinder: function () { return kinder; }, knoten: KNOTEN, platz: PLATZ
+    kinder: function () { return kinder; }, knoten: KNOTEN, platz: PLATZ, route: route
   };
 })();
