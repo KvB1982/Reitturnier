@@ -114,6 +114,7 @@ WELTEN.hof = (function () {
     STURM.baueHof(ctx);
     HOFTAG.baue(ctx);
     HOFKINDER.baue(ctx);
+    FERIEN.baue(ctx);
     gebaut = true;
   }
 
@@ -1117,7 +1118,7 @@ WELTEN.hof = (function () {
   // nachts kommen alle Pferde in ihre Boxen; gibt die Namen zurueck
   function bringeHeim() {
     var namen = [];
-    HOFKINDER.alleHeim();               // die Hofkinder haben ihre Pferde selbst weggebracht
+    HOFKINDER.alleHeim(); FERIEN.alleHeim();               // die Hofkinder haben ihre Pferde selbst weggebracht
     if (HOFLEBEN.fohlenHeim()) namen.push(STAND.daten.fohlen.name || 'das Fohlen');
     if (S.reitet) steigeAb(true);
     pferde.forEach(function (P) { if (P.ort !== 'box') { namen.push(P.def.name); inBox(P); } });
@@ -1351,7 +1352,7 @@ WELTEN.hof = (function () {
   function schritt(dt, z) {
     zeit = z;
     bewegeSpielerin(dt);
-    HOFKINDER.schritt(dt, zeit);          // erst die Kinder, dann ihre Pferde
+    HOFKINDER.schritt(dt, zeit); FERIEN.schritt(dt);          // erst die Kinder, dann ihre Pferde
     bewegePferde(dt);
     bewegeMaedchen(dt);
     if (modus === 'pflege') PFLEGE.schritt(dt, zeit);

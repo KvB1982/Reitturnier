@@ -37,6 +37,7 @@ var REDEN = (function () {
 
   // ---------- Die Gespräche ----------
   // '*' = passt zu jeder Person. Die eigenen Gespräche einer Person kommen zuerst dran.
+  // 'gast' = passt zu jedem Ferienkind (js/ferienkinder.js).
   var GESPRAECHE = {
     emma: [
       { id: 'emma_sprung', wenn: { wetter: 'trocken' }, text: 'Heute übe ich mit {pferd} den Oxer. Der ist ganz schön breit!', antworten: [
@@ -188,6 +189,91 @@ var REDEN = (function () {
         { text: 'Was packst du ein?', herz: 1, dann: 'Brote für mich und Möhren für mein Pferd. Jeder bekommt, was er mag.' },
         { text: 'Die suche ich mal.', herz: 1, dann: 'Reite einfach am Ufer entlang. Du erkennst sie an der großen Weide.' }] }
     ],
+    // ---------- Die Ferienkinder ----------
+    gast: [
+      { id: 'gast_ankunft', wenn: { gastTag: 1, wieder: false }, text: 'Hallo! Wir sind gerade mit dem Bus gekommen. Wohnst du hier auf dem Hof?', antworten: [
+        { text: 'Ja! Herzlich willkommen!', herz: 1, dann: 'Danke! Ich bin schon ganz aufgeregt. So viele Pferde!' },
+        { text: 'Soll ich dir etwas zeigen?', herz: 1, dann: 'Oh ja! Wo sind denn die Pferde, wenn sie nicht im Stall stehen?', weiterText: 'Auf der Koppel hinter dem Stall.', folge: 'gast_ankunft2' },
+        { text: 'Tschüs!' }] },
+      { id: 'gast_ankunft2', nurFolge: true, text: 'Hinter dem Stall? Da gehe ich nachher gleich hin. Danke, {ich}!', antworten: [
+        { text: 'Gern! Viel Spaß bei uns.', herz: 1 }] },
+      { id: 'gast_wieder', wenn: { gastTag: 1, wieder: true }, text: '{ich}! Ich bin wieder da! Ich habe mich die ganze Busfahrt auf den Hof gefreut.', antworten: [
+        { text: 'Schön, dass du wieder da bist!', herz: 1, dann: 'Ich habe allen zu Hause von dir und den Pferden erzählt.' },
+        { text: 'Hier hat sich viel getan!', herz: 1, dann: 'Echt? Dann musst du mir alles erzählen!' }] },
+      { id: 'gast_abschied', wenn: { gastTag: 3, abStunde: 12 }, text: 'Heute Nachmittag holt uns der Bus ab. Ich will noch gar nicht weg!', antworten: [
+        { text: 'Du kommst doch bald wieder, oder?', herz: 1, dann: 'Ganz bestimmt! In den nächsten Ferien bin ich wieder da.' },
+        { text: 'Ich werde dich vermissen.', herz: 1, dann: 'Ich dich auch, {ich}. Pass gut auf die Pferde auf!' },
+        { text: 'Gute Heimreise!', dann: 'Danke! Ich winke dir aus dem Bus.' }] },
+      { id: 'gast_fohlen', wenn: { fohlen: true, wetter: 'trocken' }, text: 'Ich habe vorhin {fohlen} gesehen. Die Beine sind ja länger als der ganze Bauch!', antworten: [
+        { text: 'Damit kann es schon richtig rennen.', herz: 1, dann: 'Das habe ich gesehen! Es ist über die halbe Koppel gesaust.' },
+        { text: 'Abends kommt es in seine Box.', herz: 1, dann: 'Darf ich dann zuschauen? Ich bin auch ganz leise.' }] },
+      { id: 'gast_frage_huf', text: 'Darf ich dich etwas fragen? Tut es den Pferden weh, wenn man ihnen die Hufe auskratzt?', antworten: [
+        { text: 'Nein, das ist wie Fingernägel putzen.', herz: 1, dann: 'Ach so! Dann traue ich mich morgen vielleicht auch mal.' },
+        { text: 'Nein. Aber man muss vorsichtig sein.', herz: 1, dann: 'Das merke ich mir. Immer schön langsam.' }] },
+      { id: 'gast_frage_schlaf', wenn: { herzen: 1 }, text: 'Stimmt es, dass Pferde im Stehen schlafen?', antworten: [
+        { text: 'Ja, sie dösen im Stehen.', herz: 1, dann: 'Und sie fallen nicht um? Das möchte ich auch können!' },
+        { text: 'Ja. Für den tiefen Schlaf legen sie sich aber hin.', herz: 1, dann: 'Das wusste ich nicht. Du weißt aber viel über Pferde!' }] },
+      { id: 'gast_regen', wenn: { wetter: 'regen' }, text: 'Bei uns zu Hause bleibe ich bei Regen drinnen. Hier ist es sogar im Stall schön.', antworten: [
+        { text: 'Hör mal, wie die Pferde kauen.', herz: 1, dann: 'Stimmt! Das klingt richtig gemütlich.' },
+        { text: 'Gleich scheint wieder die Sonne.', dann: 'Hoffentlich! Ich will noch zur Koppel.' }] },
+      { id: 'gast_abend', wenn: { abStunde: 17 }, text: 'Heute Abend dürfen wir im Wohnhaus noch eine Geschichte hören. Dann schlafe ich bestimmt sofort ein.', antworten: [
+        { text: 'Was war heute am schönsten?', herz: 1, dann: 'Alles! Aber am allerschönsten waren die weichen Pferdenasen.' },
+        { text: 'Schlaf gut!', herz: 1, dann: 'Du auch, {ich}. Bis morgen!' }] },
+      { id: 'gast_meins', wenn: { herzen: 1 }, text: 'Ist {meins} wirklich dein eigenes Pferd? Du hast es gut!', antworten: [
+        { text: 'Ja. Ich kümmere mich jeden Tag darum.', herz: 1, dann: 'Jeden Tag? Auch wenn es regnet? Das ist ganz schön viel Arbeit.' },
+        { text: 'Willst du es mal streicheln?', herz: 1, dann: 'Darf ich? Ich bin auch ganz vorsichtig!' }] },
+      { id: 'gast_hallo', text: 'Hallo {ich}! Hier gibt es so viel zu sehen.', antworten: [
+        { text: 'Was gefällt dir am besten?', herz: 1, dann: 'Dass man die Pferde überall hört. Sogar nachts im Bett!' },
+        { text: 'Tschüs!' }] }
+    ],
+    frieda: [
+      { id: 'frieda_stadt', text: 'In der Stadt sehe ich nie Pferde. Ich habe noch nie eins gestreichelt!', antworten: [
+        { text: 'Dann wird es Zeit!', herz: 1, dann: 'Meinst du? Vielleicht fange ich mit einem ganz kleinen an.' },
+        { text: 'Halte ihm die flache Hand hin.', herz: 1, dann: 'Die flache Hand. Gut. Und dann schnuppert es daran?' }] },
+      { id: 'frieda_mut', wenn: { herzen: 2 }, text: 'Weißt du was? Ich habe heute ein Pferd an der Nase gestreichelt. Sie ist ganz weich!', antworten: [
+        { text: 'Das war mutig von dir!', herz: 1, dann: 'Mein Herz hat ganz laut geklopft. Aber jetzt will ich es wieder tun.' },
+        { text: 'Wie Samt, oder?', herz: 1, dann: 'Genau! Wie das Samtkissen von meiner Oma.' }] }
+    ],
+    tom: [
+      { id: 'tom_traktor', text: 'Habt ihr den Traktor gesehen? Der ist riesig! Darf man damit fahren?', antworten: [
+        { text: 'Nur die Großen.', dann: 'Schade. Dann schaue ich ihn mir wenigstens ganz genau an.' },
+        { text: 'Der bringt das Heu vom Feld.', herz: 1, dann: 'Für die Pferde? Dann ist er ja der wichtigste Mitarbeiter auf dem Hof!' }] },
+      { id: 'tom_meer', wenn: { herzen: 1 }, text: 'Ich wohne am Meer. Da reiten manchmal Leute am Strand entlang, bis ins Wasser.', antworten: [
+        { text: 'Das möchte ich auch mal!', herz: 1, dann: 'Dann besuchst du mich. Ich zeige dir die beste Stelle.' },
+        { text: 'Mögen Pferde Wellen?', herz: 1, dann: 'Manche schon. Die planschen wie kleine Kinder.' }] }
+    ],
+    nele: [
+      { id: 'nele_malen', text: 'Ich male gerade alle Pferde vom Hof in meinen Block. Pferdebeine sind so schwer zu malen!', antworten: [
+        { text: 'Zeigst du mir ein Bild?', herz: 1, dann: 'Erst wenn es fertig ist. Dann bekommst du das schönste.' },
+        { text: 'Welches Pferd malst du zuerst?', herz: 1, dann: 'Das mit der weißen Blesse. Die sieht aus wie ein Blitz.' }] },
+      { id: 'nele_berge', wenn: { herzen: 1 }, text: 'Bei uns in den Bergen tragen die Pferde im Sommer Glocken, damit man sie auf der Alm wiederfindet.', antworten: [
+        { text: 'Das klingt bestimmt schön.', herz: 1, dann: 'Ja! Abends hört man sie über das ganze Tal.' },
+        { text: 'Laufen sie dort einfach frei herum?', herz: 1, dann: 'Den ganzen Sommer lang. Im Herbst holen wir sie wieder ins Tal.' }] }
+    ],
+    carla: [
+      { id: 'carla_fragen', text: 'Ich habe ein Heft mit hundert Fragen über Pferde mitgebracht. Frage eins: Wie viel frisst ein Pferd am Tag?', antworten: [
+        { text: 'Viel Heu, einen ganzen Arm voll und mehr.', herz: 1, dann: 'Das schreibe ich auf. Und dazu Hafer und Möhren, oder?' },
+        { text: 'Es frisst fast den ganzen Tag.', herz: 1, dann: 'Den ganzen Tag essen! Das würde mir auch gefallen.' }] },
+      { id: 'carla_wasser', wenn: { herzen: 1 }, text: 'Frage siebzehn: Wie viel trinkt ein Pferd? Ich habe am Trog zugeschaut und nicht mehr mitzählen können.', antworten: [
+        { text: 'Mehrere Eimer am Tag.', herz: 1, dann: 'Mehrere Eimer! Kein Wunder, dass der Trog so groß ist.' },
+        { text: 'Im Sommer noch viel mehr.', herz: 1, dann: 'Logisch. Wenn es heiß ist, habe ich auch mehr Durst.' }] }
+    ],
+    oskar: [
+      { id: 'oskar_gross', text: 'Die Pferde sind so groß. Ich bleibe lieber ein Stück weg. Bist du gar nicht ängstlich?', antworten: [
+        { text: 'Am Anfang war ich es auch.', herz: 1, dann: 'Wirklich? Und jetzt reitest du sogar. Dann schaffe ich das vielleicht auch.' },
+        { text: 'Sie sind groß, aber ganz sanft.', herz: 1, dann: 'Sanft … Das eine hat mich vorhin so lieb angeschaut.' }] },
+      { id: 'oskar_huhn', text: 'Die Hühner mag ich am liebsten. Die sind genau richtig groß für mich.', antworten: [
+        { text: 'Die legen jeden Tag Eier.', herz: 1, dann: 'Jeden Tag eins? Dann suche ich morgen früh gleich danach.' },
+        { text: 'Und der Hofhund?', herz: 1, dann: 'Der ist auch nett. Er hat mir die Hand abgeschleckt.' }] }
+    ],
+    jule: [
+      { id: 'jule_island', text: 'Zu Hause reite ich ein Islandpferd. Das kann den Tölt. Da sitzt man ganz ruhig, obwohl es schnell geht.', antworten: [
+        { text: 'Was ist der Tölt?', herz: 1, dann: 'Eine Gangart extra. Die Füße machen tack-tack-tack-tack, ganz gleichmäßig.' },
+        { text: 'Sind Islandpferde klein?', herz: 1, dann: 'Klein, aber ganz stark. Und im Winter haben sie ein Fell wie ein Teddy.' }] },
+      { id: 'jule_strand', wenn: { herzen: 1 }, text: 'Auf unserer Insel reiten wir bei Ebbe über den Strand. Dann spritzt das Wasser bis zu den Ohren.', antworten: [
+        { text: 'Hier kannst du durch den Bach reiten.', herz: 1, dann: 'Gibt es hier einen Bach? Den muss ich mir ansehen!' },
+        { text: 'Das klingt wunderbar.', herz: 1, dann: 'Ist es auch. Aber euer Hof gefällt mir fast genauso gut.' }] }
+    ],
     '*': [
       { id: 'alle_regen', wenn: { wetter: 'regen' }, text: 'So ein Wetter! Die Pferde stehen lieber trocken. Ich auch.', antworten: [
         { text: 'Ich mag Regen.', herz: 1, dann: 'Dann bist du mutiger als ich!' },
@@ -219,7 +305,8 @@ var REDEN = (function () {
 
   // ---------- Passt eine Bedingung gerade? ----------
   // wenn = { wetter: 'regen' | 'trocken' | 'gewitter', abStunde, bisStunde, abTag, wochentag: 'Samstag', wochenende: true,
-  //          jahreszeit: 'Sommer', herzen: 2 (so viele Herzen bei dieser Person), merker: 'name', ohneMerker: 'name', fohlen: true }
+  //          jahreszeit: 'Sommer', herzen: 2 (so viele Herzen bei dieser Person), merker: 'name', ohneMerker: 'name', fohlen: true,
+  //          gastTag: 1 (Ferienkinder: 1 = Ankunft, 3 = Abreise), gast: 'tom' (ist gerade zu Besuch), wieder: true (kennt man von früher) }
   function passt(wenn, wer) {
     if (!wenn) return true;
     var st = KALENDER.stunde(), regen = typeof WETTER !== 'undefined' && WETTER.regnet();
@@ -236,6 +323,11 @@ var REDEN = (function () {
     if (wenn.merker && !(d.merker && d.merker[wenn.merker])) return false;
     if (wenn.ohneMerker && d.merker && d.merker[wenn.ohneMerker]) return false;
     if (wenn.fohlen !== undefined && !!d.fohlen !== !!wenn.fohlen) return false;
+    // Ferienkinder (js/ferienkinder.js): gastTag = der wievielte Tag des Besuchs, gast = dieses Kind ist gerade zu Besuch, wieder = man kennt sich von früher
+    var F = typeof FERIEN !== 'undefined' ? FERIEN : null;
+    if (wenn.gastTag !== undefined && (!F || [].concat(wenn.gastTag).indexOf(F.besuchsTag()) < 0)) return false;
+    if (wenn.gast && !(F && F.istDa(wenn.gast))) return false;
+    if (wenn.wieder !== undefined && !!(F && wer && F.wieder(wer)) !== !!wenn.wieder) return false;
     return true;
   }
 
@@ -261,6 +353,8 @@ var REDEN = (function () {
     s.gehoert = s.gehoert || {};
     function kandidaten(liste) { return (liste || []).filter(function (g) { return passt(g.wenn, wer) && !g.nurFolge && !(g.einmal && s.gehoert[g.id]); }); }
     var eigene = kandidaten(GESPRAECHE[wer]), alle = kandidaten(GESPRAECHE['*']);
+    // Ferienkinder haben zusammen die Liste 'gast'. Die Gespräche für alle passen nicht zu ihnen (sie haben kein Pflegepferd und kennen den Hof noch nicht).
+    if ((PERSONEN.brief(wer) || {}).rolle === 'gast') { eigene = eigene.concat(kandidaten(GESPRAECHE.gast)); alle = []; }
     // Der einfache Gruß 'alle_hallo' ist nur der Notnagel
     var pool = eigene.concat(alle.filter(function (g) { return g.id !== 'alle_hallo'; }));
     if (!pool.length) pool = alle;
@@ -395,6 +489,7 @@ var REDEN = (function () {
     var s = PERSONEN.stand(wer);
     s.gehoert = s.gehoert || {};
     s.zaehler = (s.zaehler || 0) + 1; s.gehoert[g.id] = s.zaehler; s.mal = (s.mal || 0) + 1;
+    if (typeof FERIEN !== 'undefined') FERIEN.gesprochen(wer);
     laeuft = { wer: wer, gespraech: g, fertig: opt.fertig, immerHerz: ausGeschichte || !!opt.immerHerz };
     PERSONEN.halte(wer, HALTEN);
     zeige(g.text, g.id, g.antworten);
