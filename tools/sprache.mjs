@@ -19,7 +19,11 @@ import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Wer spricht mit welcher Stimme? (von Kristian am 27.11.2026 ausgesucht)
-export const STIMMEN = { emma: 'Laura', jonas: 'Will', lotte: 'Lily', hanna: 'Sarah', lina: 'Jessica', mia: 'Matilda', ben: 'Liam', paul: 'Chris' };
+export const STIMMEN = { emma: 'Laura', jonas: 'Will', lotte: 'Lily', hanna: 'Sarah', lina: 'Jessica', mia: 'Matilda', ben: 'Liam', paul: 'Chris',
+  // die Ferienkinder (am 27.11.2026 ausgesucht)
+  frieda: 'Aria', nele: 'Rachel', carla: 'Alice', jule: 'Charlotte', tom: 'Charlie', oskar: 'River' };
+// Ferienkinder haben eine eigene gemeinsame Liste (gast) und bekommen die Gespräche für alle (*) nicht
+const GAESTE = ['frieda', 'tom', 'nele', 'carla', 'oskar', 'jule'];
 // Das Pflegepferd jeder Person, so wie es am Anfang heißt
 const PFLEGEPFERD = { emma: 'Blitz', jonas: 'Sternchen', hanna: 'Donner', ben: 'Karamell', lina: 'Flocke', paul: 'Krümel' };
 
@@ -40,7 +44,7 @@ function nimm(wer, name, text) {
   saetze.push({ wer, name: name + '~', text: text.replace(/\{pferd\}/g, OHNE_PFERD) });
 }
 for (const wer of Object.keys(STIMMEN)) {
-  for (const g of [...(welt.REDEN.GESPRAECHE[wer] || []), ...welt.REDEN.GESPRAECHE['*']]) {
+  for (const g of [...(welt.REDEN.GESPRAECHE[wer] || []), ...welt.REDEN.GESPRAECHE[GAESTE.includes(wer) ? 'gast' : '*']]) {
     nimm(wer, g.id, g.text);
     (g.antworten || []).forEach((a, i) => nimm(wer, g.id + '_' + i, a.dann));
   }
