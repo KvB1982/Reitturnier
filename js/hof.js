@@ -346,7 +346,7 @@ WELTEN.hof = (function () {
 
   // ---------- Pferde ----------
   function bauePferde() {
-    HOF_PFERDE.forEach(function (def, i) {
+    PFERDE.stall().forEach(function (def, i) {
       var st = STAND.pferd(def.id);
       var tier = HERDE.bauePferd({ fell: def.fell, saat: i + 2 });
       tier.setzeSattel(false); tier.setzeZaum(false);
@@ -533,6 +533,8 @@ WELTEN.hof = (function () {
         M.tier = tier; M.s = 0;
       }
       maedchen.push(M);
+      // anmelden, damit man sie ansprechen kann (js/reden.js)
+      PERSONEN.melde(name, { wo: function () { return { x: M.x, z: M.z, da: f.wurzel.visible, frei: !M.tier }; }, halte: function (sek) { M.halt = sek; } });
     });
   }
   // Emmas Reitweg: ein Oval auf dem Trainingsplatz
@@ -562,8 +564,14 @@ WELTEN.hof = (function () {
         M.x = op.x; M.z = op.z;
         return;
       }
-      var s = M.weg[M.schritt % M.weg.length], laeuft = 0;
-      if (s[0] === 'geh') {
+      var s = M.halt > 0 ? ['halt'] : M.weg[M.schritt % M.weg.length], laeuft = 0;
+      if (s[0] === 'halt') {
+        // Jemand spricht mit ihr: stehen bleiben und hinschauen
+        M.halt -= dt; M.kurs = Math.atan2(S.x - M.x, S.z - M.z); M.gruss = Math.min(M.gruss, 0);
+        if (M.warte > 0) { f.spiele(null); M.warte = 0; }
+        if (M.blase) M.blase.visible = false;
+        f.setzePose(M.traegt || M.karre ? 'tragen' : 'steh');
+      } else if (s[0] === 'geh') {
         var dx = s[1] - M.x, dz = s[2] - M.z, dist = Math.hypot(dx, dz);
         if (dist < 0.15) M.schritt++;
         else {
@@ -851,6 +859,8 @@ WELTEN.hof = (function () {
     } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Große Pferde können hier auch grasen.');
     HOFLEBEN.aktionen(vor, S, P);
     HOFTAG.aktionen(vor, S, P, function () { return beste; });
+    var EA = !P ? EREIGNISSE.aktion() : null;          // eine Geschichte hat hier etwas zu tun
+    if (EA) vor(EA.x, EA.z, EA.r, EA.text, EA.tun);
     STURM.aktionenHof(vor);
     return beste;
   }
@@ -1212,7 +1222,8 @@ WELTEN.hof = (function () {
   }
 
   // ---------- Ablauf ----------
-  var aktion = null, hudZeit = 0, zustandZeit = 0;
+  var aktion = null, hudZeit = 0, zustandZeit = 0, marke = null;
+  var REDE_NAH = 2.8;                  // so nah muss man an jemandem stehen, um ihn anzusprechen (Meter)
   function schritt(dt, z) {
     zeit = z;
     bewegeSpielerin(dt);
@@ -1223,6 +1234,9 @@ WELTEN.hof = (function () {
     HOFLEBEN.schritt(dt, zeit);
     STURM.schrittHof(dt, zeit);
     HOFTAG.schritt(dt, zeit);
+    EREIGNISSE.schritt(dt, 'hof', S.x, S.z);
+    if (modus !== 'frei' && REDEN.offen()) REDEN.ende();
+    REDEN.schritt(S.x, S.z);
     if (modus === 'longe' && orte.longePferd) {
       var P = orte.longePferd;
       S.kurs = Math.atan2(P.x - S.x, P.z - S.z) + 0.5;
@@ -1236,6 +1250,9 @@ WELTEN.hof = (function () {
     if (modus === 'frei') {
       if (S.reitet) zw.push({ text: '🥾 Absteigen', tun: function () { steigeAb(); } });
       else if (darfAufsteigen()) zw.push({ text: '🐴 Aufsteigen', tun: steigeAuf });
+      // Steht ein Hofkind in der Nähe? Dann kann man es ansprechen.
+      var nahe = !S.reitet && !REDEN.offen() ? PERSONEN.inNaehe(S.x, S.z, REDE_NAH) : null;
+      if (nahe) zw.push({ text: '💬 Mit ' + nahe.name + ' reden', tun: (function (id) { return function () { REDEN.starte(id); }; })(nahe.id) });
       zw = zw.concat(HOFTAG.zweit(), HOFLEBEN.zweit());
       var mb = !S.fuehrt && !S.reitet && zw.length < 3 ? inBoxVon(S.x, S.z) : null;
       if (mb && mb.pferd && mb.pferd.ort === 'box' && !STAND.istMeins(mb.pferd.def.id)) zw.push({ text: '⭐ Zu meinem Pferd machen', tun: (function (B) { return function () { frageMeins(B); }; })(mb.pferd) });
@@ -1247,8 +1264,12 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
+    // Ausrufezeichen über der Stelle oder der Person, bei der eine Geschichte weitergeht
+    var EM = modus === 'frei' ? EREIGNISSE.marke() : null;
+    if (EM && !marke) { marke = BAU.schwebeText('❗', 0.55, { schrift: 60, immerSichtbar: true }); marke.renderOrder = 6; szene.add(marke); }
+    if (marke) { marke.visible = !!EM; if (EM) marke.position.set(EM.x, (EM.art === 'person' ? 2.75 : 1.1) + Math.sin(zeit * 4) * 0.12, EM.z); }
     orte.zeiger.visible = !!(aktion && aktion.text);
     if (orte.zeiger.visible) { orte.zeiger.position.set(aktion.x, 2.9 + Math.sin(zeit * 5) * 0.15, aktion.z); orte.zeiger.rotation.y = zeit * 2; }
     // Anzeige oben
@@ -1356,7 +1377,7 @@ WELTEN.hof = (function () {
       if (modus === 'pflege') { PFLEGE.ende(); return; }
       STAND.speichere(); KERN.insMenue();
     },
-    verlaesst: function () { HOFLEBEN.fohlenLos(); zeigeWerkzeug(null); setzeHinweis(null); if (modus === 'pflege') PFLEGE.ende(true); if (S.reitet) steigeAb(true); STAND.speichere(); },
+    verlaesst: function () { REDEN.ende(); HOFLEBEN.fohlenLos(); zeigeWerkzeug(null); setzeHinweis(null); if (modus === 'pflege') PFLEGE.ende(true); if (S.reitet) steigeAb(true); STAND.speichere(); },
     // fuer die Pflege
     setzeModus: function (m) { modus = m; API.ohneKnueppel = m === 'pflege'; },
     setzeKamera: function (k) { kamFest = k; },

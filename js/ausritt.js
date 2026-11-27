@@ -1385,7 +1385,7 @@ WELTEN.ausritt = (function () {
       API.szene = szene; API.kamera = kamera;
       mitPferd = !opt.ohnePferd; mitFreundin = mitPferd;
       // alle Hofpferde stehen zur Wahl; geritten wird das mitgebrachte (oder das zuletzt gewählte)
-      alle = HOF_PFERDE.map(function (def) { var st = STAND.pferd(def.id); return { id: def.id, name: def.name, fell: def.fell, def: def, ausruestung: st.ausruestung, schmutz: st.schmutz }; });
+      alle = PFERDE.stall().map(function (def) { var st = STAND.pferd(def.id); return { id: def.id, name: def.name, fell: def.fell, def: def, ausruestung: st.ausruestung, schmutz: st.schmutz }; });
       var wunsch = opt.pferd ? opt.pferd.id : STAND.daten.gewaehlt;
       mein = alle.filter(function (p) { return p.id === wunsch; })[0] || alle[0];
       startId = mein.id;
