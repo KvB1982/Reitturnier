@@ -24,7 +24,11 @@ WELTEN.hof = (function () {
     maschine: { tor: [12, 26.8], mitte: [12, 34], r: 6 },
     rennbahn: { tor: [-34, 44] },
     gelaende: { tor: [36, 44] },
-    weide: { tor: [-17, -2], platz: [-48, -14, -18, 6] },
+    // platz = die ganze große Koppel, kern = die Ecke am Tor, in der Pferde und Fohlen grasen (so findet man sie schnell)
+    weide: { tor: [-17, -2], platz: [-118, -25, -18, 6], kern: [-48, -14, -18, 6],
+      bach: [[-74, -25.5], [-78, -17.5], [-72, -10], [-77, -2], [-74, 6.5]],             // der Bach fließt von Norden nach Süden quer durch die Koppel
+      staemme: [[-56, -15, 0.5, 2.6], [-98, -8, -0.35, 2.8]] },                       // Baumstämme zum Drüberspringen: x, z, Drehung, halbe Länge
+
     futter: { hafer: [1.2, -5.6], heu: [4, -5.6], moehre: [6.8, -5.6] },
     laden: [4, 5.2], mist: [-16, -9],
     putzplatz: { mitte: [-9, 14.3] }, ausritt: { tor: [0, 46.5] }
@@ -103,7 +107,7 @@ WELTEN.hof = (function () {
     bauePferde();
     zeigeMeins();
     baueMaedchen();
-    var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, karte: karte, zeigeZustand: zeigeZustand,
+    var ctx = { szene: szene, waende: waende, kreise: kreise, ORT: ORT, S: S, pferde: pferde, herde: herde, karte: karte, zeigeZustand: zeigeZustand,
       frei: function () { KERN.schliesseKarte(); modus = 'frei'; }, setzeModus: function (m) { modus = m; },
       inBoxVon: inBoxVon, inBox: inBox, maedchen: maedchen, boxen: boxen, fuettereWagen: fuettereWagen, mistModell: function () { return orte.mistModell; }, setzeKamera: function (k) { kamFest = k; kamSprung = true; }, bringeHeim: bringeHeim };
     HOFLEBEN.baue(ctx);
@@ -256,7 +260,8 @@ WELTEN.hof = (function () {
 
     // Weide
     zaunRechteck(ORT.weide.platz, { seite: 'o', bei: -2, breit: 3 }, 0x8a5a33);
-    var w5 = BAU.wegweiser('Weide', { hoehe: 0.7, fuss: 1.9 }); w5.position.set(-20.5, 0, -14.4); szene.add(w5);
+    var w5 = BAU.wegweiser('🐎 Koppel', { hoehe: 0.7, fuss: 1.9 }); w5.position.set(-16.6, 0, 1.3); szene.add(w5);
+    baueKoppel();
     // Misthaufen und Schubkarren-Platz
     var mist = BAU.netz(new THREE.SphereGeometry(2.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x6b4a2a, szene, ORT.mist[0], 0, ORT.mist[1]); mist.scale.set(1, 0.55, 0.8);
     MODELLE3D.setze('misthaufen', szene, { x: ORT.mist[0], z: ORT.mist[1], masse: [4.3, 2.7, 3.7], statt: [mist], fertig: function (g) { orte.mistModell = g; } });
@@ -285,11 +290,11 @@ WELTEN.hof = (function () {
     for (var b = 0; b < 90; b++) {
       var bx = -78 + zuf() * 156, bz = -42 + zuf() * 118;
       var imHof = bx > -56 && bx < 58 && bz > -18 && bz < 50;
-      if (imHof) continue;
+      if (imHof || aufKoppel(bx, bz, 3)) continue;
       if ((bz < -27 && bz > -40) || (bx > 6 && bx < 24 && bz < -12) || (bz > 47 && (Math.abs(bx + 34) < 5 || Math.abs(bx - 36) < 5)) || (bz > 62 && bx < 2)) continue;
       baeume.push([bx, 0, bz, 0.9 + zuf() * 0.9, zuf() < 0.35 ? 1 : 0]);
     }
-    [[15, -7], [0, -12], [-6, -12], [5, -13], [-7, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [25.5, -16]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
+    [[15, -7], [0, -12], [-6, -12], [5, -13], [-7, 49.5], [8, 49.5], [-50, 38], [52, 38], [-56, 8], [56, 6], [-24, -18], [25.5, -16], [-64, -20], [-90, -21], [-110, -3], [-38, -21]].forEach(function (p, i) { baeume.push([p[0], 0, p[1], 0.8 + (i % 3) * 0.15, i % 5 === 4 ? 1 : 0]); kreise.push([p[0], p[1], 0.45, 0, 0]); });
     szene.add(BAU.wald(baeume));
     var blumenFarben = [0xff6fae, 0xffe36b, 0xffffff, 0xb07cff];
     var blGeo = new THREE.SphereGeometry(0.09, 6, 4), blumen = new THREE.InstancedMesh(blGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), 160), d = new THREE.Object3D();
@@ -313,6 +318,55 @@ WELTEN.hof = (function () {
     MODELLE3D.setze('sattelbock', szene, { x: 9.3, z: 4.2, hoehe: 1.25 }); MODELLE3D.setze('putzkiste', szene, { x: 9.2, z: 5.6, dreh: -Math.PI / 2, hoehe: 0.75 });
     waende.push([8.6, 3.4, 9.9, 6.2]);
     [[19.6, -19.5, 4.6], [6.6, -18.6, 4.2], [23.4, -13.6, 3.9]].forEach(function (a, i) { MODELLE3D.setze('apfelbaum', szene, { x: a[0], z: a[1], dreh: i * 2.1, hoehe: a[2] }); kreise.push([a[0], a[1], 0.45, 0, 0]); });
+  }
+
+  // Die große Koppel: Bach, Baumstämme zum Springen, Schilf und Steine
+  function baueKoppel() {
+    var W = ORT.weide, B = W.bach;
+    // Der Bach ist ein Band aus Vierecken entlang seiner Linie: unten das sandige Ufer, darüber das Wasser
+    function band(breit, farbe, y, glatt) {
+      var ecken = [], nr = [];
+      B.forEach(function (q, i) {
+        var a = B[Math.max(0, i - 1)], b = B[Math.min(B.length - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        var nx = (b[1] - a[1]) / l, nz = -(b[0] - a[0]) / l;
+        ecken.push(q[0] - nx * breit / 2, y, q[1] - nz * breit / 2, q[0] + nx * breit / 2, y, q[1] + nz * breit / 2);
+        if (i) { var k = i * 2; nr.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+      });
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(ecken, 3)); geo.setIndex(nr); geo.computeVertexNormals();
+      var m = BAU.netz(geo, new THREE.MeshStandardMaterial({ color: farbe, roughness: glatt ? 0.25 : 0.95, side: THREE.DoubleSide }), szene, 0, 0, 0);
+      m.castShadow = false;
+    }
+    band(4.2, 0xcdbb8a, 0.022); band(2.6, 0x58a8dc, 0.034, true);
+    [[-77.4, -22, 0], [-73.3, -13.5, 1], [-76.4, -6, 2], [-73.6, 2.5, 3], [-79.6, -15.5, 4]].forEach(function (q) { MODELLE3D.setze('schilf', szene, { x: q[0], z: q[1], dreh: q[2], hoehe: 1.3, schatten: false }); });
+    [[-70.6, -11, 1.0], [-78.8, -3.2, 0.8]].forEach(function (q) { MODELLE3D.setze('felsen', szene, { x: q[0], z: q[1], dreh: q[2] * 3, hoehe: q[2] }); kreise.push([q[0], q[1], 0.7, 0, 0]); });
+    // Baumstämme: Im Schritt geht man außen herum, im Trab und Galopp springt das Pferd darüber
+    W.staemme.forEach(function (q) {
+      var g = new THREE.Group(); g.position.set(q[0], 0, q[1]); g.rotation.y = q[2]; szene.add(g);
+      var w = BAU.walze(0.38, 0.42, q[3] * 2, 0x6b4a2a, g, 0, 0.4, 0, 9); w.rotation.x = Math.PI / 2;
+      MODELLE3D.setze('baumstamm', g, { y: -0.05, masse: [0.85, 0.8, q[3] * 2], statt: [w] });
+      // der Stamm liegt längs zu (sin, cos) seiner Drehung; fünf kleine Kreise halten Fußgänger auf
+      var S2 = { x: q[0], z: q[1], tx: Math.sin(q[2]), tz: Math.cos(q[2]), lang: q[3], kreise: [] };
+      for (var i = -2; i <= 2; i++) S2.kreise.push([q[0] + S2.tx * i * q[3] / 2.2, q[1] + S2.tz * i * q[3] / 2.2, 0.5]);
+      staemme.push(S2);
+    });
+  }
+  var staemme = [];
+  function stossStamm(o, r) {
+    for (var j = 0; j < staemme.length; j++) for (var i = 0; i < 5; i++) {
+      var k = staemme[j].kreise[i], ex = o.x - k[0], ez = o.z - k[1], e = Math.hypot(ex, ez);
+      if (e < k[2] + r && e > 0.001) { o.x = k[0] + ex / e * (k[2] + r); o.z = k[1] + ez / e * (k[2] + r); }
+    }
+  }
+  function aufKoppel(x, z, rand) { var W = ORT.weide.platz, m = rand || 0; return x > W[0] - m && x < W[2] + m && z > W[1] - m && z < W[3] + m; }
+  // Wie weit ist es von (x, z) bis zur Mitte des Bachs?
+  function zumBach(x, z) {
+    var B = ORT.weide.bach, best = 1e9;
+    for (var i = 1; i < B.length; i++) {
+      var a = B[i - 1], b = B[i], dx = b[0] - a[0], dz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz)));
+      best = Math.min(best, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t));
+    }
+    return best;
   }
 
   // Putzplatz draussen: Anbindebalken, Wasserschlauch, Putzkiste
@@ -445,13 +499,13 @@ WELTEN.hof = (function () {
           P.kurs += diff * Math.min(1, dt * (P.tempo > 0.2 ? 4 : 0.6));
         }
         P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
-        stossHindernis(P, 0.55);
+        stossHindernis(P, 0.55); stossStamm(P, 0.55);
         P.gang = P.tempo < 0.15 ? 'steh' : P.tempo < 2.7 ? 'schritt' : 'trab';
         t.setzeKopfTief(0);
       } else if (art === 'putzplatz' || art === 'steh') {
         P.gang = 'steh'; t.setzeKopfTief(0);
       } else if (art === 'geritten') {
-        if (P.ort !== 'kind') P.gang = P.tempo < 0.15 ? 'steh' : 'schritt';       // die Hofkinder traben und galoppieren auf den Plätzen
+        if (P.ort !== 'kind') P.gang = P.tempo < 0.15 ? 'steh' : P.tempo < 2.7 ? 'schritt' : P.tempo < 5.4 ? 'trab' : 'galopp';       // die Hofkinder traben und galoppieren auf den Plätzen, die Spielerin auf der Koppel
         t.setzeKopfTief(0);
       } else if (art === 'maschine' || art === 'longe') {
         var O = art === 'maschine' ? ORT.maschine : ORT.longe, r = art === 'maschine' ? O.r - 1.6 : O.r - 1.8;
@@ -465,14 +519,28 @@ WELTEN.hof = (function () {
         P.st.hunger = Math.min(1, P.st.hunger + dt * 0.0008);
       } else if (art === 'weide') {
         // gemuetlich grasen und ab und zu ein Stueck weitergehen
-        var W = ORT.weide.platz;
+        var W = ORT.weide.kern, R = herde();
+        if (R) {
+          // Herdentrieb: Galoppiert jemand über die Koppel, laufen die anderen Pferde ein Stück mit
+          var nr = pferde.indexOf(P), hx = R.x - Math.sin(R.kurs) * (4 + nr % 3 * 2.2) + Math.cos(R.kurs) * (nr % 2 ? 3.2 : -3.2), hz = R.z - Math.cos(R.kurs) * (4 + nr % 3 * 2.2) - Math.sin(R.kurs) * (nr % 2 ? 3.2 : -3.2);
+          P.ausweich = Math.max(0, (P.ausweich || 0) - dt);
+          var hd = Math.hypot(hx - P.x, hz - P.z), hw = Math.atan2(hx - P.x, hz - P.z) + (P.ausweich > 0 ? 1.3 : 0), hdf = Math.atan2(Math.sin(hw - P.kurs), Math.cos(hw - P.kurs));
+          P.tempo += ((hd > 2 ? Math.min(7.2, R.tempo * 0.95 + (hd > 9 ? 1 : 0)) : R.tempo * 0.7) - P.tempo) * Math.min(1, dt * 1.6);
+          P.kurs += hdf * Math.min(1, dt * 2.5);
+          P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
+          stoss(P, 0.8); stossStamm(P, 0.8);
+          if (P.tempo > 1 && Math.hypot(P.x - alt.x, P.z - alt.z) < P.tempo * dt * 0.45) P.ausweich = 1.1;      // etwas steht im Weg: einen Bogen laufen
+          P.blick += (0 - P.blick) * Math.min(1, dt * 4); t.setzeKopfTief(P.blick);
+          P.gang = P.tempo < 0.15 ? 'steh' : P.tempo < 2.7 ? 'schritt' : P.tempo < 5.4 ? 'trab' : 'galopp';
+          P.ziel = null; P.warte = 2;
+        } else {
         if (!P.ziel || P.warte <= 0 && Math.hypot(P.ziel[0] - P.x, P.ziel[1] - P.z) < 0.6) {
           if (P.ziel) P.warte = 6 + Math.random() * 9;
           P.ziel = [W[0] + 3 + Math.random() * (W[2] - W[0] - 6), W[1] + 3 + Math.random() * (W[3] - W[1] - 6)];
         }
         P.warte = (P.warte || 0) - dt;
         var gehen = P.warte <= 0;
-        P.tempo += ((gehen ? 1.3 : 0) - P.tempo) * Math.min(1, dt * 3);
+        P.tempo += ((gehen ? (Math.hypot(P.ziel[0] - P.x, P.ziel[1] - P.z) > 14 ? 3.4 : 1.3) : 0) - P.tempo) * Math.min(1, dt * 3);      // von weit hinten trabt es zurück
         if (gehen) {
           var zw = Math.atan2(P.ziel[0] - P.x, P.ziel[1] - P.z), df = Math.atan2(Math.sin(zw - P.kurs), Math.cos(zw - P.kurs));
           P.kurs += df * Math.min(1, dt * 2);
@@ -480,14 +548,19 @@ WELTEN.hof = (function () {
         P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
         P.blick += ((gehen ? 0 : 1) - P.blick) * Math.min(1, dt * 2);
         t.setzeKopfTief(P.blick);
-        P.gang = P.tempo < 0.15 ? 'steh' : 'schritt';
+        stossStamm(P, 0.6);
+        P.gang = P.tempo < 0.15 ? 'steh' : P.tempo < 2.7 ? 'schritt' : 'trab';
+        }
         P.st.hunger = Math.max(0, P.st.hunger - dt * 0.004);
         P.st.schmutz = Math.min(1, P.st.schmutz + dt * 0.0006);
       }
       if (P.ort !== 'box' && WETTER.regnet()) P.st.schmutz = Math.min(1, P.st.schmutz + dt * 0.003);
       var weg = Math.hypot(P.x - alt.x, P.z - alt.z);
       if (art === 'geritten') { weg = P.reitWeg || 0; P.reitWeg = 0; }      // beim Reiten wurde das Pferd schon vorher bewegt
+      var phaseAlt = P.phase;
       P.phase += weg * Math.PI * 2 / (P.gang === 'galopp' ? 4.19 : P.gang === 'trab' ? 2.9 : 1.9);
+      // Hufschlag, wenn auf der Koppel getrabt oder galoppiert wird
+      if (P.ort !== 'kind' && (art === 'geritten' || art === 'weide') && P.tempo > 2.7 && !(P.hoch > 0.05) && Math.floor(phaseAlt / Math.PI) !== Math.floor(P.phase / Math.PI) && Math.hypot(P.x - S.x, P.z - S.z) < 25) KERN.huf(art === 'geritten' ? 0.13 : 0.06, 190 + (Math.floor(P.phase / Math.PI) % 2) * 40);
       // hoch, nick und sprungQ setzt hofkinder.js, wenn das Pferd über ein Hindernis springt
       t.wurzel.position.set(P.x, P.hoch || 0, P.z);
       t.wurzel.rotation.y = P.kurs;
@@ -649,6 +722,11 @@ WELTEN.hof = (function () {
         if (Math.abs(e - k[2]) < r) { var soll = e < k[2] ? k[2] - r : k[2] + r; o.x = k[0] + ex / e * soll; o.z = k[1] + ez / e * soll; }
       } else if (e < k[2] + r && e > 0.001) { o.x = k[0] + ex / e * (k[2] + r); o.z = k[1] + ez / e * (k[2] + r); }
     }
+    if (o.x < ORT.weide.platz[2] && o.z < ORT.weide.platz[3] && o.x > ORT.weide.platz[0] - 1.5 && o.z > ORT.weide.platz[1] - 1.5) {      // auf der Koppel hält der Zaun, sie reicht weiter nach Westen und Norden als der Hof
+      var W = ORT.weide.platz;
+      o.x = Math.max(W[0] + r, o.x); o.z = Math.max(W[1] + r, o.z);
+      return;
+    }
     o.x = Math.max(-62, Math.min(62, o.x)); o.z = Math.max(-26, Math.min(Math.abs(o.x) < 2.7 ? 60 : 46.5, o.z));
   }
 
@@ -660,8 +738,17 @@ WELTEN.hof = (function () {
     }
   }
 
-  // ---------- Reiten auf dem Hof: nur im Schritt ----------
+  // ---------- Reiten auf dem Hof: nur im Schritt. Auf der Koppel auch Trab und Galopp, ohne Sattel ----------
   var reitMeldung = 0;
+  var GANG_TEMPO = [0, 1.8, 4.0, 7.2], GANG_NAME = ['', 'Schritt', 'Trab', 'Galopp'];
+  var gangWahl = 1, nassZeit = 0, imBach = false, koppelLob = 0;
+  // Wer galoppiert gerade über die Koppel? (für den Herdentrieb, auch das Fohlen fragt danach)
+  function herde() { var P = S && S.reitet; return P && P.tempo > 3 && aufKoppel(P.x, P.z) ? P : null; }
+  function schneller(v) {
+    gangWahl = Math.max(1, Math.min(3, gangWahl + v));
+    KERN.ton(v > 0 ? 700 + gangWahl * 60 : 520, 0.08, 'triangle', 0.12);
+    KERN.meldung(GANG_NAME[gangWahl] + (gangWahl === 3 ? '! Juhu!' : ''), gangWahl === 3 ? 'perfekt' : 'gut');
+  }
   // neben einem Pferd kann man immer aufsteigen: das geführte oder eins, das draußen steht (Weide)
   function aufsteigPferd() {
     if (modus !== 'frei' || S.reitet) return null;
@@ -678,20 +765,24 @@ WELTEN.hof = (function () {
     if (imStall()) { KERN.meldung('Im Stall wird nicht aufgestiegen. Führe ' + P.def.name + ' erst nach draußen.', 'knapp'); return; }
     if (!S.fuehrt) nimm(P);
     if (HOFLEBEN.krank(P)) { KERN.meldung(P.def.name + ' ist krank und kann nicht geritten werden.', 'knapp'); return; }
-    S.fuehrt = null; S.reitet = P; P.ort = 'geritten'; P.tempo = 0;
-    P.tier.setzeSattel(true, P.st.ausruestung.decke); P.tier.setzeZaum(true, true);
+    var koppel = aufKoppel(P.x, P.z);
+    S.fuehrt = null; S.reitet = P; P.ort = 'geritten'; P.tempo = 0; gangWahl = 1;
+    // auf der Koppel ohne Sattel, nur mit Halfter und Zügeln
+    P.ohneSattel = koppel;
+    P.tier.setzeSattel(!koppel, P.st.ausruestung.decke); P.tier.setzeZaum(true, true);
     var f = S.figur;
     szene.remove(f.wurzel); P.tier.koerper.add(f.wurzel);
-    f.wurzel.position.set(0, 1.66, 0.02); f.wurzel.rotation.set(0, 0, 0);
+    f.wurzel.position.set(0, koppel ? 1.6 : 1.66, 0.02); f.wurzel.rotation.set(0, 0, 0);
     f.gehe(0, 0); f.setzeHoehe(0, true); f.setzePose('reiten', true); f.setzeHelm(true);
     S.x = P.x; S.z = P.z; S.kurs = P.kurs;
-    KERN.ton(660, 0.1, 'triangle', 0.14); KERN.meldung('Hü! Auf dem Hof nur im Schritt.', 'gut');
+    KERN.ton(660, 0.1, 'triangle', 0.14); KERN.meldung(koppel ? 'Hü! Auf der Koppel darfst du traben und galoppieren.' : 'Hü! Auf dem Hof nur im Schritt.', 'gut');
   }
   function steigeAb(still) {
     var P = S.reitet;
     if (!P) return;
-    S.reitet = null; P.ort = 'hand'; P.tempo = 0; S.fuehrt = P;
+    S.reitet = null; P.ort = 'hand'; P.tempo = 0; S.fuehrt = P; P.hoch = 0; P.nick = 0; P.sprung = null;
     P.tier.setzeZaum(true, false);
+    if (P.ohneSattel) { P.ohneSattel = false; P.tier.setzeSattel(true, P.st.ausruestung.decke); }
     var f = S.figur;
     P.tier.koerper.remove(f.wurzel); szene.add(f.wurzel);
     f.setzeHoehe(0.8, true); f.setzePose('steh', true); f.setzeOutfit(KERN.spieler().outfit);
@@ -700,8 +791,13 @@ WELTEN.hof = (function () {
     if (!still) KERN.ton(520, 0.1, 'triangle', 0.14);
   }
   function reiteAufHof(dt, ex, ez, st) {
-    var P = S.reitet, alt = { x: P.x, z: P.z };
-    P.tempo += (st * 1.8 - P.tempo) * Math.min(1, dt * 3);
+    var P = S.reitet, alt = { x: P.x, z: P.z }, koppel = aufKoppel(P.x, P.z);
+    // Auf der Koppel bestimmt die gewählte Gangart das Tempo, überall sonst bleibt es beim Schritt
+    if (!koppel && gangWahl > 1) { gangWahl = 1; KERN.meldung('Auf dem Hof geht es im Schritt weiter.', 'gut'); }
+    var soll = st * GANG_TEMPO[koppel ? gangWahl : 1];
+    var nass = koppel && zumBach(P.x, P.z) < 1.3;
+    if (nass) soll = Math.min(soll, 4.6);                          // im Bach geht es etwas langsamer
+    P.tempo += (soll - P.tempo) * Math.min(1, dt * (soll > P.tempo ? 1.3 : 2.6));
     if (st > 0.05) {
       var ziel = Math.atan2(ex, ez), diff = Math.atan2(Math.sin(ziel - P.kurs), Math.cos(ziel - P.kurs));
       P.kurs += Math.max(-1, Math.min(1, diff * 2)) * 2.0 * dt;
@@ -709,11 +805,39 @@ WELTEN.hof = (function () {
     P.x += Math.sin(P.kurs) * P.tempo * dt; P.z += Math.cos(P.kurs) * P.tempo * dt;
     P.reitWeg = (P.reitWeg || 0) + P.tempo * dt;
     reitMeldung -= dt;
+    // Wasser spritzt im Bach
+    if (nass && P.tempo > 0.5) {
+      if (!imBach) { imBach = true; if (!SOUND.spiel('platsch', 0.5)) KERN.huf(0.2, 2400); }
+      nassZeit += dt; if (nassZeit > 0.28) { nassZeit = 0; KERN.huf(0.1, 2600 + Math.random() * 900); }
+    } else if (!nass) imBach = false;
+    // Baumstämme: schnell genug = das Pferd springt, sonst muss man außen herum
+    if (P.sprung) {
+      P.sprung.t += dt;
+      var sq = Math.min(1, P.sprung.t / P.sprung.dauer);
+      P.hoch = Math.sin(sq * Math.PI) * 0.95; P.nick = -Math.cos(sq * Math.PI) * 0.22; P.sprungQ = sq;
+      if (sq >= 1) {
+        P.sprung = null; P.hoch = 0; P.nick = 0; P.sprungQ = -1;
+        if (!SOUND.spiel('landung', 0.5)) KERN.huf(0.3, 150);
+        P.st.fit = Math.min(1, (P.st.fit || 0) + 0.01);
+        koppelLob++; KERN.meldung(koppelLob % 4 === 1 ? 'Toll gesprungen!' : 'Hopp!', 'perfekt');
+      }
+    } else if (koppel) {
+      for (var j = 0; j < staemme.length; j++) {
+        var B = staemme[j], rx = B.x - P.x, rz = B.z - P.z, laengs = rx * B.tx + rz * B.tz, quer = rx * -B.tz + rz * B.tx;
+        var zu = Math.sin(P.kurs) * -B.tz + Math.cos(P.kurs) * B.tx;          // wie gerade reitet das Pferd auf den Stamm zu?
+        if (Math.abs(laengs) < B.lang && Math.abs(quer) < 2.4 && Math.abs(quer) > 0.6 && zu * quer > 0.45 * Math.abs(quer) && P.tempo > 3.2) { P.sprung = { t: 0, dauer: 4.4 / Math.max(3.5, P.tempo) }; KERN.ton(880, 0.08, 'triangle', 0.1); break; }
+      }
+      if (!P.sprung) { var vorher = P.x + P.z; stossStamm(P, 0.75); if (vorher !== P.x + P.z && P.tempo > 2) P.tempo *= 0.5; }
+    }
+    if (koppel && P.tempo > 2.7) { P.st.fit = Math.min(1, (P.st.fit || 0) + dt * 0.003); P.st.hunger = Math.min(1, P.st.hunger + dt * 0.0012); }
     if ((P.x > STALL.x0 - 1.1 && P.x < STALL.x1 + 1.1 && P.z > STALL.z0 - 1 && P.z < STALL.z1 + 1) || HOFTAG.imHaus(P.x, P.z)) {
       P.x = alt.x; P.z = alt.z; P.tempo = 0;
       if (reitMeldung <= 0) { reitMeldung = 4; KERN.meldung('Im Stall wird nicht geritten. Steig vorher ab.', 'knapp'); }
     }
     stoss(P, 0.8);
+    // steht etwas im Weg (Zaun, Stein, Stange), wird das Pferd langsamer statt auf der Stelle zu galoppieren
+    var soWeit = Math.hypot(P.x - alt.x, P.z - alt.z);
+    if (P.tempo > 1 && soWeit < P.tempo * dt * 0.45) { P.tempo = Math.max(0.6, P.tempo - dt * 14); P.reitWeg = soWeit; }
     S.x = P.x; S.z = P.z; S.kurs = P.kurs; S.tempo = P.tempo;
     S.figur.bewege(dt);
     S.strick.visible = false;
@@ -753,7 +877,7 @@ WELTEN.hof = (function () {
         var dx = S.x - P.x, dz = S.z - P.z, vorn = dx, seit = dz;      // Pferd steht laengs zur x-Achse
         if (Math.abs(vorn) < 1.5 && Math.abs(seit) < 0.75) { S.z = P.z + (seit >= 0 ? 0.75 : -0.75); }
       }
-      stoss(S, 0.35);
+      stoss(S, 0.35); stossStamm(S, 0.35);
       S.phase += S.tempo * dt * 4.2;
     }
     var f = S.figur;
@@ -855,8 +979,8 @@ WELTEN.hof = (function () {
     else if (aufWeide.length) {
       var naechstes = aufWeide.sort(function (a, c) { return Math.hypot(a.x - S.x, a.z - S.z) - Math.hypot(c.x - S.x, c.z - S.z); })[0];
       vor(naechstes.x, naechstes.z, 2.6, naechstes.def.name + ' von der Weide holen', function () { nimm(naechstes); });
-      vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Geh auf die Weide zu einem Pferd, um es wieder mitzunehmen.');
-    } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Große Pferde können hier auch grasen.');
+      vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Geh auf die Koppel zu einem Pferd. Dort kannst du es mitnehmen oder gleich ohne Sattel aufsteigen und galoppieren.');
+    } else vor(ORT.weide.tor[0], ORT.weide.tor[1], 3, null, null, 'Hier wohnt das Fohlen. Führe ein Pferd auf die Koppel: Dort darfst du ohne Sattel aufsteigen und galoppieren.');
     HOFLEBEN.aktionen(vor, S, P);
     HOFTAG.aktionen(vor, S, P, function () { return beste; });
     var EA = !P ? EREIGNISSE.aktion() : null;          // eine Geschichte hat hier etwas zu tun
@@ -1248,7 +1372,13 @@ WELTEN.hof = (function () {
     KERN.setzeAktion(aktion && aktion.text ? aktion.text : null);
     var zw = [];
     if (modus === 'frei') {
-      if (S.reitet) zw.push({ text: '🥾 Absteigen', tun: function () { steigeAb(); } });
+      if (S.reitet) {
+        zw.push({ text: '🥾 Absteigen', tun: function () { steigeAb(); } });
+        if (aufKoppel(S.x, S.z)) {                   // auf der Koppel: Gangart wählen
+          if (gangWahl < 3) zw.push({ text: '⏫ ' + GANG_NAME[gangWahl + 1], tun: function () { schneller(1); } });
+          if (gangWahl > 1) zw.push({ text: '⏬ ' + GANG_NAME[gangWahl - 1], tun: function () { schneller(-1); } });
+        }
+      }
       else if (darfAufsteigen()) zw.push({ text: '🐴 Aufsteigen', tun: steigeAuf });
       // Steht ein Hofkind in der Nähe? Dann kann man es ansprechen.
       var nahe = !S.reitet && !REDEN.offen() ? PERSONEN.inNaehe(S.x, S.z, REDE_NAH) : null;
@@ -1264,7 +1394,7 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Durch das Tor im Süden reitest du ins Grüne: dort darfst du traben und galoppieren.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     // Ausrufezeichen über der Stelle oder der Person, bei der eine Geschichte weitergeht
     var EM = modus === 'frei' ? EREIGNISSE.marke() : null;
