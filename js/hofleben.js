@@ -244,7 +244,7 @@ var HOFLEBEN = (function () {
   }
   function stufe(w) { for (var i = 0; i < STUFEN.length; i++) if (w < STUFEN[i][0]) return STUFEN[i][1]; return 'großes Pferd'; }
   function baueFohlen() {
-    var f = fohlenDaten(), W = H.ORT.weide.platz;
+    var f = fohlenDaten(), W = H.ORT.weide.kern;
     var tier = HERDE.bauePferd({ fell: 'fuchs', saat: 23 });
     tier.setzeSattel(false); tier.setzeZaum(false);
     H.szene.add(tier.wurzel);
@@ -347,8 +347,10 @@ var HOFLEBEN = (function () {
     H.szene.add(fohlen.herz); fohlen.herzZeit = 2.2; fohlen.huepf = 1;
   }
   function bewegeFohlen(dt, zeit) {
-    var F = fohlen, S = H.S, W = H.ORT.weide.platz, f = STAND.daten.fohlen;
-    var imGatter = S.x > W[0] && S.x < W[2] && S.z > W[1] && S.z < W[3];
+    // W = die Ecke der Koppel, in der das Fohlen grast und tobt; G = die ganze Koppel (so weit darf es mitlaufen)
+    var F = fohlen, S = H.S, W = H.ORT.weide.kern, G = H.ORT.weide.platz, f = STAND.daten.fohlen;
+    var imGatter = S.x > G[0] && S.x < G[2] && S.z > G[1] && S.z < G[3];
+    var R = F.ort === 'weide' && !F.nah && H.herde ? H.herde() : null;
     var dS = Math.hypot(S.x - F.x, S.z - F.z), soll = 0, zx, zz;
     if (F.ort === 'weide') F.tobPause -= dt;
     if (F.nah) {                            // Nahansicht: steht still und lässt sich versorgen
@@ -363,6 +365,11 @@ var HOFLEBEN = (function () {
       if (!F.ziel || F.warte <= 0) { F.warte = 5 + Math.random() * 7; F.ziel = [FB.x0 + 1.1 + Math.random() * (FB.x1 - FB.x0 - 2.2), FB.z0 + 1.1 + Math.random() * (FB.z1 - FB.z0 - 2.2)]; }
       zx = F.ziel[0]; zz = F.ziel[1]; soll = !schlaf && Math.hypot(zx - F.x, zz - F.z) > 0.35 ? 0.8 : 0;
       F.blick += ((schlaf ? 0.85 : 0) - F.blick) * Math.min(1, dt * 2);
+    } else if (R) {                         // jemand galoppiert über die Koppel: Das Fohlen rennt fröhlich nebenher
+      zx = R.x - Math.sin(R.kurs) * 2.5 - Math.cos(R.kurs) * 4; zz = R.z - Math.cos(R.kurs) * 2.5 + Math.sin(R.kurs) * 4;
+      soll = Math.hypot(zx - F.x, zz - F.z) > 1.5 ? Math.min(7, R.tempo + 0.6) : R.tempo * 0.8;
+      F.tobt = 0; F.ziel = null; F.warte = 2;
+      F.blick += (0 - F.blick) * Math.min(1, dt * 4);
     } else if (F.tobt > 0) {                // tobt fröhlich über die Weide: Galopp, Bocksprünge, über die Stange
       F.tobt -= dt;
       if (!F.ziel || Math.hypot(F.ziel[0] - F.x, F.ziel[1] - F.z) < 1.6) {
@@ -396,7 +403,7 @@ var HOFLEBEN = (function () {
       F.kurs += df * Math.min(1, dt * 3);
       F.x += Math.sin(F.kurs) * F.tempo * dt; F.z += Math.cos(F.kurs) * F.tempo * dt;
     }
-    if (F.ort === 'weide') { F.x = Math.max(W[0] + 1, Math.min(W[2] - 1, F.x)); F.z = Math.max(W[1] + 1, Math.min(W[3] - 1, F.z)); }
+    if (F.ort === 'weide') { F.x = Math.max(G[0] + 1, Math.min(G[2] - 1, F.x)); F.z = Math.max(G[1] + 1, Math.min(G[3] - 1, F.z)); }
     var gang = F.tempo < 0.15 ? 'steh' : F.tempo < 2.2 ? 'schritt' : F.tempo < 4.6 ? 'trab' : 'galopp';
     F.phase += F.tempo * dt * Math.PI * 2 / ((gang === 'galopp' ? 4.19 : gang === 'trab' ? 2.9 : 1.9) * F.gross);
     F.huepf = Math.max(0, F.huepf - dt * 1.6);

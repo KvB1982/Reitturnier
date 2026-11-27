@@ -662,7 +662,7 @@ var HOFTAG = (function () {
       h.modell = MODELLE3D.setze('huhn', h.g, { vordreh: -Math.PI / 2, hoehe: 0.5 + (i % 2) * 0.06 });
       szene.add(h.g); huehner.push(h);
     }
-    MODELLE3D.setze('traktor', szene, { x: -27, z: -24.5, dreh: 0.12, breite: 6.4 }); C.kreise.push([-27, -24.5, 2.6, 0, 0]);
+    MODELLE3D.setze('traktor', szene, { x: -10, z: -21.5, dreh: 0.12, breite: 6.4 }); C.kreise.push([-10, -21.5, 2.6, 0, 0]);      // steht nördlich vom Hofplatz, neben der Koppel
   }
   function bewegeHuehner(dt) {
     huehner.forEach(function (h) {
@@ -772,6 +772,7 @@ var HOFTAG = (function () {
     function belegt(x, z) {
       if (Math.abs(x) < 72 && z > -30 && z < 58) return true;                      // der Hof selbst
       if (z > -40 && z < -27) return true;                                         // Straße
+      if (x > -122 && x < -17 && z > -28 && z < 9) return true;                    // die große Koppel im Westen (js/hof.js)
       if (x > -154 && x < -124) return true;                                       // Fluss
       if (x > 68 && x < 172 && z > -124 && z < -38) return true;                   // Dorf
       if (Math.hypot((x + 62) / 70, (z - 105) / 46) < 1) return true;              // Rennbahn
