@@ -166,7 +166,7 @@ var AUSREISSER = (function () {
     if (!H || A.laeuft) return null;
     var st = KALENDER.stunde();
     if (KALENDER.tag() < AB_TAG || KALENDER.tag() - A.zuletzt < PAUSE || st < VON_UHR || st >= BIS_UHR) return null;
-    if (WETTER.regnet() || EREIGNISSE.laeuft()) return null;
+    if (WETTER.regnet() || EREIGNISSE.laeuft() || (typeof DIEBSTAHL !== 'undefined' && DIEBSTAHL.laeuft())) return null;
     var frei = H.pferde.filter(function (P) { return P.ort === 'box' && !STAND.istMeins(P.def.id) && !HOFLEBEN.krank(P) && H.inBoxVon(H.S.x, H.S.z) !== P.box; });
     return frei.length ? frei[Math.floor(Math.random() * frei.length)] : null;
   }

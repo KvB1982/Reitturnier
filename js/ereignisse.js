@@ -149,6 +149,7 @@ var EREIGNISSE = (function () {
       if (st === geprueft) return;
       geprueft = st;
       if (typeof AUSREISSER !== 'undefined' && AUSREISSER.laeuft()) return;      // erst das ausgerissene Pferd finden
+      if (typeof DIEBSTAHL !== 'undefined' && DIEBSTAHL.laeuft()) return;        // erst den Krimi lösen
       for (var i = 0; i < GESCHICHTEN.length; i++) if (darf(GESCHICHTEN[i], welt)) { starte(GESCHICHTEN[i].id); break; }
       return;
     }
