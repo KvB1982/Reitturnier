@@ -148,6 +148,7 @@ var EREIGNISSE = (function () {
       var st = Math.floor(KALENDER.wach());
       if (st === geprueft) return;
       geprueft = st;
+      if (typeof AUSREISSER !== 'undefined' && AUSREISSER.laeuft()) return;      // erst das ausgerissene Pferd finden
       for (var i = 0; i < GESCHICHTEN.length; i++) if (darf(GESCHICHTEN[i], welt)) { starte(GESCHICHTEN[i].id); break; }
       return;
     }

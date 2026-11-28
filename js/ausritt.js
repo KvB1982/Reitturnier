@@ -666,7 +666,7 @@ WELTEN.ausritt = (function () {
     }
     if (mitFreundin) zeile('🔄', 'Mit Lotte tauschen: <b>' + KERN.esc(ihr.name) + '</b>', 'Tauschen', function () { zu(); tausche(); });
     alle.forEach(function (p) {
-      if (p.id === ihr.id) return;
+      if (p.id === ihr.id || p.id === AUSREISSER.pferdId()) return;          // das ausgerissene Pferd kann Mia nicht bringen
       zeile('🐴', '<b>' + KERN.esc(p.name) + '</b><br><small>' + KERN.esc(p.def.art) + '</small>', 'Nehmen', function () {
         zu(); mein = p; zeigePferde();
         KERN.klang('perfekt'); KERN.meldung('🐴 ' + p.name + ' ist da!', 'perfekt');
@@ -989,6 +989,11 @@ WELTEN.ausritt = (function () {
     if (modus === 'ritt') lenk = reite(dt);
     else if (modus === 'fuss') zuFuss(dt);
     else { M.wunsch = 0; M.eigen = 0; }
+    // Ist ein Pferd ausgerissen? (js/ausreisser.js) Dann gibt es Spuren, Zeugen und den Ausreißer selbst.
+    var AR = modus === 'ritt' || modus === 'fuss' ? AUSREISSER.ausrittSchritt(dt, zeit, modus === 'fuss'
+      ? { x: I.x, z: I.z, y: ich.wurzel.position.y, tempo: I.tempo, kurs: I.kurs, blick: kamW + Math.PI, fuss: true, frei: !I.sitzt && !angel && I.poseZeit <= 0 }
+      : { x: M.x, z: M.z, y: M.y, tempo: M.tempo, kurs: M.kurs, blick: M.kurs, fuss: false, frei: !rennen && !slalom }) : null;
+    if (AR && AR.aktion) aktuell = AR.aktion;
     if (tippZeit > 0) tippZeit -= dt;
     if (redeZeit > 0) { redeZeit -= dt; if (redeZeit <= 0 && tippZeit <= 0) setzeHinweis(null); }
     KERN.setzeAktion(aktuell ? aktuell.text : null);
@@ -1033,7 +1038,7 @@ WELTEN.ausritt = (function () {
     var px = modus === 'fuss' ? I.x : M.x, pz = modus === 'fuss' ? I.z : M.z, hofWeit = Math.hypot(px, pz + 124);
     var blick = modus === 'fuss' ? kamW + Math.PI : M.kurs, rel = Math.round(winkel(Math.atan2(-px, -124 - pz) - blick) / (Math.PI / 4));
     var pfeil = { '0': '⬆️', '1': '↖️', '2': '⬅️', '3': '↙️', '4': '⬇️', '-4': '⬇️', '-1': '↗️', '-2': '➡️', '-3': '↘️' }[rel];
-    KERN.setzeHud(REITEN.kachel('Entdeckt', '⭐ ' + Object.keys(gefunden).length + ' / ' + ORTE.length) + REITEN.kachel('Tiere', '🔭 ' + Object.keys(gesehen).length + ' / ' + Object.keys(TIERNAMEN).length) +
+    KERN.setzeHud((AR && AR.kachel ? AR.kachel : REITEN.kachel('Entdeckt', '⭐ ' + Object.keys(gefunden).length + ' / ' + ORTE.length)) + REITEN.kachel('Tiere', '🔭 ' + Object.keys(gesehen).length + ' / ' + Object.keys(TIERNAMEN).length) +
       REITEN.kachel(modus === 'fuss' ? 'Unterwegs' : mein ? KERN.esc(mein.name) : 'Gang', modus === 'fuss' ? (fuehrt ? '🐴 führen' : '🥾 zu Fuß') : REITEN.GANG_NAME[M.gang]) +
       (slalom ? REITEN.kachel('Slalom', slalom.t.toFixed(1) + ' s') : REITEN.kachel('Zum Hof', pfeil + ' ' + Math.round(hofWeit / 10) * 10 + ' m')) + REITEN.kachel(WETTER.uhr() + ' Uhr', WETTER.text()));
     bewegeSturm(dt);
@@ -1246,7 +1251,7 @@ WELTEN.ausritt = (function () {
     KERN.zeigeKarte('mitte', '<div class="klein">' + (mitPferd ? 'Ausritt' + (mitFreundin ? ' mit Lotte' : '') : 'Spaziergang') + '</div><h2>Das war schön!</h2>' +
       '<div class="details">Entdeckte Orte: <b>⭐ ' + n + ' von ' + ORTE.length + '</b><br>Beobachtete Tiere: <b>🔭 ' + tiere + ' von ' + Object.keys(TIERNAMEN).length + '</b><br>Gesammelte Äpfel: <b>🍎 ' + apfelZahl + '</b>' +
       (hufeisenZahl ? '<br>Glückshufeisen: <b>🍀 ' + hufeisenZahl + '</b>' : '') + (getan.rennen ? '<br>Gewonnene Wettrennen: <b>🏁 ' + getan.rennen + '</b>' : '') + '</div>' +
-      (muenzen ? '<div class="lohn">+' + muenzen + ' 🪙 Münzen <small>(unterwegs gesammelt)</small></div>' : '') +
+      AUSREISSER.heimText() + (muenzen ? '<div class="lohn">+' + muenzen + ' 🪙 Münzen <small>(unterwegs gesammelt)</small></div>' : '') +
       (opt.hof && mitPferd ? '<div class="details"><small>Tipp: Am <b>🚿 Putzplatz</b> auf dem Hof kannst du ' + KERN.esc(mein.name) + ' abspritzen, bevor es in den Stall geht.</small></div>' : ''),
       [{ text: mitPferd ? 'Weiter reiten' : 'Weiter spazieren', aktion: function () { KERN.schliesseKarte(); modus = alt; dauer = 0; } },
        { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { var o = opt; raeumeAuf(); REITEN.heim(o, mitPferd ? { art: 'ausritt', orte: n, pferdId: id } : null); } }]);
@@ -1256,6 +1261,7 @@ WELTEN.ausritt = (function () {
     modus = 'aus'; setzeHinweis(null); REITEN.zweit(null); if (radar) radar.el.style.display = 'none';
     if (WETTER.gewitter() && !opt.hof) WETTER.setze(null, 'regen');          // ohne Hof gibt es keinen Stall zum Unterstellen
     sturmLauf = null; rennen = null; slalom = null; if (zielFahne) zielFahne.visible = false;
+    AUSREISSER.ausrittEnde();
   }
 
   // ---------- Radar oben in der Ecke und die große Landkarte ----------
@@ -1319,6 +1325,7 @@ WELTEN.ausritt = (function () {
     if (dh > rand) { qh = [m + (qh[0] - m) / dh * rand, m + (qh[1] - m) / dh * rand]; g.strokeStyle = '#e8413c'; g.lineWidth = 5; g.setLineDash([3, 9]); g.beginPath(); g.moveTo(m, m); g.lineTo(qh[0], qh[1]); g.stroke(); g.setLineDash([]); }
     g.fillStyle = '#ffffff'; g.beginPath(); g.arc(qh[0], qh[1], 19, 0, 6.2832); g.fill(); g.strokeStyle = '#e8413c'; g.lineWidth = 3.5; g.stroke();
     g.font = '24px sans-serif'; g.fillText('🏡', qh[0], qh[1] + 1);
+    AUSREISSER.radar(g, punkt, m);
     pfeilAuf(g, m, m, o[2], 13, '#2a6fd6');
     var sturm = WETTER.gewitter();
     g.strokeStyle = sturm && Math.sin(zeit * 7) > 0 ? '#e8413c' : '#fffaf0'; g.lineWidth = 7; g.beginPath(); g.arc(m, m, m - 5, 0, 6.2832); g.stroke();
@@ -1402,6 +1409,7 @@ WELTEN.ausritt = (function () {
       pilze.forEach(function (p) { p.da = true; p.g.visible = true; }); ringe.forEach(function (r) { r.da = true; r.netz.visible = true; });
       staemme.forEach(function (s) { s.gesprungen = false; });
       baueRadar(); radarZeit = 0;
+      AUSREISSER.ausrittStart({ szene: szene, hoehe: hoehe, boden: boden, wasser: WASSER, rand: RAND, grenze: grenze, tipp: tipp, sage: sage, lohn: lohn });
       if (WETTER.gewitter()) WETTER.setze(null, 'wolken');
       sturmLauf = null; sturmIn = Math.random() < 0.4 ? 110 + Math.random() * 200 : 1e9;
       if (!blitzHoerer) { blitzHoerer = true; STURM.beiBlitz(beiBlitz); }
