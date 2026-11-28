@@ -151,7 +151,7 @@ var STURM = (function () {
     schlauch = { rolle: rolle, duese: duese, linie: linie, wasser: wasser, inHand: false, spritzt: 0, schild: schild };
   }
   // Pferde, die noch draußen sind (um ihre eigenen kümmern sich die Hofkinder selbst)
-  function draussen() { return H.pferde.filter(function (P) { return P.ort !== 'box' && P.ort !== 'kind'; }); }
+  function draussen() { return H.pferde.filter(function (P) { return P.ort !== 'box' && P.ort !== 'kind' && P.ort !== 'fort'; }); }
   function zuende(B, wer) {
     B.f.visible = false; B.licht.intensity = 0;
     feuer = null;

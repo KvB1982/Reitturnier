@@ -115,6 +115,7 @@ WELTEN.hof = (function () {
     HOFTAG.baue(ctx);
     HOFKINDER.baue(ctx);
     FERIEN.baue(ctx);
+    AUSREISSER.baueHof(ctx);
     gebaut = true;
   }
 
@@ -465,7 +466,7 @@ WELTEN.hof = (function () {
     while (b.mist.length > soll) szene.remove(b.mist.pop());
     var sauber = Math.round((1 - st.schmutz) * 100), satt = Math.round((1 - st.hunger) * 100);
     var mein = STAND.istMeins(P.def.id);
-    var text = mein ? '⭐ Dein Pferd ⭐\n' + P.def.name + HOFLEBEN.zeichen(P) + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%' : P.ort === 'kind' ? P.def.name + '\nmit ' + STAND.betreuer(P.def.id) + ' ' + (P.kindText || 'unterwegs') : P.def.name + '\n' + STAND.betreuer(P.def.id) + ' kümmert sich';
+    var text = P.ort === 'fort' ? P.def.name + '\n❗ ausgerissen!' : mein ? '⭐ Dein Pferd ⭐\n' + P.def.name + HOFLEBEN.zeichen(P) + '\n🧽 ' + sauber + '%  🍎 ' + satt + '%' : P.ort === 'kind' ? P.def.name + '\nmit ' + STAND.betreuer(P.def.id) + ' ' + (P.kindText || 'unterwegs') : P.def.name + '\n' + STAND.betreuer(P.def.id) + ' kümmert sich';
     if (text !== P.schildText) {
       P.schildText = text;
       if (P.schild) { szene.remove(P.schild); P.schild.material.map.dispose(); P.schild.material.dispose(); }
@@ -481,6 +482,7 @@ WELTEN.hof = (function () {
 
   function bewegePferde(dt) {
     pferde.forEach(function (P) {
+      if (P.ort === 'fort') { P.tier.wurzel.visible = false; return; }       // ausgerissen (js/ausreisser.js): nicht auf dem Hof
       var t = P.tier, alt = { x: P.x, z: P.z };
       // Ein Pferd, das gerade ein Hofkind hat (ort 'kind'), macht das, was in kindArt steht: an der Hand gehen, Longe, Weide …
       var art = P.ort === 'kind' ? P.kindArt : P.ort, Z = P.ort === 'kind' ? P.kind : S;
@@ -1121,7 +1123,7 @@ WELTEN.hof = (function () {
     HOFKINDER.alleHeim(); FERIEN.alleHeim();               // die Hofkinder haben ihre Pferde selbst weggebracht
     if (HOFLEBEN.fohlenHeim()) namen.push(STAND.daten.fohlen.name || 'das Fohlen');
     if (S.reitet) steigeAb(true);
-    pferde.forEach(function (P) { if (P.ort !== 'box') { namen.push(P.def.name); inBox(P); } });
+    pferde.forEach(function (P) { if (P.ort !== 'box' && P.ort !== 'fort') { namen.push(P.def.name); inBox(P); } });
     S.fuehrt = null; orte.longePferd = null;
     return namen;
   }
@@ -1360,6 +1362,7 @@ WELTEN.hof = (function () {
     STURM.schrittHof(dt, zeit);
     HOFTAG.schritt(dt, zeit);
     EREIGNISSE.schritt(dt, 'hof', S.x, S.z);
+    if (modus === 'frei') AUSREISSER.hofSchritt(dt);
     if (modus !== 'frei' && REDEN.offen()) REDEN.ende();
     REDEN.schritt(S.x, S.z);
     if (modus === 'longe' && orte.longePferd) {
@@ -1395,10 +1398,10 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || AUSREISSER.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     // Ausrufezeichen über der Stelle oder der Person, bei der eine Geschichte weitergeht
-    var EM = modus === 'frei' ? EREIGNISSE.marke() : null;
+    var EM = modus === 'frei' ? AUSREISSER.marke() || EREIGNISSE.marke() : null;
     if (EM && !marke) { marke = BAU.schwebeText('❗', 0.55, { schrift: 60, immerSichtbar: true }); marke.renderOrder = 6; szene.add(marke); }
     if (marke) { marke.visible = !!EM; if (EM) marke.position.set(EM.x, (EM.art === 'person' ? 2.75 : 1.1) + Math.sin(zeit * 4) * 0.12, EM.z); }
     orte.zeiger.visible = !!(aktion && aktion.text);
@@ -1490,6 +1493,7 @@ WELTEN.hof = (function () {
           '• Durch das <b>Tor im Süden</b> geht es ins Grüne: Mit einem Pferd an der Hand kannst du draußen <b>aufsteigen</b> (Knopf rechts unten) und losreiten.</div>',
           [{ text: 'Los geht\'s', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
+      AUSREISSER.hofStart();
     },
     schritt: schritt,
     aktion: function () { if (modus === 'frei' && aktion && aktion.tun) aktion.tun(); },
