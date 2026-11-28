@@ -45,6 +45,7 @@ WELTEN.ausritt = (function () {
   var gebaut = false, szene, kamera, sonne, himmel, opt = {};
   var meins, freund, fohlenTier, M = null, F = null, ich, freundin, I, B, FO;
   var modus = 'aus', zeit = 0, dauer = 0, kamW = 0, aktuell = null, zweitListe = [];
+  var nacht = false;          // true = Nachtwanderung zu Fuß mit Lotte und den Ferienkindern (js/nachtwanderung.js)
   var mitPferd = true, mitFreundin = true, fuehrt = false, mein = null, ihr = null, startId = null, alle = [];
   var gefunden = {}, gesehen = {}, getan = {}, muenzen = 0, apfelZahl = 0, blumenZahl = 0, pilzZahl = 0, hufeisenZahl = 0, nass = 0, kalt = false;
   var redeZeit = 0, naechsteRede = 25, hinweisAlt = null, tippZeit = 0;
@@ -584,8 +585,9 @@ WELTEN.ausritt = (function () {
   }
 
   // ---------- Reden, Hinweise, Lohn ----------
-  function sage(text, sek) { if (!mitFreundin) return; redeZeit = sek || 5; setzeHinweis('Lotte: „' + text + '“'); }
-  function tipp(text, sek) { if (redeZeit > 0 && tippZeit <= 0) return; tippZeit = sek || 3.5; redeZeit = Math.max(redeZeit, 0.01); setzeHinweis(text); }
+  // Bei der Nachtwanderung (nacht) schweigen die Sprüche und Tipps vom Tag: Dann redet nur js/nachtwanderung.js (mit "immer").
+  function sage(text, sek, immer) { if (!mitFreundin || (nacht && !immer)) return; redeZeit = sek || 5; setzeHinweis('Lotte: „' + text + '“'); }
+  function tipp(text, sek, immer) { if ((nacht && !immer) || (redeZeit > 0 && tippZeit <= 0)) return; tippZeit = sek || 3.5; redeZeit = Math.max(redeZeit, 0.01); setzeHinweis(text); }
   function setzeHinweis(text) {
     if (text === hinweisAlt) return;
     hinweisAlt = text;
@@ -679,8 +681,11 @@ WELTEN.ausritt = (function () {
     KERN.schliesseKarte();
     modus = 'ritt';
     document.body.className = 'im-welt welt-ausritt mit-lenken mit-tempo';
-    sage('Los geht’s! Folge einfach dem Weg, ich bleibe bei dir.', 6);
+    sage(nacht ? 'Alle da? Dann los! Immer den Leuchtbändern nach. Und bleibt schön zusammen.' : 'Los geht’s! Folge einfach dem Weg, ich bleibe bei dir.', 7, true);
     if (opt.zuFuss || !mitPferd) { steigeAb(true); if (mitPferd) { fuehrt = true; meins.setzeKopfTief(0); if (mitFreundin) freund.setzeKopfTief(0); } }
+    // ohne Pferd steht man gleich am Tor (das Pferd, neben dem man sonst absteigt, ist dann weit weg versteckt)
+    if (!mitPferd) { I.x = START[0]; I.z = opt.vomHof ? -121 : START[1]; I.kurs = 0; kamW = Math.PI; B.x = I.x - 1.2; B.z = I.z - 0.8; B.kurs = 0; kamera.userData.sprung = true; }
+    if (nacht) return;
     if (!mitPferd) tipp('🥾 Du bist zu Fuß unterwegs. Mit einem Pferd vom Hof kommst du viel weiter!', 6);
     else if (opt.vomHof) sage(opt.reitet ? 'Warte, ich komme mit! Hier draußen dürfen wir traben und galoppieren.' : 'Warte, ich komme mit! Steig auf, wann du willst.', 6);
   }
@@ -994,6 +999,10 @@ WELTEN.ausritt = (function () {
       ? { x: I.x, z: I.z, y: ich.wurzel.position.y, tempo: I.tempo, kurs: I.kurs, blick: kamW + Math.PI, fuss: true, frei: !I.sitzt && !angel && I.poseZeit <= 0 }
       : { x: M.x, z: M.z, y: M.y, tempo: M.tempo, kurs: M.kurs, blick: M.kurs, fuss: false, frei: !rennen && !slalom }) : null;
     if (AR && AR.aktion) aktuell = AR.aktion;
+    // Nachtwanderung? Dann sagt js/nachtwanderung.js, was es an den Stationen zu tun gibt, und malt die Dunkelheit.
+    var NW = nacht && modus === 'fuss' ? NACHT.ausrittSchritt(dt, zeit, { x: I.x, z: I.z, y: ich.wurzel.position.y, tempo: I.tempo, kurs: I.kurs, sitzt: !!I.sitzt, frei: !I.sitzt && !angel && I.poseZeit <= 0 }) : null;
+    if (NW && (NW.aktion || NW.fest)) aktuell = NW.aktion;
+    if (NW && NW.kachel) AR = { kachel: NW.kachel };
     if (tippZeit > 0) tippZeit -= dt;
     if (redeZeit > 0) { redeZeit -= dt; if (redeZeit <= 0 && tippZeit <= 0) setzeHinweis(null); }
     KERN.setzeAktion(aktuell ? aktuell.text : null);
@@ -1193,7 +1202,7 @@ WELTEN.ausritt = (function () {
     if (!I.pose && !I.sitzt) ich.setzePose(fuehrt ? 'fuehren' : 'steh');
     ich.bewege(dt);
     ich.wurzel.position.set(I.x, iy, I.z); ich.wurzel.rotation.y = I.kurs;
-    entdecke(I.x, I.z);
+    if (!nacht) entdecke(I.x, I.z);          // nachts wird gewandert, nicht gesammelt
     // die Freundin geht mit und setzt sich dazu
     if (mitFreundin) {
       var zx = I.x - Math.sin(I.kurs) * 1.1 - Math.cos(I.kurs) * 1.1, zz = I.z - Math.cos(I.kurs) * 1.1 + Math.sin(I.kurs) * 1.1, sitzB = false;
@@ -1219,7 +1228,7 @@ WELTEN.ausritt = (function () {
     if (I.sitzt) aktuell = I.sitzt.decke && I.poseZeit <= 0 && !getan.satt ? { text: '🍰 Picknick essen', tun: function () { picknick(); getan.essen = (getan.essen || 0) + 1; if (getan.essen >= 3) getan.satt = true; } } : I.poseZeit <= 0 ? { text: '🧍 Aufstehen', tun: aufstehen } : null;
     else if (I.poseZeit > 0 && I.pose !== 'angeln') aktuell = null;
     else if (angel) aktuell = { text: angel.phase === 'biss' ? '🎣 Ziehen!' : '🎣 Angel einholen', tun: angle };
-    else if (I.z < -116 && Math.abs(I.x) < 9 && dauer > 8) aktuell = { text: '🏡 Nach Hause gehen', tun: nachHause };
+    else if (!nacht && I.z < -116 && Math.abs(I.x) < 9 && dauer > 8) aktuell = { text: '🏡 Nach Hause gehen', tun: nachHause };
     else if (amPferd && !imWasser) aktuell = { text: '🐴 Auf ' + mein.name + ' steigen', tun: steigeAuf };
     else if (amAnderen && mitPferd) aktuell = { text: '🔄 Auf ' + ihr.name + ' umsteigen', tun: function () { tausche(); steigeAuf(); } };
     else {
@@ -1251,7 +1260,7 @@ WELTEN.ausritt = (function () {
     KERN.zeigeKarte('mitte', '<div class="klein">' + (mitPferd ? 'Ausritt' + (mitFreundin ? ' mit Lotte' : '') : 'Spaziergang') + '</div><h2>Das war schön!</h2>' +
       '<div class="details">Entdeckte Orte: <b>⭐ ' + n + ' von ' + ORTE.length + '</b><br>Beobachtete Tiere: <b>🔭 ' + tiere + ' von ' + Object.keys(TIERNAMEN).length + '</b><br>Gesammelte Äpfel: <b>🍎 ' + apfelZahl + '</b>' +
       (hufeisenZahl ? '<br>Glückshufeisen: <b>🍀 ' + hufeisenZahl + '</b>' : '') + (getan.rennen ? '<br>Gewonnene Wettrennen: <b>🏁 ' + getan.rennen + '</b>' : '') + '</div>' +
-      AUSREISSER.heimText() + (muenzen ? '<div class="lohn">+' + muenzen + ' 🪙 Münzen <small>(unterwegs gesammelt)</small></div>' : '') +
+      AUSREISSER.heimText() + NACHT.heimText() + (muenzen ? '<div class="lohn">+' + muenzen + ' 🪙 Münzen <small>(unterwegs gesammelt)</small></div>' : '') +
       (opt.hof && mitPferd ? '<div class="details"><small>Tipp: Am <b>🚿 Putzplatz</b> auf dem Hof kannst du ' + KERN.esc(mein.name) + ' abspritzen, bevor es in den Stall geht.</small></div>' : ''),
       [{ text: mitPferd ? 'Weiter reiten' : 'Weiter spazieren', aktion: function () { KERN.schliesseKarte(); modus = alt; dauer = 0; } },
        { text: REITEN.heimText(opt), klasse: 'zweit', aktion: function () { var o = opt; raeumeAuf(); REITEN.heim(o, mitPferd ? { art: 'ausritt', orte: n, pferdId: id } : null); } }]);
@@ -1262,6 +1271,7 @@ WELTEN.ausritt = (function () {
     if (WETTER.gewitter() && !opt.hof) WETTER.setze(null, 'regen');          // ohne Hof gibt es keinen Stall zum Unterstellen
     sturmLauf = null; rennen = null; slalom = null; if (zielFahne) zielFahne.visible = false;
     AUSREISSER.ausrittEnde();
+    NACHT.ausrittEnde(); nacht = false; API.mitNacht = false;
   }
 
   // ---------- Radar oben in der Ecke und die große Landkarte ----------
@@ -1326,6 +1336,7 @@ WELTEN.ausritt = (function () {
     g.fillStyle = '#ffffff'; g.beginPath(); g.arc(qh[0], qh[1], 19, 0, 6.2832); g.fill(); g.strokeStyle = '#e8413c'; g.lineWidth = 3.5; g.stroke();
     g.font = '24px sans-serif'; g.fillText('🏡', qh[0], qh[1] + 1);
     AUSREISSER.radar(g, punkt, m);
+    NACHT.radar(g, punkt, m);
     pfeilAuf(g, m, m, o[2], 13, '#2a6fd6');
     var sturm = WETTER.gewitter();
     g.strokeStyle = sturm && Math.sin(zeit * 7) > 0 ? '#e8413c' : '#fffaf0'; g.lineWidth = 7; g.beginPath(); g.arc(m, m, m - 5, 0, 6.2832); g.stroke();
@@ -1390,7 +1401,8 @@ WELTEN.ausritt = (function () {
       opt = o || {};
       if (!gebaut) baue();
       API.szene = szene; API.kamera = kamera;
-      mitPferd = !opt.ohnePferd; mitFreundin = mitPferd;
+      nacht = !!opt.nacht; API.mitNacht = nacht;          // nur bei der Nachtwanderung wird es hier draußen dunkel
+      mitPferd = !opt.ohnePferd && !nacht; mitFreundin = mitPferd || nacht;
       // alle Hofpferde stehen zur Wahl; geritten wird das mitgebrachte (oder das zuletzt gewählte)
       alle = PFERDE.stall().map(function (def) { var st = STAND.pferd(def.id); return { id: def.id, name: def.name, fell: def.fell, def: def, ausruestung: st.ausruestung, schmutz: st.schmutz }; });
       var wunsch = opt.pferd ? opt.pferd.id : STAND.daten.gewaehlt;
@@ -1410,8 +1422,11 @@ WELTEN.ausritt = (function () {
       staemme.forEach(function (s) { s.gesprungen = false; });
       baueRadar(); radarZeit = 0;
       AUSREISSER.ausrittStart({ szene: szene, hoehe: hoehe, boden: boden, wasser: WASSER, rand: RAND, grenze: grenze, tipp: tipp, sage: sage, lohn: lohn });
+      NACHT.ausrittStart({ nacht: nacht, szene: szene, kamera: kamera, hoehe: fussHoehe, boden: boden, wasser: WASSER, grenze: grenze, tipp: function (t, sek) { tipp(t, sek, true); }, sage: function (t, sek) { sage(t, sek, true); }, lohn: lohn, ich: ich,
+        sitz: function (s) { I.sitzt = s; I.x = s.x; I.z = s.z; I.kurs = s.kurs; I.tempo = 0; ich.setzePose(s.pose); },
+        heim: nachHause, ende: function () { var o3 = opt; raeumeAuf(); REITEN.heim(o3, null); } });
       if (WETTER.gewitter()) WETTER.setze(null, 'wolken');
-      sturmLauf = null; sturmIn = Math.random() < 0.4 ? 110 + Math.random() * 200 : 1e9;
+      sturmLauf = null; sturmIn = nacht ? 1e9 : Math.random() < 0.4 ? 110 + Math.random() * 200 : 1e9;
       if (!blitzHoerer) { blitzHoerer = true; STURM.beiBlitz(beiBlitz); }
       if (fallBaum) { fallBaum.t = -1; fallBaum.g.rotation.x = 0; fallBaum.stamm.da = false; }
       if (schafe) { schafe.zustand = 'links'; schafe.x = schafe.x0; schafe.z = schafe.z0; schafe.tiere.forEach(function (T) { T.x = schafe.x + T.dx; T.z = schafe.z + T.dz; }); }
@@ -1419,7 +1434,7 @@ WELTEN.ausritt = (function () {
       M.setze(START[0], sz, 0); M.eigen = 0; F.setze(START[0] - 2.6, sz - 1.2, 0);
       FO.x = 5; FO.z = sz - 3; FO.tempo = 0;
       I.x = 0; I.z = sz; I.kurs = 0; I.sitzt = null; I.pose = null; I.poseZeit = 0; I.tempo = 0; kamW = Math.PI;
-      meins.wurzel.visible = mitPferd; freund.wurzel.visible = mitFreundin; freundin.wurzel.visible = mitFreundin;
+      meins.wurzel.visible = mitPferd; freund.wurzel.visible = mitFreundin && mitPferd; freundin.wurzel.visible = mitFreundin;
       if (!mitPferd) { M.setze(0, -400, 0); F.setze(4, -400, 0); }
       ich.setzeOutfit(KERN.spieler().outfit); ich.setzeHelm(true);
       setzAuf(ich, meins); if (mitFreundin) setzAuf(freundin, freund);

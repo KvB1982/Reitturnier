@@ -117,6 +117,7 @@ WELTEN.hof = (function () {
     FERIEN.baue(ctx);
     AUSREISSER.baueHof(ctx);
     DIEBSTAHL.baueHof(ctx);
+    NACHT.baueHof(ctx);
     gebaut = true;
   }
 
@@ -850,6 +851,14 @@ WELTEN.hof = (function () {
   function gehInsGruene() {
     var P = S.reitet || S.fuehrt, ritt = !!S.reitet;
     if (HOFLEBEN.fuehrtFohlen()) { S.z = 48.5; KERN.meldung('Das Fohlen bleibt auf dem Hof. Bring es erst in seine Box oder auf die Weide.', 'knapp'); return; }
+    // Nachtwanderung (js/nachtwanderung.js): Hat man Lotte zugesagt, geht es zu Fuß durchs Tor in die Nacht hinaus.
+    if (NACHT.bereit()) {
+      if (S.reitet || S.fuehrt) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('🏮 Zur Nachtwanderung gehen alle zu Fuß. Bring dein Pferd erst in die Box.', 'knapp'); return; }
+      HOFTAG.loslassen(); STURM.loslassen(); trage(null);
+      NACHT.brichAuf();
+      WELTEN.ausritt.start({ nacht: true, ohnePferd: true, vomHof: true, hof: true, zurueck: function () { NACHT.zurueck(); if (szene.userData.licht) szene.userData.licht.wetterBereit = false; API.start({ zurueckVon: 'ausritt' }); } });      // auf dem Hof ist es jetzt sofort Nacht
+      return;
+    }
     if (HOFTAG.nacht()) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('🌙 Nachts bleibt das Tor zu.', 'knapp'); return; }
     if (WETTER.gewitter()) { S.z = 48.5; if (S.reitet) S.reitet.z = 48.5; KERN.meldung('⛈️ Bei Gewitter bleibt das Tor zu. Ab in den Stall!', 'knapp'); return; }
     HOFTAG.loslassen(); STURM.loslassen(); trage(null);
@@ -1402,10 +1411,10 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || AUSREISSER.hinweis() || DIEBSTAHL.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || AUSREISSER.hinweis() || DIEBSTAHL.hinweis() || NACHT.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     // Ausrufezeichen über der Stelle oder der Person, bei der eine Geschichte weitergeht
-    var EM = modus === 'frei' ? AUSREISSER.marke() || DIEBSTAHL.marke() || EREIGNISSE.marke() : null;
+    var EM = modus === 'frei' ? AUSREISSER.marke() || DIEBSTAHL.marke() || NACHT.marke() || EREIGNISSE.marke() : null;
     if (EM && !marke) { marke = BAU.schwebeText('❗', 0.55, { schrift: 60, immerSichtbar: true }); marke.renderOrder = 6; szene.add(marke); }
     if (marke) { marke.visible = !!EM; if (EM) marke.position.set(EM.x, (EM.art === 'person' ? 2.75 : 1.1) + Math.sin(zeit * 4) * 0.12, EM.z); }
     orte.zeiger.visible = !!(aktion && aktion.text);

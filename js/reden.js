@@ -483,7 +483,7 @@ var REDEN = (function () {
     opt = opt || {};
     wer = PERSONEN.kennung(wer);
     if (laeuft) ende();
-    var g = opt.gespraech || (typeof EREIGNISSE !== 'undefined' ? EREIGNISSE.redeFuer(wer) : null) || (typeof DIEBSTAHL !== 'undefined' ? DIEBSTAHL.redeFuer(wer) : null), ausGeschichte = !!g && !opt.gespraech;
+    var g = opt.gespraech || (typeof EREIGNISSE !== 'undefined' ? EREIGNISSE.redeFuer(wer) : null) || (typeof DIEBSTAHL !== 'undefined' ? DIEBSTAHL.redeFuer(wer) : null) || (typeof NACHT !== 'undefined' ? NACHT.redeFuer(wer) : null), ausGeschichte = !!g && !opt.gespraech;
     if (!g) g = waehle(wer);
     if (!g) return false;
     var s = PERSONEN.stand(wer);
