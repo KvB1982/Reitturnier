@@ -116,6 +116,7 @@ WELTEN.hof = (function () {
     HOFKINDER.baue(ctx);
     FERIEN.baue(ctx);
     AUSREISSER.baueHof(ctx);
+    DIEBSTAHL.baueHof(ctx);
     gebaut = true;
   }
 
@@ -988,6 +989,8 @@ WELTEN.hof = (function () {
     HOFTAG.aktionen(vor, S, P, function () { return beste; });
     var EA = !P ? EREIGNISSE.aktion() : null;          // eine Geschichte hat hier etwas zu tun
     if (EA) vor(EA.x, EA.z, EA.r, EA.text, EA.tun);
+    var DA = !P ? DIEBSTAHL.aktion() : null;           // im Krimi gibt es hier etwas anzusehen
+    if (DA) vor(DA.x, DA.z, DA.r, DA.text, DA.tun);
     STURM.aktionenHof(vor);
     return beste;
   }
@@ -1362,7 +1365,7 @@ WELTEN.hof = (function () {
     STURM.schrittHof(dt, zeit);
     HOFTAG.schritt(dt, zeit);
     EREIGNISSE.schritt(dt, 'hof', S.x, S.z);
-    if (modus === 'frei') AUSREISSER.hofSchritt(dt);
+    if (modus === 'frei') { AUSREISSER.hofSchritt(dt); DIEBSTAHL.hofSchritt(dt, zeit); }
     if (modus !== 'frei' && REDEN.offen()) REDEN.ende();
     REDEN.schritt(S.x, S.z);
     if (modus === 'longe' && orte.longePferd) {
@@ -1388,6 +1391,7 @@ WELTEN.hof = (function () {
       var nahe = !S.reitet && !REDEN.offen() ? PERSONEN.inNaehe(S.x, S.z, REDE_NAH) : null;
       if (nahe) zw.push({ text: '💬 Mit ' + nahe.name + ' reden', tun: (function (id) { return function () { REDEN.starte(id); }; })(nahe.id) });
       zw = zw.concat(HOFTAG.zweit(), HOFLEBEN.zweit());
+      if (!S.reitet && !S.fuehrt) zw = zw.concat(DIEBSTAHL.zweit());
       var mb = !S.fuehrt && !S.reitet && zw.length < 3 ? inBoxVon(S.x, S.z) : null;
       if (mb && mb.pferd && mb.pferd.ort === 'box' && !STAND.istMeins(mb.pferd.def.id)) zw.push({ text: '⭐ Zu meinem Pferd machen', tun: (function (B) { return function () { frageMeins(B); }; })(mb.pferd) });
     }
@@ -1398,10 +1402,10 @@ WELTEN.hof = (function () {
       meinZeichen.userData.stern.rotation.y = zeit * 1.5;
     }
     REITEN.zweit(zw);
-    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || AUSREISSER.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
+    var hinweis = aktion && aktion.hinweis ? aktion.hinweis : (modus === 'longe' ? 'Longieren: Wähle unten die Gangart. Das macht dein Pferd fit.' : modus === 'frei' ? STURM.hinweisHof() || HOFLEBEN.hinweis() || AUSREISSER.hinweis() || DIEBSTAHL.hinweis() || EREIGNISSE.hinweis() || HOFTAG.hinweis() || (S.reitet && aufKoppel(S.x, S.z) ? '🐎 Koppel: Mit den Knöpfen rechts unten wählst du Schritt, Trab oder Galopp. Im Trab und Galopp springt dein Pferd über die Baumstämme.' : S.reitet ? '🐴 Auf dem Hof geht es nur im Schritt. Auf der Koppel im Westen darfst du traben und galoppieren. Durch das Tor im Süden reitest du ins Grüne.' : null) : null);
     if (modus !== 'pflege') setzeHinweis(hinweis);
     // Ausrufezeichen über der Stelle oder der Person, bei der eine Geschichte weitergeht
-    var EM = modus === 'frei' ? AUSREISSER.marke() || EREIGNISSE.marke() : null;
+    var EM = modus === 'frei' ? AUSREISSER.marke() || DIEBSTAHL.marke() || EREIGNISSE.marke() : null;
     if (EM && !marke) { marke = BAU.schwebeText('❗', 0.55, { schrift: 60, immerSichtbar: true }); marke.renderOrder = 6; szene.add(marke); }
     if (marke) { marke.visible = !!EM; if (EM) marke.position.set(EM.x, (EM.art === 'person' ? 2.75 : 1.1) + Math.sin(zeit * 4) * 0.12, EM.z); }
     orte.zeiger.visible = !!(aktion && aktion.text);
@@ -1494,6 +1498,7 @@ WELTEN.hof = (function () {
           [{ text: 'Los geht\'s', aktion: function () { KERN.schliesseKarte(); modus = 'frei'; } }]);
       }
       AUSREISSER.hofStart();
+      DIEBSTAHL.hofStart();
     },
     schritt: schritt,
     aktion: function () { if (modus === 'frei' && aktion && aktion.tun) aktion.tun(); },
